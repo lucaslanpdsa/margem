@@ -1,13 +1,12 @@
 "use client";
 
-import { Bell, Check, MoreHorizontal, Play, Square, Trash2 } from "lucide-react";
+import { Bell, Check, Minus, MoreHorizontal, Play, Plus, Square, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, parseDuration, todayKey } from "@/lib/dates";
 import { addSession, deleteSession, saveSettings, updateSession } from "@/lib/db";
 import { dayItems, weeklyGoals } from "@/lib/metrics";
 import { isStopwatch, startTimer, stopTimer } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
-import { PomodoroPicker } from "./pickers";
 import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
 import { Button, IconButton, Modal, Panel, PanelHeader, Segmented, cx, inputCls } from "./ui";
@@ -68,21 +67,59 @@ function Ring({ pct, active, children }: { pct: number | null; active: boolean; 
   );
 }
 
+/** Número em minutos com − e + (bom para o dedo no celular); também aceita digitar. */
+function MinutesField({ label, value, step, min, max, onChange }: { label: string; value: number; step: number; min: number; max: number; onChange: (v: number) => void }) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const set = (v: number) => {
+    setDraft(null);
+    onChange(Math.max(min, Math.min(max, Math.round(v) || value)));
+  };
+  return (
+    <label className="block">
+      <span className="mb-1.5 block text-[13px] font-medium">{label}</span>
+      <span className="flex h-12 items-center rounded-xl border border-line">
+        <IconButton label={`Menos ${label.toLowerCase()}`} type="button" onClick={() => set(value - step)} className="h-full w-11 rounded-r-none">
+          <Minus size={16} />
+        </IconButton>
+        <input
+          type="number"
+          inputMode="numeric"
+          min={min}
+          max={max}
+          value={draft ?? value}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => draft !== null && set(Number(draft))}
+          onKeyDown={(e) => e.key === "Enter" && draft !== null && set(Number(draft))}
+          className="tabular h-full w-full min-w-0 bg-transparent text-center text-lg font-semibold outline-none [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <IconButton label={`Mais ${label.toLowerCase()}`} type="button" onClick={() => set(value + step)} className="h-full w-11 rounded-l-none">
+          <Plus size={16} />
+        </IconButton>
+      </span>
+    </label>
+  );
+}
+
 function PomodoroMenu({ onClose }: { onClose: () => void }) {
   const { uid, settings } = useStore();
   const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
   return (
-    <Modal title="Pomodoro" description="Quanto tempo de foco antes de cada pausa." onClose={onClose}>
-      <PomodoroPicker focus={settings.focusMin} brk={settings.breakMin} onChange={(f, b) => saveSettings(uid, { focusMin: f, breakMin: b })} />
-      <div className="mt-5 border-t border-line pt-4">
-        {perm === "granted" ? (
-          <p className="text-sm text-done">Você recebe um aviso quando o foco ou a pausa acabam.</p>
-        ) : perm !== "unsupported" ? (
-          <Button onClick={() => Notification.requestPermission().then(setPerm)}>
-            <Bell size={14} /> Avisar quando o tempo acabar
-          </Button>
-        ) : null}
+    <Modal title="Pomodoro" description="Tempo em minutos." onClose={onClose}>
+      <div className="grid grid-cols-2 gap-3">
+        <MinutesField label="Foco" value={settings.focusMin} step={5} min={5} max={180} onChange={(v) => saveSettings(uid, { focusMin: v })} />
+        <MinutesField label="Pausa" value={settings.breakMin} step={1} min={1} max={60} onChange={(v) => saveSettings(uid, { breakMin: v })} />
       </div>
+      {perm !== "unsupported" && (
+        <div className="mt-5 border-t border-line pt-4">
+          {perm === "granted" ? (
+            <p className="text-sm text-done">Você recebe um aviso quando o foco ou a pausa acabam.</p>
+          ) : (
+            <Button onClick={() => Notification.requestPermission().then(setPerm)}>
+              <Bell size={14} /> Avisar quando o tempo acabar
+            </Button>
+          )}
+        </div>
+      )}
       <div className="mt-5 flex justify-end">
         <Button variant="primary" onClick={onClose}>
           Pronto
