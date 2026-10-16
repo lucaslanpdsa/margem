@@ -19,7 +19,7 @@ const sessions: Session[] = [
   { id: "s1", taskId: "b", date: D, minutes: 30, kind: "pomodoro", startedAt: "", endedAt: "" },
   { id: "s2", taskId: "c", date: "2026-10-13", minutes: 100, kind: "manual", startedAt: "", endedAt: "" },
 ];
-const settings = { ...DEFAULT_SETTINGS, capacityByWeekday: [0, 0, 0, 0, 0, 300, 0], slack: 0.2 };
+const settings = { ...DEFAULT_SETTINGS, capacityByWeekday: [0, 0, 0, 0, 0, 240, 0] };
 
 describe("dayMetrics", () => {
   const m = dayMetrics(D, settings, tasks, blocks, sessions);
@@ -29,8 +29,7 @@ describe("dayMetrics", () => {
   });
 
   it("calcula capacidade, planejado, feito, restante e livre", () => {
-    expect(m.capacityMin).toBe(300);
-    expect(m.usableMin).toBe(240);
+    expect(m.capacityMin).toBe(240);
     expect(m.plannedMin).toBe(60 + 90 + 60);
     expect(m.doneMin).toBe(30);
     expect(m.remainingMin).toBe(60 + 60 + 60);
@@ -44,7 +43,7 @@ describe("dayMetrics", () => {
 
   it("override de capacidade vale para o dia", () => {
     const s = { ...settings, capacityOverrides: { [D]: 100 } };
-    expect(dayMetrics(D, s, tasks, blocks, sessions).usableMin).toBe(80);
+    expect(dayMetrics(D, s, tasks, blocks, sessions).capacityMin).toBe(100);
   });
 });
 

@@ -1,65 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { fmtMin } from "@/lib/dates";
 import { Segmented, cx } from "./ui";
-
-/**
- * Escolha da folga com um exemplo visual usando o dia típico da pessoa:
- * mostra quanto dá para planejar e quanto fica de reserva.
- */
-export function SlackPicker({ value, onChange, typicalDayMin }: { value: number; onChange: (v: number) => void; typicalDayMin: number }) {
-  const day = typicalDayMin > 0 ? typicalDayMin : 240;
-  const reserve = Math.round(day * (value / 100));
-  const usable = day - reserve;
-
-  return (
-    <div>
-      <p className="text-sm text-muted">
-        Você nunca usa 100% do tempo livre em tarefas: tem pausas, água, celular, troca de contexto e imprevistos. A folga separa um pedaço do dia para isso,
-        para o app não deixar você planejar mais do que cabe de verdade.
-      </p>
-
-      <div className="mt-4 rounded-xl bg-sunken p-4">
-        <p className="text-[13px] text-muted">Num dia com {fmtMin(day)} para tarefas:</p>
-        <div className="mt-2 flex h-9 gap-[2px] overflow-hidden rounded-lg text-[12px] font-semibold">
-          <div className="flex items-center bg-todo px-2.5 text-white" style={{ width: `${100 - value}%` }}>
-            <span className="truncate">Para planejar {fmtMin(usable)}</span>
-          </div>
-          {value > 0 && (
-            <div className="hatch flex items-center px-2 text-muted" style={{ width: `${value}%` }}>
-              {value >= 20 && <span className="truncate">{fmtMin(reserve)}</span>}
-            </div>
-          )}
-        </div>
-        <p className="mt-2 text-[13px]">
-          {value === 0 ? (
-            "Sem folga: o app conta com cada minuto. Bom só se você é muito constante."
-          ) : (
-            <>
-              Você planeja até <b className="font-semibold">{fmtMin(usable)}</b> de tarefas e <b className="font-semibold">{fmtMin(reserve)}</b> ficam de reserva.
-            </>
-          )}
-        </p>
-      </div>
-
-      <div className="mt-4 flex items-center gap-4">
-        <input
-          type="range"
-          min={0}
-          max={30}
-          step={5}
-          value={value}
-          onChange={(e) => onChange(+e.target.value)}
-          className="flex-1 accent-[var(--brand)]"
-          aria-label="Porcentagem de folga"
-        />
-        <span className="tabular w-12 text-right text-sm font-semibold">{value}%</span>
-      </div>
-      <p className="mt-1 text-xs text-muted">Dica: com pomodoro de 25 + 5, só as pausas já ocupam uns 17% do tempo. 15% é um bom começo; ajuste se seus dias vivem estourando.</p>
-    </div>
-  );
-}
 
 const POMO_PRESETS = [
   { focus: 25, brk: 5, label: "25 + 5", hint: "Clássico. Bom para começar e para tarefas cansativas." },

@@ -64,8 +64,6 @@ export interface Settings {
   capacityByWeekday: number[];
   /** Exceções para dias específicos { "2026-10-18": 120 }. */
   capacityOverrides: Record<string, number>;
-  /** Margem de folga, 0..0.5 (ex: 0.15 = 15%). */
-  slack: number;
   focusMin: number;
   breakMin: number;
   activeTimer?: ActiveTimer | null;
@@ -76,7 +74,6 @@ export interface Settings {
 export const DEFAULT_SETTINGS: Settings = {
   capacityByWeekday: [180, 240, 240, 240, 240, 240, 180],
   capacityOverrides: {},
-  slack: 0.15,
   focusMin: 25,
   breakMin: 5,
   activeTimer: null,

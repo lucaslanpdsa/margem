@@ -5,19 +5,11 @@ import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin } from "@/lib/dates";
 import { saveSettings } from "@/lib/db";
 import { useStore } from "./store";
-import { PomodoroPicker, SlackPicker } from "./pickers";
+import { PomodoroPicker } from "./pickers";
 import { Button, Modal, cx } from "./ui";
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0];
 
-/** Dia "típico" para os exemplos: o valor que mais se repete na semana. */
-export function typicalDay(caps: number[]) {
-  const days = caps.filter((c) => c > 0);
-  if (days.length === 0) return 240;
-  const count = new Map<number, number>();
-  days.forEach((d) => count.set(d, (count.get(d) ?? 0) + 1));
-  return [...count.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0];
-}
 
 /** Editor de tempo por dia da semana, de 30 em 30 minutos. */
 export function CapacityEditor({ value, onChange }: { value: number[]; onChange: (v: number[]) => void }) {
@@ -107,7 +99,6 @@ export function Onboarding() {
   const { uid, settings } = useStore();
   const [step, setStep] = useState(0);
   const [caps, setCaps] = useState(settings.capacityByWeekday);
-  const [slack, setSlack] = useState(Math.round(settings.slack * 100));
   const [focus, setFocus] = useState(settings.focusMin);
   const [brk, setBrk] = useState(settings.breakMin);
 
@@ -118,7 +109,6 @@ export function Onboarding() {
         ? {}
         : {
             capacityByWeekday: caps,
-            slack: slack / 100,
             focusMin: focus,
             breakMin: brk,
           }),
@@ -149,11 +139,6 @@ export function Onboarding() {
           </p>
         </div>
       ),
-    },
-    {
-      title: "Quanto reservar para imprevistos?",
-      description: "A margem de folga deixa as contas do dia mais realistas.",
-      body: <SlackPicker value={slack} onChange={setSlack} typicalDayMin={typicalDay(caps)} />,
     },
     {
       title: "Como você gosta de focar?",

@@ -11,7 +11,7 @@ Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem
 - **Prioridade** (alta, média, baixa) e **categoria**.
 - **Adição rápida**: digite `Revisar PR 45` ou `Estudar React 1h30` e a estimativa é lida do final.
 - **Agenda do dia e da semana**: arraste tarefas da lista para a agenda para criar blocos; mova e redimensione blocos.
-- **Capacidade do dia**: tempo disponível por dia da semana, ajuste pontual (“hoje só tenho 2h”) e **margem de folga** (padrão 15%) para pausas e imprevistos.
+- **Capacidade do dia**: tempo disponível por dia da semana e ajuste pontual (“hoje só tenho 2h”).
 - **Painel do dia**: feito / falta / planejado / livre, com alerta quando o dia passa do limite.
 - **Semana**: cada dia mostra sua barra de capacidade e o tempo livre no cabeçalho.
 - **Pomodoro**: conta **minutos reais** (parar no meio registra o parcial), sobrevive a recarregar a página e funciona entre dispositivos. Notificação + som ao fim.
@@ -25,11 +25,10 @@ Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem
 | Termo | Cálculo |
 |---|---|
 | Tempo do dia | padrão do dia da semana, ou o ajuste daquele dia |
-| Usável | tempo do dia × (1 − folga) |
 | Planejado | soma das estimativas das tarefas do dia (metas semanais entram pelo tempo dos blocos) |
 | Feito | tudo registrado no dia (pomodoro + manual) |
 | Falta | para cada tarefa não concluída: estimativa − feito |
-| Livre | usável − feito − falta (negativo = dia sobrecarregado) |
+| Livre | tempo do dia − feito − falta (negativo = dia sobrecarregado) |
 
 Concluir uma tarefa antes da estimativa libera o tempo restante dela.
 
@@ -89,7 +88,7 @@ src/
 users/{uid}/tasks/{id}       tarefas
 users/{uid}/blocks/{id}      blocos na agenda
 users/{uid}/sessions/{id}    tempo trabalhado (pomodoro e manual)
-users/{uid}/meta/settings    capacidade, folga, pomodoro e timer ativo
+users/{uid}/meta/settings    capacidade, pomodoro e timer ativo
 ```
 
 ## Próximos passos (v2)

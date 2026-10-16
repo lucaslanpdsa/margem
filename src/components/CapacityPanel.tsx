@@ -10,14 +10,14 @@ import { Button, Panel, cx, inputCls } from "./ui";
 
 /** Separa o que falta em "cabe no dia" e "passou do limite". */
 function splitRemaining(m: DayMetrics) {
-  const excess = Math.max(0, m.doneMin + m.remainingMin - m.usableMin);
+  const excess = Math.max(0, m.doneMin + m.remainingMin - m.capacityMin);
   const inLimit = Math.max(0, m.remainingMin - excess);
   return { inLimit, excess: m.remainingMin - inLimit };
 }
 
 /** Barra compacta (cabeçalho da semana). */
 export function CapacityBar({ m, thin }: { m: DayMetrics; thin?: boolean }) {
-  const total = Math.max(m.usableMin, m.doneMin + m.remainingMin, 1);
+  const total = Math.max(m.capacityMin, m.doneMin + m.remainingMin, 1);
   const pct = (v: number) => `${(Math.max(0, v) / total) * 100}%`;
   const { inLimit, excess } = splitRemaining(m);
   return (
@@ -46,7 +46,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
   const [value, setValue] = useState("");
 
   const over = m.freeMin < 0;
-  const total = Math.max(m.usableMin, m.doneMin + m.remainingMin, 1);
+  const total = Math.max(m.capacityMin, m.doneMin + m.remainingMin, 1);
   const p = (v: number) => (Math.max(0, v) / total) * 100;
   const { inLimit, excess } = splitRemaining(m);
   const isToday = m.date === todayKey();
@@ -131,9 +131,8 @@ export function DayBudget({ m }: { m: DayMetrics }) {
 
       <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-3 text-[13px] text-muted">
         <span>
-          <span className="tabular font-medium text-ink">{fmtMin(m.capacityMin)}</span> para tarefas
-          {custom ? " (ajustado só para este dia)" : ` (padrão de ${weekday})`}, menos {Math.round(settings.slack * 100)}% de folga para pausas e
-          imprevistos = <span className="tabular font-medium text-ink">{fmtMin(m.usableMin)}</span> usáveis.
+          <span className="tabular font-medium text-ink">{fmtMin(m.capacityMin)}</span> para tarefas neste dia
+          {custom ? " (ajustado só para este dia)." : ` (padrão de ${weekday}, definido em Ajustes).`}
         </span>
         {custom && (
           <button onClick={resetOverride} className="inline-flex items-center gap-1 font-medium text-brand hover:underline">

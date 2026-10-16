@@ -16,12 +16,11 @@ export interface DayItem {
 
 export interface DayMetrics {
   date: string;
-  capacityMin: number; // tempo do dia, antes da folga
-  usableMin: number; // depois da margem de folga
+  capacityMin: number; // tempo do dia para tarefas
   plannedMin: number; // soma das estimativas do dia
   doneMin: number; // tudo que foi trabalhado no dia
   remainingMin: number; // o que ainda falta das tarefas do dia
-  freeMin: number; // usável - (feito + restante); negativo = dia sobrecarregado
+  freeMin: number; // tempo do dia - (feito + restante); negativo = dia sobrecarregado
   items: DayItem[];
 }
 
@@ -80,18 +79,16 @@ export function dayMetrics(
 ): DayMetrics {
   const items = dayItems(date, tasks, blocks, sessions);
   const capacityMin = capacityFor(settings, date);
-  const usableMin = Math.round(capacityMin * (1 - settings.slack));
   const plannedMin = items.reduce((a, i) => a + i.estimateMin, 0);
   const doneMin = sessions.filter((s) => s.date === date).reduce((a, s) => a + s.minutes, 0);
   const remainingMin = items.reduce((a, i) => a + i.remainingMin, 0);
   return {
     date,
     capacityMin,
-    usableMin,
     plannedMin,
     doneMin,
     remainingMin,
-    freeMin: usableMin - doneMin - remainingMin,
+    freeMin: capacityMin - doneMin - remainingMin,
     items,
   };
 }

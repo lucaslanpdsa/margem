@@ -88,7 +88,7 @@ export function Shell() {
         ? `${fmt(days[0], { day: "numeric", month: "short" })} a ${fmt(days[6], { day: "numeric", month: "short" })}`
         : tab === "tarefas"
           ? "Tudo o que você cadastrou"
-          : "Seu tempo disponível, folga e pomodoro";
+          : "Seu tempo disponível e pomodoro";
   const step = tab === "semana" ? 7 : 1;
   const showNav = tab === "dia" || tab === "semana";
   const backToNow = tab === "semana" ? !days.includes(todayKey()) : !isToday;
@@ -180,7 +180,7 @@ export function Shell() {
               />
             )}
             {tab === "tarefas" && <TasksView />}
-            {tab === "ajustes" && <SettingsView key={JSON.stringify([settings.capacityByWeekday, settings.slack, settings.focusMin, settings.breakMin])} />}
+            {tab === "ajustes" && <SettingsView key={JSON.stringify([settings.capacityByWeekday, settings.focusMin, settings.breakMin])} />}
           </main>
         </div>
       </div>
