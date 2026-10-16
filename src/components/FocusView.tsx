@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, Check, Minus, MoreHorizontal, Play, Plus, Square } from "lucide-react";
+import { Bell, ChevronDown, Minus, MoreHorizontal, Play, Plus, Square } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
@@ -10,7 +10,7 @@ import type { Session, Task } from "@/lib/types";
 import { RecordTime } from "./EditableMinutes";
 import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
-import { Button, IconButton, Modal, Panel, PanelHeader, Segmented, cx, inputCls } from "./ui";
+import { Button, IconButton, Modal, Segmented, cx, inputCls } from "./ui";
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -41,25 +41,27 @@ function TaskSelect({ value, onChange, disabled, extra }: { value: string; onCha
   );
 }
 
-function Ring({ pct, active, children }: { pct: number | null; active: boolean; children: React.ReactNode }) {
-  const r = 106;
+function Ring({ pct, active, size = 300, children }: { pct: number | null; active: boolean; size?: number; children: React.ReactNode }) {
+  const stroke = 10;
+  const r = size / 2 - stroke;
   const c = 2 * Math.PI * r;
   const fill = pct === null ? (active ? 1 : 0) : pct / 100;
+  const mid = size / 2;
   return (
-    <div className="relative h-[236px] w-[236px]">
-      <svg width="236" height="236" viewBox="0 0 236 236" aria-hidden="true">
-        <circle cx="118" cy="118" r={r} fill="none" stroke="var(--sunken)" strokeWidth="12" />
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle cx={mid} cy={mid} r={r} fill="none" stroke="var(--sunken)" strokeWidth={stroke} />
         <circle
-          cx="118"
-          cy="118"
+          cx={mid}
+          cy={mid}
           r={r}
           fill="none"
           stroke="currentColor"
-          strokeWidth="12"
+          strokeWidth={stroke}
           strokeLinecap="round"
           strokeDasharray={c}
           strokeDashoffset={c * (1 - fill)}
-          transform="rotate(-90 118 118)"
+          transform={`rotate(-90 ${mid} ${mid})`}
           className="transition-[stroke-dashoffset] duration-1000"
         />
       </svg>
@@ -110,6 +112,17 @@ function PomodoroMenu({ onClose }: { onClose: () => void }) {
         <MinutesField label="Foco" value={settings.focusMin} step={5} min={5} max={180} onChange={(v) => saveSettings(uid, { focusMin: v })} />
         <MinutesField label="Pausa" value={settings.breakMin} step={1} min={1} max={60} onChange={(v) => saveSettings(uid, { breakMin: v })} />
       </div>
+      <div className="mt-5">
+        <span className="mb-1.5 block text-[13px] font-medium">O que conta como feito na tarefa</span>
+        <Segmented
+          value={settings.countBreaks ? "all" : "focus"}
+          onChange={(v) => saveSettings(uid, { countBreaks: v === "all" })}
+          options={[
+            { value: "focus", label: "Só o foco" },
+            { value: "all", label: "Foco + pausa" },
+          ]}
+        />
+      </div>
       {perm !== "unsupported" && (
         <div className="mt-5 border-t border-line pt-4">
           {perm === "granted" ? (
@@ -139,10 +152,16 @@ function History() {
   const list = sessions.filter((s) => s.date === today).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const total = list.reduce((a, s) => a + s.minutes, 0);
 
+  const [open, setOpen] = useState(false);
+
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader title="Hoje" description="Tudo que foi registrado hoje. Para reportar sem timer, use Registrar na tarefa." right={<span className="tabular font-semibold">{fmtMin(total)}</span>} />
-      <ul className="space-y-1.5 px-4 pb-4">
+    <div className="w-full">
+      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="mx-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-sunken hover:text-ink">
+        <ChevronDown size={15} className={cx("transition-transform", !open && "-rotate-90")} />
+        Hoje · <span className="tabular font-semibold text-ink">{fmtMin(total)}</span> registrados
+      </button>
+      {open && (
+      <ul className="mt-2 space-y-1.5">
         {list.length === 0 && <li className="rounded-xl bg-sunken px-4 py-3 text-sm text-muted">Nada registrado ainda hoje.</li>}
         {list.map((s) => {
           const task = tasks.find((t) => t.id === s.taskId);
@@ -172,8 +191,8 @@ function History() {
           );
         })}
       </ul>
-
-    </Panel>
+      )}
+    </div>
   );
 }
 
@@ -195,14 +214,10 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
   const status = !t ? "Pronto para começar" : t.phase === "break" ? "Pausa" : isStopwatch(t) ? "Contando" : "Foco";
 
   return (
-    <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
-      <Panel className="relative flex flex-col items-center gap-6 px-5 pt-6 pb-7">
-        <IconButton label="Configurar pomodoro" onClick={() => setMenu(true)} className="absolute top-4 right-4">
-          <MoreHorizontal size={18} />
-        </IconButton>
-
+    <div className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-md flex-col items-center justify-center gap-7 lg:min-h-[calc(100dvh-5rem)]">
+      <div className="relative flex w-full justify-center">
         {running ? (
-          <p className="text-sm font-medium text-muted">{shownMode === "pomodoro" ? "Pomodoro" : "Cronômetro"}</p>
+          <p className="py-1.5 text-sm font-medium text-muted">{shownMode === "pomodoro" ? (t?.phase === "break" ? "Pausa" : "Pomodoro") : "Cronômetro"}</p>
         ) : (
           <Segmented
             value={mode}
@@ -213,86 +228,50 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
             ]}
           />
         )}
+        <IconButton label="Configurar pomodoro" onClick={() => setMenu(true)} className="absolute top-0 right-0">
+          <MoreHorizontal size={18} />
+        </IconButton>
+      </div>
 
-        <div className={focus ? "text-todo" : "text-break"}>
-          <Ring pct={d ? d.pct : null} active={running}>
-            <span className="tabular text-[52px] leading-none font-semibold tracking-tight text-ink">{clock}</span>
-            <span className="mt-2 text-sm text-muted">{status}</span>
-          </Ring>
-        </div>
+      <div className={focus ? "text-todo" : "text-break"}>
+        <Ring pct={d ? d.pct : null} active={running} size={300}>
+          <span className="tabular text-[76px] leading-none font-semibold tracking-tight text-ink">{clock}</span>
+          <span className="mt-3 text-sm text-muted">{status}</span>
+        </Ring>
+      </div>
 
-        <div className="w-full max-w-md space-y-4">
-          <label className="block">
-            <span className="mb-1.5 block text-[13px] font-medium">
-              Tarefa <span className="font-normal text-muted">(opcional)</span>
-            </span>
-            {running ? (
-              <span className={cx(inputCls, "flex h-11 items-center font-medium", !runningTask && "text-muted")}>{runningTask?.title ?? "Sem tarefa"}</span>
-            ) : (
-              <TaskSelect value={taskId} onChange={setTaskId} />
-            )}
-          </label>
+      <div className="w-full space-y-3">
+        {running ? (
+          <p className={cx("text-center text-base font-medium", !runningTask && "text-muted")}>{runningTask?.title ?? "Sem tarefa"}</p>
+        ) : (
+          <TaskSelect value={taskId} onChange={setTaskId} />
+        )}
 
-          {shownMode === "pomodoro" && (
-            <fieldset>
-              <legend className="mb-1.5 text-[13px] font-medium">O que conta como feito</legend>
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { v: false, title: "Só o foco", hint: `${settings.focusMin} min por ciclo` },
-                  { v: true, title: "Foco + pausa", hint: `${settings.focusMin + settings.breakMin} min por ciclo` },
-                ].map((o) => {
-                  const on = !!settings.countBreaks === o.v;
-                  return (
-                    <button
-                      type="button"
-                      key={String(o.v)}
-                      onClick={() => saveSettings(uid, { countBreaks: o.v })}
-                      aria-pressed={on}
-                      className={cx(
-                        "flex items-start gap-2 rounded-xl border p-3 text-left transition-colors",
-                        on ? "border-todo bg-todo/[0.06] ring-1 ring-todo" : "border-line hover:border-muted/50",
-                      )}
-                    >
-                      <span className={cx("mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full border-2", on ? "border-todo bg-todo text-white" : "border-line")}>
-                        {on && <Check size={10} strokeWidth={4} />}
-                      </span>
-                      <span>
-                        <span className="block text-sm font-semibold">{o.title}</span>
-                        <span className="block text-xs text-muted">{o.hint}</span>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-          )}
-
-          {!t ? (
-            <button
-              onClick={() => startTimer(uid, settings, taskId, mode)}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-brand text-[15px] font-semibold text-white hover:bg-brand/90"
-            >
-              <Play size={14} fill="currentColor" /> Começar
+        {!t ? (
+          <button
+            onClick={() => startTimer(uid, settings, taskId, mode)}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-white hover:bg-brand/90"
+          >
+            <Play size={15} fill="currentColor" /> Começar
+          </button>
+        ) : t.phase === "focus" ? (
+          <button
+            onClick={() => stopTimer(uid, settings)}
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full border border-line bg-surface text-base font-semibold hover:bg-sunken"
+          >
+            <Square size={13} fill="currentColor" /> Parar e registrar
+          </button>
+        ) : (
+          <div className="grid grid-cols-2 gap-2">
+            <button onClick={() => stopTimer(uid, settings)} className="h-14 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
+              Encerrar
             </button>
-          ) : t.phase === "focus" ? (
-            <button
-              onClick={() => stopTimer(uid, settings)}
-              className="flex h-12 w-full items-center justify-center gap-2 rounded-full border border-line bg-surface text-[15px] font-semibold hover:bg-sunken"
-            >
-              <Square size={13} fill="currentColor" /> Parar e registrar
+            <button onClick={() => startTimer(uid, settings, t.taskId, "pomodoro")} className="h-14 rounded-full bg-brand font-semibold text-white hover:bg-brand/90">
+              Próximo foco
             </button>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              <button onClick={() => stopTimer(uid, settings)} className="h-12 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
-                Encerrar
-              </button>
-              <button onClick={() => startTimer(uid, settings, t.taskId, "pomodoro")} className="h-12 rounded-full bg-brand font-semibold text-white hover:bg-brand/90">
-                Próximo foco
-              </button>
-            </div>
-          )}
-        </div>
-      </Panel>
+          </div>
+        )}
+      </div>
 
       <History />
       {menu && <PomodoroMenu onClose={() => setMenu(false)} />}

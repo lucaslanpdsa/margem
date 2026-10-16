@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
 import { useState } from "react";
 import { fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
@@ -47,6 +47,23 @@ export function Shell() {
   const { editTask } = useDialogs();
   const [tab, setTab] = useState<Tab>("dia");
   const [help, setHelp] = useState(false);
+  // Barra lateral recolhida (só ícones), lembrada neste navegador.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("margem.sidebar") === "recolhida";
+    } catch {
+      return false;
+    }
+  });
+  const toggleCollapsed = () =>
+    setCollapsed((c) => {
+      try {
+        localStorage.setItem("margem.sidebar", c ? "aberta" : "recolhida");
+      } catch {
+        /* sem armazenamento, só não lembra */
+      }
+      return !c;
+    });
   const [error, setError] = useState("");
 
   if (!ready) return <div className="grid min-h-screen place-items-center text-sm text-muted">Carregando…</div>;
@@ -101,43 +118,88 @@ export function Shell() {
   return (
     <div className="lg:flex">
       {/* Navegação lateral (desktop) */}
-      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-surface px-3 py-5 lg:flex">
-        <div className="px-2">
-          <Logo />
+      <aside
+        className={cx(
+          "sticky top-0 hidden h-screen shrink-0 flex-col border-r border-line bg-surface py-5 transition-[width] lg:flex",
+          collapsed ? "w-[68px] items-center px-2" : "w-60 px-3",
+        )}
+      >
+        <div className={cx("flex items-center", collapsed ? "justify-center" : "justify-between px-2")}>
+          {collapsed ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src="/icon.svg" alt="Margem" className="h-7 w-7" />
+          ) : (
+            <Logo />
+          )}
         </div>
-        <Button variant="primary" className="mt-6 w-full" onClick={() => editTask({ repeat: "once", date })}>
-          <Plus size={16} /> Nova tarefa
-        </Button>
-        <nav className="mt-6 space-y-0.5">
+        {collapsed ? (
+          <button
+            onClick={() => editTask({ repeat: "once", date })}
+            className="mt-6 grid h-10 w-10 place-items-center rounded-lg bg-brand text-white hover:bg-brand/90"
+            aria-label="Nova tarefa"
+            title="Nova tarefa"
+          >
+            <Plus size={18} />
+          </button>
+        ) : (
+          <Button variant="primary" className="mt-6 w-full" onClick={() => editTask({ repeat: "once", date })}>
+            <Plus size={16} /> Nova tarefa
+          </Button>
+        )}
+        <nav className={cx("mt-6 space-y-0.5", collapsed && "flex flex-col items-center")}>
           {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
+              title={collapsed ? t.label : undefined}
+              aria-label={t.label}
               className={cx(
-                "flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
+                collapsed ? "h-10 w-10 justify-center" : "w-full px-3 py-2",
                 tab === t.id ? "bg-todo/10 text-todo" : "text-muted hover:bg-sunken hover:text-ink",
               )}
             >
-              <t.icon size={18} /> {t.label}
+              <t.icon size={18} /> {!collapsed && t.label}
             </button>
           ))}
         </nav>
-        <div className="mt-auto space-y-0.5">
-          <button onClick={() => setHelp(true)} className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted hover:bg-sunken hover:text-ink">
-            <CircleHelp size={18} /> Como funciona
-          </button>
-          <div className="flex items-center gap-2 rounded-lg px-3 py-2">
-            {user.photoURL ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.photoURL} alt="" className="h-7 w-7 rounded-full" referrerPolicy="no-referrer" />
-            ) : (
-              <span className="grid h-7 w-7 place-items-center rounded-full bg-sunken text-xs font-semibold">{user.displayName?.[0] ?? "?"}</span>
+        <div className={cx("mt-auto space-y-0.5", collapsed && "flex flex-col items-center")}>
+          <button
+            onClick={() => setHelp(true)}
+            title={collapsed ? "Como funciona" : undefined}
+            aria-label="Como funciona"
+            className={cx(
+              "flex items-center gap-3 rounded-lg text-sm font-medium text-muted hover:bg-sunken hover:text-ink",
+              collapsed ? "h-10 w-10 justify-center" : "w-full px-3 py-2",
             )}
-            <span className="min-w-0 flex-1 truncate text-[13px]">{user.displayName ?? user.email}</span>
-            <IconButton label="Sair" onClick={logout}>
-              <LogOut size={15} />
-            </IconButton>
-          </div>
+          >
+            <CircleHelp size={18} /> {!collapsed && "Como funciona"}
+          </button>
+          {!collapsed && (
+            <div className="flex items-center gap-2 rounded-lg px-3 py-2">
+              {user.photoURL ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.photoURL} alt="" className="h-7 w-7 rounded-full" referrerPolicy="no-referrer" />
+              ) : (
+                <span className="grid h-7 w-7 place-items-center rounded-full bg-sunken text-xs font-semibold">{user.displayName?.[0] ?? "?"}</span>
+              )}
+              <span className="min-w-0 flex-1 truncate text-[13px]">{user.displayName ?? user.email}</span>
+              <IconButton label="Sair" onClick={logout}>
+                <LogOut size={15} />
+              </IconButton>
+            </div>
+          )}
+          <button
+            onClick={toggleCollapsed}
+            title={collapsed ? "Abrir barra lateral" : "Recolher barra lateral"}
+            aria-label={collapsed ? "Abrir barra lateral" : "Recolher barra lateral"}
+            className={cx(
+              "flex items-center gap-3 rounded-lg text-sm font-medium text-muted hover:bg-sunken hover:text-ink",
+              collapsed ? "h-10 w-10 justify-center" : "w-full px-3 py-2",
+            )}
+          >
+            {collapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />} {!collapsed && "Recolher"}
+          </button>
         </div>
       </aside>
 
@@ -155,7 +217,7 @@ export function Shell() {
               </IconButton>
             </div>
           </div>
-          <header className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3">
+          <header className={cx("mb-5 flex flex-wrap items-center gap-x-4 gap-y-3", tab === "foco" && "sr-only")}>
             <div className="mr-auto">
               <h1 className="text-2xl font-semibold tracking-tight first-letter:uppercase">{titles[tab]}</h1>
               <p className="text-sm text-muted first-letter:uppercase">{subtitle}</p>
