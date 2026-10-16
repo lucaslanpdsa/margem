@@ -74,6 +74,10 @@ export function toggleDone(uid: string, task: Task, date: string, done: boolean)
   );
 }
 
+/** Pular (ou desfazer o pulo de) uma tarefa que repete, só neste dia. */
+export const setSkipped = (uid: string, task: Task, date: string, skipped: boolean) =>
+  updateDoc(doc(db(), "users", uid, "tasks", task.id), { [`skipped.${date}`]: skipped, [`completions.${date}`]: false });
+
 // ---------- Blocos ----------
 
 export const addBlock = (uid: string, b: Omit<Block, "id">) => addDoc(col(uid, "blocks"), b);

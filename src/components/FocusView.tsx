@@ -19,7 +19,7 @@ export function useTaskOptions() {
   const { tasks, blocks, sessions } = useStore();
   const today = todayKey();
   const open = dayItems(today, tasks, blocks, sessions)
-    .filter((i) => !i.completed && i.task.repeat !== "weeklyGoal")
+    .filter((i) => !i.completed && !i.skipped && i.task.repeat !== "weeklyGoal")
     .map((i) => ({ task: i.task, hint: `falta ${fmtMin(i.remainingMin)}` }));
   const goals = weeklyGoals(today, tasks, sessions).map((g) => ({ task: g.task, hint: "meta da semana" }));
   return [...open, ...goals];

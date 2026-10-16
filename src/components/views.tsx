@@ -126,7 +126,8 @@ function WeekDayTasks({ m, onOpenDay }: { m: DayMetrics; onOpenDay: () => void }
                 <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded-full border", i.completed ? "border-done bg-done text-white" : "border-line")}>
                   {i.completed && <Check size={10} strokeWidth={3.5} />}
                 </span>
-                <span className={cx("min-w-0 flex-1 truncate", i.completed && "text-muted line-through")}>{i.task.title}</span>
+                <span className={cx("min-w-0 flex-1 truncate", (i.completed || i.skipped) && "text-muted line-through")}>{i.task.title}</span>
+                {i.skipped && <span className="text-xs text-muted">pulada</span>}
                 {slots.length > 0 && <span className="tabular hidden text-xs text-muted sm:inline">{slots.map((s) => `${s.start}–${s.end}`).join(", ")}</span>}
                 {i.outside && <span className="rounded bg-break/15 px-1.5 text-xs font-medium text-break">extra</span>}
                 <span className="tabular w-20 shrink-0 text-right text-xs text-muted">

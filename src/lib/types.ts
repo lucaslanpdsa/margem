@@ -34,6 +34,8 @@ export interface Task {
   completedAt?: string | null;
   /** "weekdays": dias concluídos { "2026-10-16": true }. */
   completions?: Record<string, boolean>;
+  /** "weekdays": dias pulados { "2026-10-16": true }. Saem da conta do dia, sem contar como feitos. */
+  skipped?: Record<string, boolean>;
   archived?: boolean;
   createdAt: string;
 }

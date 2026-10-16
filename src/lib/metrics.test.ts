@@ -44,6 +44,23 @@ describe("dayMetrics", () => {
     expect(dayMetrics(D, settings, done, blocks, sessions, early).freeMin).toBe(240 - 30 - 120);
   });
 
+  it("tarefa pulada sai da conta, mas o tempo já feito continua", () => {
+    const skip = tasks.map((t) => (t.id === "b" ? { ...t, skipped: { [D]: true } } : t));
+    const s = dayMetrics(D, settings, skip, blocks, sessions, early);
+    const b = s.items.find((i) => i.task.id === "b")!;
+    expect(b.skipped).toBe(true);
+    expect(b.completed).toBe(false);
+    expect(s.remainingMin).toBe(60 + 60);
+    expect(s.plannedMin).toBe(60 + 30 + 60);
+    expect(s.doneMin).toBe(30);
+    expect(flexibleQueue(s).some((i) => i.task.id === "b")).toBe(false);
+  });
+
+  it("pular vale só para aquele dia", () => {
+    const skip = tasks.map((t) => (t.id === "b" ? { ...t, skipped: { "2026-10-14": true } } : t));
+    expect(dayMetrics(D, settings, skip, blocks, sessions, early).items.find((i) => i.task.id === "b")!.skipped).toBe(false);
+  });
+
   it("override de capacidade vale para o dia", () => {
     const s = { ...settings, windowOverrides: { [D]: { start: "16:00", end: "18:00" } } };
     expect(dayMetrics(D, s, tasks, blocks, sessions, early).capacityMin).toBe(120);

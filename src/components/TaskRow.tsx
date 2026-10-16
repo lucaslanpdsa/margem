@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, Target } from "lucide-react";
+import { Check, Clock, SkipForward, Target } from "lucide-react";
 import type { ReactNode } from "react";
 import { fmtMin } from "@/lib/dates";
 import { isTimeTask } from "@/lib/metrics";
@@ -18,13 +18,15 @@ interface Props {
   estimateMin: number;
   doneMin: number;
   completed?: boolean;
+  /** Pulada neste dia. */
+  skipped?: boolean;
   extra?: ReactNode;
   checkable?: boolean;
   /** Aviso curto na linha (ex: conflito de horário). */
   warning?: string;
 }
 
-export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, checkable = true, warning }: Props) {
+export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, extra, checkable = true, warning }: Props) {
   const { uid, settings } = useStore();
   const { editTask, logTime } = useDialogs();
   const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus";
@@ -38,7 +40,11 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, ch
       )}
     >
 
-      {checkable ? (
+      {skipped ? (
+        <span className="grid h-5 w-5 shrink-0 place-items-center text-muted" title="Pulada neste dia">
+          <SkipForward size={15} />
+        </span>
+      ) : checkable ? (
         <button
           onClick={() => toggleDone(uid, task, date, !completed)}
           className={cx(
@@ -60,7 +66,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, ch
       )}
 
       <button className="min-w-0 flex-1 text-left" onClick={() => editTask(task)} title="Editar tarefa">
-        <span className={cx("block truncate text-sm font-medium", completed && "text-muted line-through")}>{task.title}</span>
+        <span className={cx("block truncate text-sm font-medium", (completed || skipped) && "text-muted line-through")}>{task.title}</span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           <span className="inline-flex items-center gap-1.5">
             <span className="h-1 w-12 overflow-hidden rounded-full bg-sunken">
@@ -76,6 +82,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, ch
               <Clock size={11} /> {slotsOf(task).map((sl) => `${sl.start}–${sl.end}`).join(", ")}
             </span>
           )}
+          {skipped && <span className="font-medium">pulada</span>}
           {isTimeTask(task) && task.repeat !== "weeklyGoal" && <span>meta de tempo</span>}
           {warning && <span className="font-medium text-break">⚠ {warning}</span>}
         </span>

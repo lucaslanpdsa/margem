@@ -9,6 +9,8 @@ export interface DayItem {
   /** Minutos trabalhados nesta tarefa neste dia. */
   doneMin: number;
   completed: boolean;
+  /** Tarefa que repete, pulada neste dia: não falta nada dela. */
+  skipped: boolean;
   /** Tem bloco na agenda neste dia. */
   scheduled: boolean;
   /** Quanto falta (0 se concluída). */
@@ -35,6 +37,8 @@ export interface DayMetrics {
 
 /** Tarefa que termina cumprindo o tempo (e não marcando como feita). Metas semanais sempre são assim. */
 export const isTimeTask = (task: Task) => task.repeat === "weeklyGoal" || task.doneBy === "time";
+
+export const isSkippedOn = (task: Task, date: string) => task.repeat === "weekdays" && !!task.skipped?.[date];
 
 export const isCompletedOn = (task: Task, date: string) =>
   task.repeat === "weekdays" ? !!task.completions?.[date] : !!task.completedAt;
@@ -80,14 +84,16 @@ export function dayItems(date: string, tasks: Task[], blocks: Block[], sessions:
 
     const taskBlocks = dayBlocks.filter((b) => b.taskId === task.id);
     const done = doneFor(task.id);
-    const completed = isTimeTask(task) ? done >= estimate : isCompletedOn(task, date);
+    const skipped = isSkippedOn(task, date);
+    const completed = !skipped && (isTimeTask(task) ? done >= estimate : isCompletedOn(task, date));
     items.push({
       task,
       estimateMin: estimate,
       doneMin: done,
       completed,
+      skipped,
       scheduled: taskBlocks.length > 0,
-      remainingMin: completed ? 0 : Math.max(0, estimate - done),
+      remainingMin: completed || skipped ? 0 : Math.max(0, estimate - done),
       outside: taskBlocks.length > 0 && taskBlocks.every((b) => blockOutside(b, window)),
     });
   }
@@ -106,11 +112,12 @@ export function dayMetrics(
   const items = dayItems(date, tasks, blocks, sessions, clock.window);
   const inside = items.filter((i) => !i.outside);
   const outsideIds = new Set(items.filter((i) => i.outside).map((i) => i.task.id));
-  const plannedMin = inside.reduce((a, i) => a + i.estimateMin, 0);
+  // Pulada conta só o que chegou a ser feito.
+  const plannedMin = inside.reduce((a, i) => a + (i.skipped ? i.doneMin : i.estimateMin), 0);
   // Tempo feito em tarefas marcadas fora do horário não conta como uso do horário.
   const doneMin = sessions.filter((s) => s.date === date && !outsideIds.has(s.taskId)).reduce((a, s) => a + s.minutes, 0);
   const remainingMin = inside.reduce((a, i) => a + i.remainingMin, 0);
-  const outsideMin = items.filter((i) => i.outside).reduce((a, i) => a + i.estimateMin, 0);
+  const outsideMin = items.filter((i) => i.outside && !i.skipped).reduce((a, i) => a + i.estimateMin, 0);
   // O que já foi "gasto" do dia: o que passou no relógio ou o que foi registrado, o que for maior.
   const usedMin = Math.max(doneMin, clock.elapsedMin);
   return {
@@ -141,7 +148,7 @@ export function byUrgency(a: Task, b: Task) {
 
 /** Tarefas do dia ainda sem horário e não concluídas, na ordem sugerida. */
 export function flexibleQueue(m: DayMetrics): DayItem[] {
-  return m.items.filter((i) => !i.scheduled && !i.completed).sort((a, b) => byUrgency(a.task, b.task));
+  return m.items.filter((i) => !i.scheduled && !i.completed && !i.skipped).sort((a, b) => byUrgency(a.task, b.task));
 }
 
 export interface WeeklyGoalProgress {

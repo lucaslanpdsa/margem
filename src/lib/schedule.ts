@@ -75,7 +75,7 @@ export function taskTimeBlocks(tasks: Task[], realBlocks: Block[], dates: string
         ? (t.date ?? "") && dates.includes(t.date!)
           ? [t.date!]
           : []
-        : dates.filter((d) => t.weekdays?.includes(weekdayOf(d)) && t.createdAt.slice(0, 10) <= d);
+        : dates.filter((d) => t.weekdays?.includes(weekdayOf(d)) && t.createdAt.slice(0, 10) <= d && !t.skipped?.[d]);
     for (const d of days) {
       if (realBlocks.some((b) => b.taskId === t.id && b.date === d)) continue;
       slots.forEach((slot, i) => {

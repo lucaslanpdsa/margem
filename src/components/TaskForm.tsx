@@ -89,6 +89,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
       doneBy: doneBy === "time" ? "time" : undefined,
       completedAt: repeat === "once" ? (initial.completedAt ?? undefined) : undefined,
       completions: repeat === "weekdays" ? initial.completions : undefined,
+      skipped: repeat === "weekdays" ? initial.skipped : undefined,
       archived: repeat === "weekdays" ? initial.archived : undefined,
     };
     if (editing) await replaceTask(uid, { ...data, id: initial.id!, createdAt: initial.createdAt! });

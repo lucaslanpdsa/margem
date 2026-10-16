@@ -60,7 +60,7 @@ export function DayLists({ m }: { m: DayMetrics }) {
   // Uma lista só: primeiro o que tem horário (na ordem do horário), depois o resto.
   const startOf = (i: DayItem) => blocks.filter((b) => b.taskId === i.task.id && b.date === date).map((b) => b.start).sort()[0];
   const open = m.items
-    .filter((i) => !i.completed)
+    .filter((i) => !i.completed && !i.skipped)
     .sort((a, b) => {
       const sa = startOf(a);
       const sb = startOf(b);
@@ -68,7 +68,8 @@ export function DayLists({ m }: { m: DayMetrics }) {
       if (sa || sb) return sa ? -1 : 1;
       return a.task.createdAt.localeCompare(b.task.createdAt);
     });
-  const done = m.items.filter((i) => i.completed);
+  const done = m.items.filter((i) => i.completed || i.skipped);
+  const skippedCount = done.filter((i) => i.skipped).length;
   const conflicts = findConflicts(blocks.filter((b) => b.date === date));
   const conflictText = (id: string) => {
     const names = [...new Set(conflicts.filter((c) => c.taskId === id).map((c) => tasks.find((t) => t.id === c.otherId)?.title))].filter(Boolean);
@@ -129,12 +130,21 @@ export function DayLists({ m }: { m: DayMetrics }) {
         <div className="mt-3">
           <button onClick={() => setShowDone((v) => !v)} className="inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-ink">
             <ChevronDown size={14} className={cx("transition-transform", !showDone && "-rotate-90")} />
-            Concluídas ({done.length})
+            {skippedCount === 0 ? "Concluídas" : skippedCount === done.length ? "Puladas" : "Concluídas e puladas"} ({done.length})
           </button>
           {showDone && (
             <ul className="mt-1.5 space-y-1.5">
               {done.map((i) => (
-                <TaskRow key={i.task.id} task={i.task} date={date} estimateMin={i.estimateMin} doneMin={i.doneMin} completed checkable={!isTimeTask(i.task)} />
+                <TaskRow
+                  key={i.task.id}
+                  task={i.task}
+                  date={date}
+                  estimateMin={i.estimateMin}
+                  doneMin={i.doneMin}
+                  completed={i.completed}
+                  skipped={i.skipped}
+                  checkable={!isTimeTask(i.task)}
+                />
               ))}
             </ul>
           )}

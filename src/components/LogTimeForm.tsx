@@ -1,10 +1,10 @@
 "use client";
 
-import { Check, Pencil } from "lucide-react";
+import { Check, Pencil, SkipForward, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { entryTimes, fmtMin, parseTimeEntry, type TimeEntry } from "@/lib/dates";
-import { addSession, toggleDone } from "@/lib/db";
-import { isCompletedOn, isTimeTask } from "@/lib/metrics";
+import { addSession, setSkipped, toggleDone } from "@/lib/db";
+import { isCompletedOn, isSkippedOn, isTimeTask } from "@/lib/metrics";
 import { useDialogs } from "./dialogs";
 import { RecordTime } from "./EditableMinutes";
 import type { Session, Task } from "@/lib/types";
@@ -23,7 +23,8 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   const { uid, date, sessions } = useStore();
   const { editTask } = useDialogs();
   const timeTask = isTimeTask(task);
-  const completed = !timeTask && isCompletedOn(task, date);
+  const skipped = isSkippedOn(task, date);
+  const completed = !timeTask && !skipped && isCompletedOn(task, date);
   const [other, setOther] = useState("");
   const [error, setError] = useState("");
 
@@ -95,7 +96,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         </div>
       )}
 
-      <div className="mt-5 flex items-center justify-between gap-2 border-t border-line pt-4">
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
         <Button
           variant="ghost"
           onClick={() => {
@@ -105,7 +106,18 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         >
           <Pencil size={14} /> Editar tarefa
         </Button>
-        {!timeTask && (
+        {task.repeat === "weekdays" && !completed && (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setSkipped(uid, task, date, !skipped);
+              onClose();
+            }}
+          >
+            {skipped ? <Undo2 size={14} /> : <SkipForward size={14} />} {skipped ? "Desfazer pulo" : "Pular hoje"}
+          </Button>
+        )}
+        {!timeTask && !skipped && (
           <Button
             variant={completed ? "ghost" : "secondary"}
             onClick={() => {
