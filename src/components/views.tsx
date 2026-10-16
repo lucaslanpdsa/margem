@@ -1,10 +1,10 @@
 "use client";
 
-import { Archive, ArchiveRestore, CalendarPlus, Plus, Repeat, Target } from "lucide-react";
+import { Archive, ArchiveRestore, CalendarPlus, Check, ChevronDown, Plus, Repeat, Target } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, todayKey, weekDays } from "@/lib/dates";
 import { saveSettings, updateTask } from "@/lib/db";
-import { dayMetrics } from "@/lib/metrics";
+import { dayMetrics, type DayMetrics } from "@/lib/metrics";
 import { slotsOf } from "@/lib/schedule";
 import type { RepeatKind, Task } from "@/lib/types";
 import { CapacityBar, DayBudget } from "./CapacityPanel";
@@ -40,6 +40,15 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
   const ahead = ms.filter((m) => m.date >= today && m.window);
   const free = ahead.reduce((a, m) => a + m.freeMin, 0);
   const lateDays = ahead.filter((m) => m.freeMin < 0).length;
+  const [open, setOpen] = useState<Set<string>>(() => new Set([today]));
+  const allOpen = ms.every((m) => open.has(m.date));
+  const toggle = (d: string) =>
+    setOpen((o) => {
+      const n = new Set(o);
+      if (n.has(d)) n.delete(d);
+      else n.add(d);
+      return n;
+    });
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -48,10 +57,15 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
         <p className={cx("tabular mt-1 text-[28px] leading-none font-semibold tracking-tight", lateDays > 0 && "text-over")}>
           {lateDays ? `${lateDays === 1 ? "1 dia" : `${lateDays} dias`} com mais do que cabe` : `Sobram ${fmtMin(Math.max(0, free))} na semana`}
         </p>
-        <p className="mt-2 text-sm text-muted">Contando de hoje até domingo. Toque num dia para abrir.</p>
+        <p className="mt-2 text-sm text-muted">Contando de hoje até domingo. Toque num dia para ver as tarefas.</p>
       </Panel>
 
       <Panel className="divide-y divide-line">
+        <div className="flex justify-end px-3 py-2">
+          <Button size="sm" variant="ghost" onClick={() => setOpen(allOpen ? new Set() : new Set(ms.map((m) => m.date)))}>
+            {allOpen ? "Recolher tudo" : "Mostrar tudo"}
+          </Button>
+        </div>
         {ms.map((m) => {
           const past = m.date < today;
           const late = !past && m.freeMin < 0;
@@ -62,8 +76,15 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
               : late
                 ? `${fmtMin(-m.freeMin)} a mais`
                 : `Sobram ${fmtMin(m.freeMin)}`;
+          const expanded = open.has(m.date);
           return (
-            <button key={m.date} onClick={() => onPickDay(m.date)} className={cx("flex w-full items-center gap-4 px-5 py-3.5 text-left hover:bg-sunken/60", past && "opacity-60")}>
+            <div key={m.date}>
+            <button
+              onClick={() => toggle(m.date)}
+              aria-expanded={expanded}
+              className={cx("flex w-full items-center gap-4 px-5 py-3.5 text-left hover:bg-sunken/60", past && !expanded && "opacity-60")}
+            >
+              <ChevronDown size={16} className={cx("-mr-2 shrink-0 text-muted transition-transform", !expanded && "-rotate-90")} />
               <span className="w-16 shrink-0">
                 <span className={cx("block text-sm font-semibold", m.date === today && "text-todo")}>{m.date === today ? "Hoje" : WEEKDAY_SHORT[fromKey(m.date).getDay()]}</span>
                 <span className="block text-xs text-muted">{fromKey(m.date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
@@ -78,11 +99,47 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
                   </span>
                 )}
               </span>
-              <span className={cx("tabular w-32 shrink-0 text-right text-[13px] font-medium sm:w-44", late ? "text-over" : "text-muted")}>{label}</span>
+              <span className={cx("tabular w-28 shrink-0 text-right text-[13px] font-medium sm:w-44", late ? "text-over" : "text-muted")}>{label}</span>
             </button>
+            {expanded && <WeekDayTasks m={m} onOpenDay={() => onPickDay(m.date)} />}
+            </div>
           );
         })}
       </Panel>
+    </div>
+  );
+}
+
+/** Tarefas de um dia na semana: só leitura (nome, horário, tempo, feito). */
+function WeekDayTasks({ m, onOpenDay }: { m: DayMetrics; onOpenDay: () => void }) {
+  const items = [...m.items].sort((a, b) => (slotsOf(a.task)[0]?.start ?? "99").localeCompare(slotsOf(b.task)[0]?.start ?? "99"));
+  return (
+    <div className="bg-sunken/40 px-5 pt-1 pb-3">
+      {items.length === 0 ? (
+        <p className="py-2 text-sm text-muted">Nenhuma tarefa neste dia.</p>
+      ) : (
+        <ul className="divide-y divide-line/70">
+          {items.map((i) => {
+            const slots = slotsOf(i.task);
+            return (
+              <li key={i.task.id} className="flex items-center gap-3 py-2 text-sm">
+                <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded-full border", i.completed ? "border-done bg-done text-white" : "border-line")}>
+                  {i.completed && <Check size={10} strokeWidth={3.5} />}
+                </span>
+                <span className={cx("min-w-0 flex-1 truncate", i.completed && "text-muted line-through")}>{i.task.title}</span>
+                {slots.length > 0 && <span className="tabular hidden text-xs text-muted sm:inline">{slots.map((s) => `${s.start}–${s.end}`).join(", ")}</span>}
+                {i.outside && <span className="rounded bg-break/15 px-1.5 text-xs font-medium text-break">extra</span>}
+                <span className="tabular w-20 shrink-0 text-right text-xs text-muted">
+                  {i.doneMin > 0 ? `${fmtMin(i.doneMin)} de ${fmtMin(i.estimateMin)}` : fmtMin(i.estimateMin)}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+      <button onClick={onOpenDay} className="mt-1 text-[13px] font-medium text-brand hover:underline">
+        Abrir o dia
+      </button>
     </div>
   );
 }

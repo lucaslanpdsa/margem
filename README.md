@@ -9,7 +9,7 @@ Responde duas perguntas: **quanto tempo eu ainda tenho hoje?** e **estou em dia 
 - **Como termina**: marcando como feita (o tempo é estimativa; terminou antes, o resto volta para o dia) ou cumprindo o tempo (ex: trabalhar 7h).
 - **Reportar tempo**: botão Registrar em cada tarefa (15m, 30m, 1h, 2h, outra duração ou um intervalo como 14:00-15:30; registros editáveis), ou a aba **Foco** (pomodoro ou cronômetro).
 - **Topo do dia**: "Em dia · sobram 2h10" ou "Atrasado · 1h50 a mais do que cabe".
-- **Semana**: cada dia com a barra e quanto sobra ou passa.
+- **Semana**: cada dia com a barra e quanto sobra ou passa; toque num dia (ou "Mostrar tudo") para ver as tarefas dele.
 - Tarefa com horário fora do seu horário vira extra e não ocupa o tempo do dia. Tarefas de dias anteriores não concluídas aparecem para trazer para hoje.
 
 ### Como as contas funcionam
