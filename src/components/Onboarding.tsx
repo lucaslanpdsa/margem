@@ -5,9 +5,19 @@ import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin } from "@/lib/dates";
 import { saveSettings } from "@/lib/db";
 import { useStore } from "./store";
-import { Button, Modal, Segmented, cx } from "./ui";
+import { PomodoroPicker, SlackPicker } from "./pickers";
+import { Button, Modal, cx } from "./ui";
 
 const ORDER = [1, 2, 3, 4, 5, 6, 0];
+
+/** Dia "típico" para os exemplos: o valor que mais se repete na semana. */
+export function typicalDay(caps: number[]) {
+  const days = caps.filter((c) => c > 0);
+  if (days.length === 0) return 240;
+  const count = new Map<number, number>();
+  days.forEach((d) => count.set(d, (count.get(d) ?? 0) + 1));
+  return [...count.entries()].sort((a, b) => b[1] - a[1] || b[0] - a[0])[0][0];
+}
 
 /** Editor de tempo por dia da semana, de 30 em 30 minutos. */
 export function CapacityEditor({ value, onChange }: { value: number[]; onChange: (v: number[]) => void }) {
@@ -98,7 +108,8 @@ export function Onboarding() {
   const [step, setStep] = useState(0);
   const [caps, setCaps] = useState(settings.capacityByWeekday);
   const [slack, setSlack] = useState(Math.round(settings.slack * 100));
-  const [pomo, setPomo] = useState(settings.focusMin === 50 ? "50" : "25");
+  const [focus, setFocus] = useState(settings.focusMin);
+  const [brk, setBrk] = useState(settings.breakMin);
 
   const weekTotal = caps.reduce((a, b) => a + b, 0);
   const finish = (skip = false) =>
@@ -108,8 +119,8 @@ export function Onboarding() {
         : {
             capacityByWeekday: caps,
             slack: slack / 100,
-            focusMin: pomo === "50" ? 50 : 25,
-            breakMin: pomo === "50" ? 10 : 5,
+            focusMin: focus,
+            breakMin: brk,
           }),
       onboarded: true,
     });
@@ -140,31 +151,22 @@ export function Onboarding() {
       ),
     },
     {
-      title: "Folga e pomodoro",
-      description: "Dois ajustes que deixam as contas mais realistas.",
+      title: "Quanto reservar para imprevistos?",
+      description: "A margem de folga deixa as contas do dia mais realistas.",
+      body: <SlackPicker value={slack} onChange={setSlack} typicalDayMin={typicalDay(caps)} />,
+    },
+    {
+      title: "Como você gosta de focar?",
+      description: "Duração do pomodoro. Dá para mudar depois em Ajustes.",
       body: (
-        <div className="space-y-6">
-          <div>
-            <div className="flex items-baseline justify-between">
-              <p className="text-sm font-semibold">Margem de folga</p>
-              <p className="tabular text-sm font-semibold">{slack}%</p>
-            </div>
-            <p className="mt-0.5 text-sm text-muted">Reserva para pausas, transições e imprevistos. Com {slack}%, um dia de 4h vira {fmtMin(240 * (1 - slack / 100))} usáveis.</p>
-            <input type="range" min={0} max={30} step={5} value={slack} onChange={(e) => setSlack(+e.target.value)} className="mt-3 w-full accent-[var(--brand)]" />
-          </div>
-          <div>
-            <p className="text-sm font-semibold">Duração do pomodoro</p>
-            <p className="mt-0.5 mb-3 text-sm text-muted">O tempo de foco conta como feito na tarefa. Parar no meio também conta.</p>
-            <Segmented
-              value={pomo}
-              onChange={setPomo}
-              options={[
-                { value: "25", label: "25 min foco + 5 pausa" },
-                { value: "50", label: "50 min foco + 10 pausa" },
-              ]}
-            />
-          </div>
-        </div>
+        <PomodoroPicker
+          focus={focus}
+          brk={brk}
+          onChange={(f, b) => {
+            setFocus(f);
+            setBrk(b);
+          }}
+        />
       ),
     },
   ];

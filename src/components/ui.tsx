@@ -137,7 +137,7 @@ export function Segmented<T extends string | number>({
           key={String(o.value)}
           onClick={() => onChange(o.value)}
           className={cx(
-            "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+            "rounded-md px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors",
             value === o.value ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink",
           )}
         >

@@ -11,7 +11,8 @@ import { Calendar } from "./Calendar";
 import { CapacityBar, DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
 import { useDialogs } from "./dialogs";
-import { CapacityEditor } from "./Onboarding";
+import { CapacityEditor, typicalDay } from "./Onboarding";
+import { PomodoroPicker, SlackPicker } from "./pickers";
 import { useStore } from "./store";
 import { Button, Panel, PanelHeader, Segmented, cx } from "./ui";
 
@@ -214,16 +215,6 @@ export function SettingsView() {
     setTimeout(() => setSaved(false), 2000);
   }
 
-  const num = (v: number, set: (n: number) => void, min: number, max: number) => (
-    <input
-      type="number"
-      min={min}
-      max={max}
-      value={v}
-      onChange={(e) => set(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
-      className="tabular h-10 w-20 rounded-lg border border-line bg-surface px-3 text-sm outline-none focus:border-brand"
-    />
-  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -241,27 +232,23 @@ export function SettingsView() {
       </Panel>
 
       <Panel>
-        <PanelHeader title="Margem de folga" description="Reserva do tempo do dia para pausas, transições e imprevistos. Ela não entra como tempo livre." />
+        <PanelHeader title="Margem de folga" description="Quanto do seu tempo reservar para pausas e imprevistos." />
         <div className="px-5 pb-5">
-          <div className="flex items-center gap-4">
-            <input type="range" min={0} max={30} step={5} value={slack} onChange={(e) => setSlack(+e.target.value)} className="flex-1 accent-[var(--brand)]" />
-            <span className="tabular w-12 text-right text-sm font-semibold">{slack}%</span>
-          </div>
-          <p className="mt-2 text-[13px] text-muted">Exemplo: um dia de 4h fica com {fmtMin(240 * (1 - slack / 100))} usáveis.</p>
+          <SlackPicker value={slack} onChange={setSlack} typicalDayMin={typicalDay(caps)} />
         </div>
       </Panel>
 
       <Panel>
-        <PanelHeader title="Pomodoro" description="O tempo de foco é registrado como feito na tarefa. Parar antes do fim registra o tempo parcial." />
-        <div className="flex flex-wrap items-end gap-6 px-5 pb-5">
-          <label className="text-[13px] font-medium">
-            <span className="mb-1.5 block">Foco (min)</span>
-            {num(focus, setFocus, 5, 120)}
-          </label>
-          <label className="text-[13px] font-medium">
-            <span className="mb-1.5 block">Pausa (min)</span>
-            {num(brk, setBrk, 1, 60)}
-          </label>
+        <PanelHeader title="Pomodoro" />
+        <div className="space-y-4 px-5 pb-5">
+          <PomodoroPicker
+            focus={focus}
+            brk={brk}
+            onChange={(f, b) => {
+              setFocus(f);
+              setBrk(b);
+            }}
+          />
           {perm !== "granted" && perm !== "unsupported" && (
             <Button onClick={() => Notification.requestPermission().then(setPerm)}>
               <Bell size={14} /> Avisar quando o pomodoro acabar
