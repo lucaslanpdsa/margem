@@ -1,13 +1,13 @@
 "use client";
 
-import { Bell, Check, Minus, MoreHorizontal, Play, Plus, Square, Trash2 } from "lucide-react";
+import { Bell, Check, Minus, MoreHorizontal, Play, Plus, Square } from "lucide-react";
 import { useState } from "react";
-import { fmtMin, parseDuration, todayKey } from "@/lib/dates";
-import { addSession, deleteSession, saveSettings, updateSession } from "@/lib/db";
+import { entryTimes, fmtMin, parseTimeEntry, todayKey } from "@/lib/dates";
+import { addSession, saveSettings, updateSession } from "@/lib/db";
 import { dayItems, weeklyGoals } from "@/lib/metrics";
 import { isStopwatch, startTimer, stopTimer } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
-import { EditableMinutes } from "./EditableMinutes";
+import { RecordTime } from "./EditableMinutes";
 import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
 import { Button, IconButton, Modal, Panel, PanelHeader, Segmented, cx, inputCls } from "./ui";
@@ -143,24 +143,23 @@ function History() {
   const [error, setError] = useState("");
 
   async function addManual() {
-    const m = parseDuration(amount);
-    if (!m) return setError("Escreva o tempo, por exemplo 30m ou 2h.");
-    const now = new Date().toISOString();
-    await addSession(uid, { taskId, date: today, minutes: m, kind: "manual", startedAt: now, endedAt: now });
+    const entry = parseTimeEntry(amount);
+    if (!entry) return setError("Escreva a duração (30m, 2h) ou o horário (14:00-15:30).");
+    await addSession(uid, { taskId, date: today, minutes: entry.minutes, kind: "manual", ...entryTimes(entry, today) });
     setAmount("");
     setError("");
   }
 
   return (
     <Panel className="flex flex-col">
-      <PanelHeader title="Hoje" description="Tudo que foi registrado hoje. Toque no tempo para editar ou troque a tarefa." right={<span className="tabular font-semibold">{fmtMin(total)}</span>} />
+      <PanelHeader title="Hoje" description="Tudo que foi registrado hoje." right={<span className="tabular font-semibold">{fmtMin(total)}</span>} />
       <ul className="space-y-1.5 px-4">
         {list.length === 0 && <li className="rounded-xl bg-sunken px-4 py-3 text-sm text-muted">Nada registrado ainda hoje.</li>}
         {list.map((s) => {
           const task = tasks.find((t) => t.id === s.taskId);
           return (
             <li key={s.id} className={cx("flex items-center gap-3 rounded-xl border px-3 py-2", s.taskId ? "border-line" : "border-dashed border-muted/40")}>
-              <span className="tabular w-[5.5rem] shrink-0 text-[13px] text-muted">{s.kind === "manual" ? hhmm(s.startedAt) : `${hhmm(s.startedAt)}–${hhmm(s.endedAt)}`}</span>
+              <span className="tabular w-[5.5rem] shrink-0 text-[13px] text-muted">{s.endedAt > s.startedAt ? `${hhmm(s.startedAt)}–${hhmm(s.endedAt)}` : "—"}</span>
               <div className="min-w-0 flex-1">
                 <select
                   value={s.taskId}
@@ -179,10 +178,7 @@ function History() {
                 </select>
                 <span className="block text-xs text-muted">{task || !s.taskId ? kindOf(s) : "Tarefa excluída"}</span>
               </div>
-              <EditableMinutes session={s} className="text-sm" />
-              <IconButton label="Apagar registro" onClick={() => deleteSession(uid, s.id)}>
-                <Trash2 size={15} />
-              </IconButton>
+              <RecordTime session={s} className="text-sm" />
             </li>
           );
         })}
@@ -200,7 +196,7 @@ function History() {
           <div className="min-w-0 flex-[2_1_180px]">
             <TaskSelect value={taskId} onChange={setTaskId} />
           </div>
-          <input className={cx(inputCls, "h-11 w-24 flex-[0_0_6rem]")} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="30m, 2h" aria-label="Quanto tempo" />
+          <input className={cx(inputCls, "h-11 w-24 flex-[0_0_6rem]")} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="2h ou 14-16" aria-label="Quanto tempo" />
           <Button type="submit" variant="secondary" className="h-11">
             Registrar
           </Button>

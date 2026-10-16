@@ -1,17 +1,22 @@
 "use client";
 
-import { Check, Pencil, Trash2 } from "lucide-react";
+import { Check, Pencil } from "lucide-react";
 import { useState } from "react";
-import { fmtMin, parseDuration } from "@/lib/dates";
-import { addSession, deleteSession, toggleDone } from "@/lib/db";
+import { entryTimes, fmtMin, parseTimeEntry, type TimeEntry } from "@/lib/dates";
+import { addSession, toggleDone } from "@/lib/db";
 import { isCompletedOn, isTimeTask } from "@/lib/metrics";
 import { useDialogs } from "./dialogs";
-import { EditableMinutes } from "./EditableMinutes";
-import type { Task } from "@/lib/types";
+import { RecordTime } from "./EditableMinutes";
+import type { Session, Task } from "@/lib/types";
 import { useStore } from "./store";
-import { Button, IconButton, Modal, cx, inputCls } from "./ui";
+import { Button, Modal, cx, inputCls } from "./ui";
 
 const QUICK = [15, 30, 60, 120];
+
+const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+/** "14:00–15:30" quando o registro tem horário; senão, de onde veio. */
+const recordLabel = (s: Session) =>
+  s.endedAt > s.startedAt ? `${hhmm(s.startedAt)}–${hhmm(s.endedAt)}${s.kind === "manual" ? "" : " · foco"}` : "Sem horário";
 
 /** A "página" da tarefa: quanto já foi reportado hoje, atalhos para reportar, concluir e editar. */
 export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void }) {
@@ -25,9 +30,8 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   const list = sessions.filter((s) => s.taskId === task.id && s.date === date).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
   const total = list.reduce((a, s) => a + s.minutes, 0);
 
-  async function register(minutes: number) {
-    const now = new Date().toISOString();
-    await addSession(uid, { taskId: task.id, date, minutes, kind: "manual", startedAt: now, endedAt: now });
+  async function register(entry: TimeEntry) {
+    await addSession(uid, { taskId: task.id, date, minutes: entry.minutes, kind: "manual", ...entryTimes(entry, date) });
     onClose();
   }
 
@@ -51,7 +55,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         {QUICK.map((m) => (
           <button
             key={m}
-            onClick={() => register(m)}
+            onClick={() => register({ minutes: m })}
             className="h-14 rounded-xl border border-line text-base font-semibold transition-colors hover:border-todo hover:bg-todo/[0.06] hover:text-todo"
           >
             {m < 60 ? `${m}m` : `${m / 60}h`}
@@ -63,12 +67,12 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         className="mt-3 flex gap-2"
         onSubmit={(e) => {
           e.preventDefault();
-          const m = parseDuration(other);
-          if (!m) return setError("Escreva o tempo, por exemplo 45m ou 1h30.");
-          register(m);
+          const entry = parseTimeEntry(other);
+          if (!entry) return setError("Escreva a duração (45m, 1h30) ou o horário (14:00-15:30).");
+          register(entry);
         }}
       >
-        <input className={cx(inputCls, "h-11")} value={other} onChange={(e) => setOther(e.target.value)} placeholder="Outro valor: 45m, 1h30" aria-label="Outro valor" />
+        <input className={cx(inputCls, "h-11")} value={other} onChange={(e) => setOther(e.target.value)} placeholder="45m, 1h30 ou 14:00-15:30" aria-label="Outro valor" />
         <Button type="submit" variant="primary" className="h-11">
           Registrar
         </Button>
@@ -77,19 +81,14 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
 
       {list.length > 0 && (
         <div className="mt-5 border-t border-line pt-3">
-          <p className="mb-1 text-[13px] font-medium">Registros <span className="font-normal text-muted">(toque no tempo para editar)</span></p>
+          <p className="mb-1 text-[13px] font-medium">Registros</p>
           <ul className="divide-y divide-line">
             {list.map((s) => (
               <li key={s.id} className="flex items-center justify-between py-1.5 text-sm">
-                <span>
-                  <EditableMinutes session={s} />{" "}
-                  <span className="text-muted">
-                    {s.kind === "manual" ? "manual" : `foco às ${new Date(s.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
-                  </span>
+                <span className="text-muted">
+                  {recordLabel(s)}
                 </span>
-                <IconButton label="Apagar registro" onClick={() => deleteSession(uid, s.id)}>
-                  <Trash2 size={15} />
-                </IconButton>
+                <RecordTime session={s} />
               </li>
             ))}
           </ul>

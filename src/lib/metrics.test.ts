@@ -1,5 +1,5 @@
 import { taskTimeBlocks } from "./schedule";
-import { parseDuration, parseQuickAdd } from "./dates";
+import { parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics, flexibleQueue, suggestNow, weeklyGoals } from "./metrics";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
@@ -197,4 +197,14 @@ describe("vários horários na mesma tarefa", () => {
     expect(m.items[0].estimateMin).toBe(420);
     expect(m.items[0].outside).toBe(false);
   });
+});
+
+it("entende intervalos de horário e durações", () => {
+  expect(parseTimeEntry("14:00-15:30")).toEqual({ minutes: 90, start: "14:00", end: "15:30" });
+  expect(parseTimeEntry("14h às 15h30")).toEqual({ minutes: 90, start: "14:00", end: "15:30" });
+  expect(parseTimeEntry("9-11")).toEqual({ minutes: 120, start: "09:00", end: "11:00" });
+  expect(parseTimeEntry("1h30")).toEqual({ minutes: 90 });
+  expect(parseTimeEntry("45m")).toEqual({ minutes: 45 });
+  expect(parseTimeEntry("15:00-14:00")).toBeNull();
+  expect(parseTimeEntry("abc")).toBeNull();
 });

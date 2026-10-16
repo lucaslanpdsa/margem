@@ -7,7 +7,7 @@ Responde duas perguntas: **quanto tempo eu ainda tenho hoje?** e **estou em dia 
 - **Seu horário**: de que horas a que horas você tem para tarefas em cada dia, com pausas fixas (almoço). O app acompanha o relógio.
 - **Tarefas** de uma vez (num dia) ou que repetem (em dias da semana), com o tempo de cada uma e horários opcionais (pode ter mais de um, ex: 08–11 e 14–18).
 - **Como termina**: marcando como feita (o tempo é estimativa; terminou antes, o resto volta para o dia) ou cumprindo o tempo (ex: trabalhar 7h).
-- **Reportar tempo**: botão Registrar em cada tarefa (15m, 30m, 1h, 2h ou outro valor), ou a aba **Foco** (pomodoro ou cronômetro).
+- **Reportar tempo**: botão Registrar em cada tarefa (15m, 30m, 1h, 2h, outra duração ou um intervalo como 14:00-15:30; registros editáveis), ou a aba **Foco** (pomodoro ou cronômetro).
 - **Topo do dia**: "Em dia · sobram 2h10" ou "Atrasado · 1h50 a mais do que cabe".
 - **Semana**: cada dia com a barra e quanto sobra ou passa.
 - Tarefa com horário fora do seu horário vira extra e não ocupa o tempo do dia. Tarefas de dias anteriores não concluídas aparecem para trazer para hoje.

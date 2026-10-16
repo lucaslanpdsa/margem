@@ -55,3 +55,39 @@ export function parseQuickAdd(input: string): { title: string; minutes: number |
   }
   return { title: input.trim(), minutes: null };
 }
+
+export interface TimeEntry {
+  minutes: number;
+  /** Quando foi informado um intervalo ("14:00-15:30"): início e fim no dia. */
+  start?: string;
+  end?: string;
+}
+
+/**
+ * O que a pessoa digitou para registrar tempo:
+ * duração ("45m", "1h30") ou intervalo ("14:00-15:30", "14h às 15h30", "9-11").
+ */
+export function parseTimeEntry(input: string): TimeEntry | null {
+  const s = input.trim().toLowerCase().replace(/\s+/g, " ");
+  const m = s.match(/^(\d{1,2})(?:[:h](\d{2}))?h? ?(?:-|–|—|às|as|até|ate|a) ?(\d{1,2})(?:[:h](\d{2}))?h?$/);
+  if (m) {
+    const [h1, m1, h2, m2] = [+m[1], +(m[2] ?? 0), +m[3], +(m[4] ?? 0)];
+    if (h1 > 23 || h2 > 24 || m1 > 59 || m2 > 59) return null;
+    const a = h1 * 60 + m1;
+    const b = h2 * 60 + m2;
+    if (b <= a) return null;
+    const hhmm = (x: number) => `${String(Math.floor(x / 60)).padStart(2, "0")}:${String(x % 60).padStart(2, "0")}`;
+    return { minutes: b - a, start: hhmm(a), end: hhmm(b) };
+  }
+  const minutes = parseDuration(s);
+  return minutes ? { minutes } : null;
+}
+
+/** startedAt/endedAt (ISO) para um registro: o intervalo informado ou "agora". */
+export function entryTimes(entry: TimeEntry, day: string) {
+  if (entry.start && entry.end) {
+    return { startedAt: new Date(`${day}T${entry.start}:00`).toISOString(), endedAt: new Date(`${day}T${entry.end === "24:00" ? "23:59" : entry.end}:00`).toISOString() };
+  }
+  const now = new Date().toISOString();
+  return { startedAt: now, endedAt: now };
+}
