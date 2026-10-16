@@ -8,6 +8,7 @@ import {
   onSnapshot,
   query,
   setDoc,
+  deleteField,
   updateDoc,
   where,
   type Unsubscribe,
@@ -71,6 +72,10 @@ export function toggleDone(uid: string, task: Task, date: string, done: boolean)
 /** Pular (ou desfazer o pulo de) uma tarefa que repete, só neste dia. */
 export const setSkipped = (uid: string, task: Task, date: string, skipped: boolean) =>
   updateDoc(doc(db(), "users", uid, "tasks", task.id), { [`skipped.${date}`]: skipped, [`completions.${date}`]: false });
+
+/** Tempo só deste dia (ex: encurtar hoje); null volta ao tempo normal. */
+export const setDayEstimate = (uid: string, task: Task, date: string, minutes: number | null) =>
+  updateDoc(doc(db(), "users", uid, "tasks", task.id), { [`estimateFor.${date}`]: minutes === null ? deleteField() : minutes });
 
 // ---------- Sessões ----------
 

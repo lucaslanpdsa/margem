@@ -3,7 +3,7 @@
 import { Check, Pencil, Play, SkipForward, Square, Timer as TimerIcon, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { entryTimes, fmtMin, parseTimeEntry, type TimeEntry } from "@/lib/dates";
-import { addSession, setSkipped, toggleDone } from "@/lib/db";
+import { addSession, setDayEstimate, setSkipped, toggleDone } from "@/lib/db";
 import { isCompletedOn, isSkippedOn, isTimeTask, slotMinutesPassed } from "@/lib/metrics";
 import { windowFor } from "@/lib/schedule";
 import { isLive } from "@/lib/pomodoro";
@@ -49,6 +49,8 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   // Sem registro, tarefa com horário conta sozinha o horário que já passou.
   const auto = logged > 0 || skipped ? 0 : slotMinutesPassed(task, date, windowFor(settings, date), settings.breaks, new Date());
   const total = logged || auto;
+  // Tempo deste dia (pode ter sido encurtado só hoje).
+  const est = task.estimateFor?.[date] ?? task.estimateMin;
 
   async function register(entry: TimeEntry) {
     await addSession(uid, { taskId: task.id, date, minutes: entry.minutes, kind: "manual", ...entryTimes(entry, date) });
@@ -62,14 +64,22 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         <p className="text-[13px] text-muted">{auto > 0 ? "Contado pelo horário" : "Feito neste dia"}</p>
         <p className="tabular mt-0.5 text-2xl font-semibold">
           {fmtMin(total)}
-          {task.estimateMin > 0 && <span className="text-base font-normal text-muted"> de {fmtMin(task.estimateMin)}</span>}
+          {est > 0 && <span className="text-base font-normal text-muted"> de {fmtMin(est)}</span>}
         </p>
-        {task.estimateMin > 0 && (
+        {est > 0 && (
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-surface">
-            <div className="h-full rounded-full bg-done" style={{ width: `${Math.min(100, (total / task.estimateMin) * 100)}%` }} />
+            <div className="h-full rounded-full bg-done" style={{ width: `${Math.min(100, (total / est) * 100)}%` }} />
           </div>
         )}
         {auto > 0 && <p className="mt-2 text-xs text-muted">O horário da tarefa conta sozinho. Se registrar tempo, vale o registrado.</p>}
+        {task.estimateFor?.[date] !== undefined && (
+          <p className="mt-2 text-xs text-muted">
+            Encurtada só neste dia (normal {fmtMin(task.estimateMin)}).{" "}
+            <button onClick={() => setDayEstimate(uid, task, date, null)} className="font-medium text-brand hover:underline">
+              Voltar ao normal
+            </button>
+          </p>
+        )}
       </div>
 
       {running ? (

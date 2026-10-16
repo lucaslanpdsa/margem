@@ -27,6 +27,8 @@ export interface Task {
   completions?: Record<string, boolean>;
   /** "weekdays": dias pulados { "2026-10-16": true }. Saem da conta do dia, sem contar como feitos. */
   skipped?: Record<string, boolean>;
+  /** Tempo só de um dia, no lugar do normal { "2026-10-16": 360 } (ex: "encurtar hoje"). */
+  estimateFor?: Record<string, number>;
   archived?: boolean;
   createdAt: string;
 }

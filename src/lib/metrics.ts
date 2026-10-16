@@ -109,6 +109,8 @@ export function dayItems(date: string, tasks: Task[], blocks: Block[], sessions:
       estimate = task.estimateMin;
     }
     if (estimate === null) continue;
+    // Tempo ajustado só para este dia ("encurtar hoje").
+    estimate = task.estimateFor?.[date] ?? estimate;
 
     const taskBlocks = dayBlocks.filter((b) => b.taskId === task.id);
     const logged = doneFor(task.id);

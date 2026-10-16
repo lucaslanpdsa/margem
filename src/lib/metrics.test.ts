@@ -323,3 +323,10 @@ it("com dois horários, o fim do primeiro é pausa e o último é fim do dia", (
     "Trabalho terminou por hoje",
   ]);
 });
+
+it("tempo encurtado só vale naquele dia", () => {
+  const b = tasks.find((t) => t.id === "b")!;
+  const short = { ...b, estimateFor: { [D]: 45 } };
+  expect(dayMetrics(D, settings, [short], blocks, [], early).items[0].estimateMin).toBe(45);
+  expect(dayMetrics("2026-10-14", { ...settings, windows: Array(7).fill({ start: "14:00", end: "18:00" }) }, [short], blocks, [], early).items[0].estimateMin).toBe(90);
+});
