@@ -1,24 +1,21 @@
 import { findConflicts, taskTimeBlocks } from "./schedule";
 import { parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
-import { dayMetrics, flexibleQueue, suggestNow, weeklyGoals } from "./metrics";
+import { dayMetrics } from "./metrics";
+import { migrateTask } from "./migrate";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
-const base = { priority: 2 as const, createdAt: "2026-10-01T10:00:00.000Z", estimateMin: 60 };
+const base = { createdAt: "2026-10-01T10:00:00.000Z", estimateMin: 60 };
 
 const tasks: Task[] = [
-  { ...base, id: "a", title: "Relatório", repeat: "once", date: D, deadline: "2026-10-17", priority: 1 },
+  { ...base, id: "a", title: "Relatório", repeat: "once", date: D },
   { ...base, id: "b", title: "Estudar", repeat: "weekdays", weekdays: [1, 3, 5], estimateMin: 90 },
-  { ...base, id: "c", title: "Inglês", repeat: "weeklyGoal", weeklyGoalMin: 300, estimateMin: 0 },
   { ...base, id: "d", title: "Outro dia", repeat: "once", date: "2026-10-20" },
 ];
-const blocks: Block[] = [
-  { id: "x", taskId: "c", date: D, start: `${D}T14:00:00`, end: `${D}T15:00:00` },
-];
+const blocks: Block[] = [];
 const sessions: Session[] = [
   { id: "s1", taskId: "b", date: D, minutes: 30, kind: "pomodoro", startedAt: "", endedAt: "" },
-  { id: "s2", taskId: "c", date: "2026-10-13", minutes: 100, kind: "manual", startedAt: "", endedAt: "" },
 ];
 // Sexta com 4h: 14:00–18:00, sem pausas. "Agora" = 06:00, antes do dia começar.
 const settings = { ...DEFAULT_SETTINGS, windows: [null, null, null, null, null, { start: "14:00", end: "18:00" }, null], breaks: [] };
@@ -27,21 +24,21 @@ const early = new Date(`${D}T06:00:00`);
 describe("dayMetrics", () => {
   const m = dayMetrics(D, settings, tasks, blocks, sessions, early);
 
-  it("inclui avulsa do dia, recorrente do dia e meta com bloco", () => {
-    expect(m.items.map((i) => i.task.id).sort()).toEqual(["a", "b", "c"]);
+  it("inclui avulsa do dia e recorrente do dia", () => {
+    expect(m.items.map((i) => i.task.id).sort()).toEqual(["a", "b"]);
   });
 
   it("calcula capacidade, planejado, feito, restante e livre", () => {
     expect(m.capacityMin).toBe(240);
-    expect(m.plannedMin).toBe(60 + 90 + 60);
+    expect(m.plannedMin).toBe(60 + 90);
     expect(m.doneMin).toBe(30);
-    expect(m.remainingMin).toBe(60 + 60 + 60);
-    expect(m.freeMin).toBe(240 - 30 - 180);
+    expect(m.remainingMin).toBe(60 + 60);
+    expect(m.freeMin).toBe(240 - 30 - 120);
   });
 
   it("tarefa concluída mais cedo libera tempo", () => {
     const done = tasks.map((t) => (t.id === "b" ? { ...t, completions: { [D]: true } } : t));
-    expect(dayMetrics(D, settings, done, blocks, sessions, early).freeMin).toBe(240 - 30 - 120);
+    expect(dayMetrics(D, settings, done, blocks, sessions, early).freeMin).toBe(240 - 30 - 60);
   });
 
   it("tarefa pulada sai da conta, mas o tempo já feito continua", () => {
@@ -50,10 +47,9 @@ describe("dayMetrics", () => {
     const b = s.items.find((i) => i.task.id === "b")!;
     expect(b.skipped).toBe(true);
     expect(b.completed).toBe(false);
-    expect(s.remainingMin).toBe(60 + 60);
-    expect(s.plannedMin).toBe(60 + 30 + 60);
+    expect(s.remainingMin).toBe(60);
+    expect(s.plannedMin).toBe(60 + 30);
     expect(s.doneMin).toBe(30);
-    expect(flexibleQueue(s).some((i) => i.task.id === "b")).toBe(false);
   });
 
   it("pular vale só para aquele dia", () => {
@@ -100,42 +96,13 @@ describe("horário do dia", () => {
     expect(m.doneMin).toBe(0); // os 30min feitos em "b" ficam fora do horário
   });
 
-  it("a sugestão conta até o almoço, não até um compromisso à noite", () => {
-    const evening: Block[] = [{ id: "z", taskId: "b", date: D, start: `${D}T20:00:00`, end: `${D}T21:00:00` }];
-    const m = dayMetrics(D, work, tasks, evening, [], new Date(`${D}T09:20:00`));
-    const sug = suggestNow(new Date(`${D}T09:20:00`), m, evening, work.breaks);
-    expect(sug.untilNextMin).toBe(160);
-    expect(sug.nextLabel).toBe("almoço");
-  });
 
   it("dia sem horário tem capacidade zero", () => {
     expect(dayMetrics("2026-10-18", work, [], [], [], early).capacityMin).toBe(0);
   });
 });
 
-describe("fila flexível e sugestão", () => {
-  const m = dayMetrics(D, settings, tasks, blocks, sessions, early);
 
-  it("ordena por prazo antes de prioridade e ignora agendadas", () => {
-    expect(flexibleQueue(m).map((i) => i.task.id)).toEqual(["a", "b"]);
-  });
-
-  it("dentro de um bloco, sugere o bloco", () => {
-    expect(suggestNow(new Date(`${D}T14:30:00`), m, blocks).kind).toBe("block");
-  });
-
-  it("fora de bloco, sugere a primeira flexível e o tempo até o próximo bloco", () => {
-    const s = suggestNow(new Date(`${D}T13:00:00`), m, blocks);
-    expect(s.item?.task.id).toBe("a");
-    expect(s.untilNextMin).toBe(60);
-  });
-});
-
-it("meta semanal soma a semana inteira", () => {
-  const [g] = weeklyGoals(D, tasks, sessions);
-  expect(g.doneMin).toBe(100);
-  expect(g.remainingMin).toBe(200);
-});
 
 it("entende durações", () => {
   expect(["45", "45m", "1h", "1h30", "1:30", "1,5h", "2h05min", "abc"].map(parseDuration)).toEqual([45, 45, 60, 90, 90, 90, 125, null]);
@@ -144,32 +111,28 @@ it("entende durações", () => {
 });
 
 describe("horário fixo da tarefa", () => {
-  const rec: Task = { id: "g", title: "Academia", repeat: "weekdays", weekdays: [1, 3, 5], time: "18:00", estimateMin: 90, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
-  const once: Task = { id: "o", title: "Dentista", repeat: "once", date: "2026-10-15", time: "14:30", estimateMin: 60, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
+  const rec: Task = { id: "g", title: "Academia", repeat: "weekdays", weekdays: [1, 3, 5], time: "18:00", estimateMin: 90, createdAt: "2026-10-01T10:00:00.000Z" };
+  const once: Task = { id: "o", title: "Dentista", repeat: "once", date: "2026-10-15", time: "14:30", estimateMin: 60, createdAt: "2026-10-01T10:00:00.000Z" };
   const dates = ["2026-10-14", "2026-10-15", "2026-10-16"]; // qua, qui, sex
 
   it("cria blocos nos dias em que a tarefa acontece, na hora certa", () => {
-    const b = taskTimeBlocks([rec, once], [], dates);
+    const b = taskTimeBlocks([rec, once], dates);
     expect(b.map((x) => x.date).sort()).toEqual(["2026-10-14", "2026-10-15", "2026-10-16"]);
     const fri = b.find((x) => x.taskId === "g" && x.date === "2026-10-16")!;
     expect(new Date(fri.start).getHours()).toBe(18);
     expect((Date.parse(fri.end) - Date.parse(fri.start)) / 60000).toBe(90);
   });
 
-  it("não duplica quando já existe um bloco de verdade no dia", () => {
-    const real: Block[] = [{ id: "r", taskId: "g", date: "2026-10-16", start: "2026-10-16T19:00:00", end: "2026-10-16T20:00:00" }];
-    expect(taskTimeBlocks([rec], real, dates).some((x) => x.date === "2026-10-16")).toBe(false);
-  });
 
   it("a tarefa com horário conta como agendada no dia", () => {
-    const blocks = taskTimeBlocks([rec], [], dates);
+    const blocks = taskTimeBlocks([rec], dates);
     const m = dayMetrics("2026-10-16", settings, [rec], blocks, [], early);
     expect(m.items[0].scheduled).toBe(true);
   });
 });
 
 describe("tarefa por tempo", () => {
-  const work: Task = { id: "w", title: "Trabalho", repeat: "weekdays", weekdays: [5], doneBy: "time", estimateMin: 360, priority: 1, createdAt: "2026-10-01T10:00:00.000Z" };
+  const work: Task = { id: "w", title: "Trabalho", repeat: "weekdays", weekdays: [5], doneBy: "time", estimateMin: 360, createdAt: "2026-10-01T10:00:00.000Z" };
   const s = (m: number): Session[] => [{ id: "x", taskId: "w", date: D, minutes: m, kind: "manual", startedAt: "", endedAt: "" }];
 
   it("falta o que ainda não foi cumprido e não conclui antes da meta", () => {
@@ -196,19 +159,18 @@ describe("vários horários na mesma tarefa", () => {
       { start: "08:00", end: "11:00" },
       { start: "14:00", end: "18:00" },
     ],
-    priority: 2,
     createdAt: "2026-10-01T10:00:00.000Z",
   };
 
   it("gera um bloco por horário, no dia em que a tarefa acontece", () => {
-    const b = taskTimeBlocks([work], [], ["2026-10-15", "2026-10-16"]);
+    const b = taskTimeBlocks([work], ["2026-10-15", "2026-10-16"]);
     expect(b).toHaveLength(2);
     expect(b.map((x) => new Date(x.start).getHours())).toEqual([8, 14]);
     expect(b.map((x) => x.slot)).toEqual([0, 1]);
   });
 
   it("a tarefa continua uma só, com a meta somada", () => {
-    const blocks = taskTimeBlocks([work], [], [D]);
+    const blocks = taskTimeBlocks([work], [D]);
     const m = dayMetrics(D, { ...settings, windows: [null, null, null, null, null, { start: "08:00", end: "18:00" }, null] }, [work], blocks, [], early);
     expect(m.items).toHaveLength(1);
     expect(m.items[0].estimateMin).toBe(420);
@@ -227,17 +189,17 @@ it("entende intervalos de horário e durações", () => {
 });
 
 describe("conflito de horário", () => {
-  const work: Task = { id: "w", title: "Trabalho", repeat: "weekdays", weekdays: [5], slots: [{ start: "08:00", end: "11:00" }, { start: "14:00", end: "18:00" }], estimateMin: 420, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
-  const atoa: Task = { id: "t", title: "atoa", repeat: "once", date: D, slots: [{ start: "15:30", end: "16:15" }], estimateMin: 45, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
-  const gym: Task = { id: "g", title: "Academia", repeat: "once", date: D, slots: [{ start: "11:00", end: "13:00" }], estimateMin: 120, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
+  const work: Task = { id: "w", title: "Trabalho", repeat: "weekdays", weekdays: [5], slots: [{ start: "08:00", end: "11:00" }, { start: "14:00", end: "18:00" }], estimateMin: 420, createdAt: "2026-10-01T10:00:00.000Z" };
+  const atoa: Task = { id: "t", title: "atoa", repeat: "once", date: D, slots: [{ start: "15:30", end: "16:15" }], estimateMin: 45, createdAt: "2026-10-01T10:00:00.000Z" };
+  const gym: Task = { id: "g", title: "Academia", repeat: "once", date: D, slots: [{ start: "11:00", end: "13:00" }], estimateMin: 120, createdAt: "2026-10-01T10:00:00.000Z" };
 
   it("acha a sobreposição entre tarefas diferentes no mesmo dia", () => {
-    const c = findConflicts(taskTimeBlocks([work, atoa], [], [D]));
+    const c = findConflicts(taskTimeBlocks([work, atoa], [D]));
     expect(c.map((x) => `${x.taskId}>${x.otherId}`).sort()).toEqual(["t>w", "w>t"]);
   });
 
   it("horários encostados (11:00 termina, 11:00 começa) não são conflito", () => {
-    expect(findConflicts(taskTimeBlocks([work, gym], [], [D]))).toEqual([]);
+    expect(findConflicts(taskTimeBlocks([work, gym], [D]))).toEqual([]);
   });
 });
 
@@ -254,7 +216,6 @@ describe("horário da tarefa conta sozinho", () => {
       { start: "08:00", end: "12:00" },
       { start: "13:00", end: "15:00" },
     ],
-    priority: 2,
     createdAt: "2026-10-01T10:00:00.000Z",
   };
   const at = (hhmm: string) => new Date(`${D}T${hhmm}:00`);
@@ -289,4 +250,12 @@ describe("horário da tarefa conta sozinho", () => {
   it("dia futuro não conta nada ainda", () => {
     expect(dayMetrics("2026-10-23", work8, [job], [], [], at("16:00")).items[0].autoMin).toBe(0);
   });
+});
+
+it("meta semanal antiga vira tarefa que repete de segunda a sexta, por tempo", () => {
+  const { task, changed } = migrateTask({ id: "m", title: "Inglês", repeat: "weeklyGoal", weeklyGoalMin: 300, estimateMin: 0, createdAt: "2026-10-01T10:00:00.000Z" });
+  expect(changed).toBe(true);
+  expect(task).toMatchObject({ repeat: "weekdays", weekdays: [1, 2, 3, 4, 5], estimateMin: 60, doneBy: "time" });
+  expect("weeklyGoalMin" in task).toBe(false);
+  expect(migrateTask({ ...task }).changed).toBe(false);
 });

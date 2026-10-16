@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Clock, Pause, Play, Plus, Search, Target } from "lucide-react";
+import { ChevronDown, Clock, Pause, Play, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addTask, saveSettings, updateTask } from "@/lib/db";
@@ -48,7 +48,6 @@ export function TasksPage() {
   const active = tasks.filter((t) => !t.archived);
   const routine = active.filter((t) => t.repeat === "weekdays").sort(byTimeThenTitle);
   const once = active.filter((t) => t.repeat === "once" && !t.completedAt);
-  const goals = active.filter((t) => t.repeat === "weeklyGoal");
   const paused = tasks.filter((t) => t.archived && !(t.repeat === "once" && t.completedAt));
 
   return (
@@ -62,7 +61,6 @@ export function TasksPage() {
 
       <RoutineCard tasks={routine} visible={routine.filter(match)} searching={!!q} />
       <OnceCard tasks={once.filter(match)} searching={!!q} />
-      {goals.filter(match).length > 0 && <GoalsCard tasks={goals.filter(match)} />}
       {paused.filter(match).length > 0 && <PausedCard tasks={paused.filter(match)} />}
 
       <p className="pt-4 text-center text-[13px] text-muted">
@@ -166,7 +164,7 @@ function RoutineCard({ tasks, visible, searching }: { tasks: Task[]; visible: Ta
     const days = WEEK.filter((d) => settings.windows[d]);
     const weekdays = (days.length ? days : [1, 2, 3, 4, 5]).sort();
     if (minutes === null) return editTask({ title, repeat: "weekdays", weekdays });
-    await addTask(uid, { title, repeat: "weekdays", weekdays, estimateMin: minutes, priority: 2 });
+    await addTask(uid, { title, repeat: "weekdays", weekdays, estimateMin: minutes });
   }
 
   return (
@@ -279,7 +277,7 @@ function OnceCard({ tasks, searching }: { tasks: Task[]; searching: boolean }) {
   async function quickAdd(text: string) {
     const { title, minutes } = parseQuickAdd(text);
     if (!title) return;
-    await addTask(uid, { title, repeat: "once", date: today, estimateMin: minutes ?? 30, priority: 2 });
+    await addTask(uid, { title, repeat: "once", date: today, estimateMin: minutes ?? 30 });
   }
 
   return (
@@ -319,26 +317,7 @@ function OnceCard({ tasks, searching }: { tasks: Task[]; searching: boolean }) {
   );
 }
 
-// ---------------- Outras ----------------
-
-function GoalsCard({ tasks }: { tasks: Task[] }) {
-  return (
-    <section className="rounded-2xl border border-line bg-surface">
-      <header className="px-4 pt-4 pb-2 sm:px-5">
-        <h2 className="text-[15px] font-semibold">Metas semanais (antigas)</h2>
-        <p className="text-[13px] text-muted">Tipo que saiu do app. Toque no nome para virar uma tarefa que repete.</p>
-      </header>
-      <ul className="divide-y divide-line border-t border-line">
-        {tasks.map((t) => (
-          <li key={t.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
-            <Target size={15} className="shrink-0 text-muted" />
-            <TaskName task={t} sub={`${fmtMin(t.weeklyGoalMin ?? 0)} por semana`} />
-          </li>
-        ))}
-      </ul>
-    </section>
-  );
-}
+// ---------------- Pausadas ----------------
 
 function PausedCard({ tasks }: { tasks: Task[] }) {
   const { uid } = useStore();

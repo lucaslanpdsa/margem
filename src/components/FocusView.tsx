@@ -4,7 +4,7 @@ import { Bell, ChevronDown, Minus, MoreHorizontal, Play, Plus, Square } from "lu
 import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
-import { dayItems, weeklyGoals } from "@/lib/metrics";
+import { dayItems } from "@/lib/metrics";
 import { isStopwatch, skipBreak, startTimer, startWaiting, stopTimer } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
 import { RecordTime } from "./EditableMinutes";
@@ -14,15 +14,13 @@ import { Button, IconButton, Modal, Segmented, Switch, cx, inputCls } from "./ui
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-/** Tarefas que fazem sentido escolher hoje: as do dia ainda abertas e as metas da semana. */
+/** Tarefas que fazem sentido escolher hoje: as do dia ainda abertas. */
 export function useTaskOptions() {
   const { tasks, blocks, sessions } = useStore();
   const today = todayKey();
-  const open = dayItems(today, tasks, blocks, sessions)
-    .filter((i) => !i.completed && !i.skipped && i.task.repeat !== "weeklyGoal")
+  return dayItems(today, tasks, blocks, sessions)
+    .filter((i) => !i.completed && !i.skipped)
     .map((i) => ({ task: i.task, hint: `falta ${fmtMin(i.remainingMin)}` }));
-  const goals = weeklyGoals(today, tasks, sessions).map((g) => ({ task: g.task, hint: "meta da semana" }));
-  return [...open, ...goals];
 }
 
 function TaskSelect({ value, onChange, disabled, extra }: { value: string; onChange: (id: string) => void; disabled?: boolean; extra?: Task }) {
@@ -111,17 +109,6 @@ function PomodoroMenu({ onClose }: { onClose: () => void }) {
       <div className="grid grid-cols-2 gap-3">
         <MinutesField label="Foco" value={settings.focusMin} step={5} min={5} max={180} onChange={(v) => saveSettings(uid, { focusMin: v })} />
         <MinutesField label="Pausa" value={settings.breakMin} step={1} min={1} max={60} onChange={(v) => saveSettings(uid, { breakMin: v })} />
-      </div>
-      <div className="mt-5">
-        <span className="mb-1.5 block text-[13px] font-medium">O que conta como feito na tarefa</span>
-        <Segmented
-          value={settings.countBreaks ? "all" : "focus"}
-          onChange={(v) => saveSettings(uid, { countBreaks: v === "all" })}
-          options={[
-            { value: "focus", label: "Só o foco" },
-            { value: "all", label: "Foco + pausa" },
-          ]}
-        />
       </div>
       <div className="mt-5 border-t border-line pt-3">
         <Switch label="Início de foco automático" checked={!!settings.autoStartFocus} onChange={(v) => saveSettings(uid, { autoStartFocus: v })} />

@@ -4,7 +4,8 @@ import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { dayKey, fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addDays, differenceInCalendarDays } from "date-fns";
-import { watchBlocks, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import { replaceTask, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import { migrateTask } from "@/lib/migrate";
 import { taskTimeBlocks } from "@/lib/schedule";
 import { auth } from "@/lib/firebase";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "@/lib/types";
@@ -39,7 +40,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [blocks, setBlocks] = useState<Block[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [settingsReady, setSettingsReady] = useState(false);
@@ -56,7 +56,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const uid = user?.uid ?? "";
 
-  // Carrega a partir do menor entre: semana em foco e 4 semanas atrás (para metas e histórico recente).
+  // Carrega a partir do menor entre: semana em foco e 4 semanas atrás (histórico recente).
   const fromDate = useMemo(() => {
     const a = weekDays(date)[0];
     const b = shiftDay(todayKey(), -28);
@@ -66,7 +66,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!uid) return;
     const subs = [
-      watchTasks(uid, setTasks),
+      watchTasks(uid, (raw) => {
+        // Tarefas de versões antigas são convertidas na hora e regravadas no formato atual.
+        const migrated = raw.map(migrateTask);
+        migrated.filter((m) => m.changed).forEach((m) => replaceTask(uid, m.task));
+        setTasks(migrated.map((m) => m.task));
+      }),
       watchSettings(uid, (s) => {
         setSettings(s);
         setSettingsReady(true);
@@ -77,17 +82,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!uid) return;
-    const subs = [watchBlocks(uid, fromDate, setBlocks), watchSessions(uid, fromDate, setSessions)];
+    const subs = [watchSessions(uid, fromDate, setSessions)];
     return () => subs.forEach((u) => u());
   }, [uid, fromDate]);
 
-  // Blocos reais + horários fixos das tarefas, do início carregado até 2 semanas depois do dia em foco.
+  // Horários fixos das tarefas, do início carregado até 2 semanas depois do dia em foco.
   const allBlocks = useMemo(() => {
     const last = shiftDay(weekDays(date)[6], 7);
     const n = differenceInCalendarDays(fromKey(last), fromKey(fromDate)) + 1;
     const dates = Array.from({ length: n }, (_, i) => dayKey(addDays(fromKey(fromDate), i)));
-    return [...blocks, ...taskTimeBlocks(tasks, blocks, dates)];
-  }, [blocks, tasks, date, fromDate]);
+    return taskTimeBlocks(tasks, dates);
+  }, [tasks, date, fromDate]);
 
   const value: Store = {
     user,

@@ -76,15 +76,12 @@ export function slotsOf(t: Task): TimeSlot[] {
 /** Soma dos horários, em minutos. */
 export const slotsMinutes = (slots: TimeSlot[]) => slots.reduce((a, s) => a + Math.max(0, toMin(s.end) - toMin(s.start)), 0);
 
-/**
- * Blocos "virtuais" para os horários das tarefas, nos dias em que elas acontecem.
- * Se a tarefa já tem um bloco de verdade naquele dia, os virtuais não são criados.
- */
-export function taskTimeBlocks(tasks: Task[], realBlocks: Block[], dates: string[]): Block[] {
+/** Blocos para os horários das tarefas, nos dias em que elas acontecem. */
+export function taskTimeBlocks(tasks: Task[], dates: string[]): Block[] {
   const out: Block[] = [];
   for (const t of tasks) {
     const slots = slotsOf(t);
-    if (!slots.length || t.archived || t.repeat === "weeklyGoal") continue;
+    if (!slots.length || t.archived) continue;
     const days =
       t.repeat === "once"
         ? (t.date ?? "") && dates.includes(t.date!)
@@ -92,7 +89,6 @@ export function taskTimeBlocks(tasks: Task[], realBlocks: Block[], dates: string
           : []
         : dates.filter((d) => t.weekdays?.includes(weekdayOf(d)) && t.createdAt.slice(0, 10) <= d && !t.skipped?.[d]);
     for (const d of days) {
-      if (realBlocks.some((b) => b.taskId === t.id && b.date === d)) continue;
       slots.forEach((slot, i) => {
         const start = new Date(`${d}T${slot.start}:00`);
         const end = new Date(`${d}T${slot.end}:00`);

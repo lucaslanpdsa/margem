@@ -13,7 +13,7 @@ import {
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
-import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
+import { DEFAULT_SETTINGS, type Session, type Settings, type Task } from "./types";
 
 const col = (uid: string, name: string) => collection(db(), "users", uid, name);
 const settingsRef = (uid: string) => doc(db(), "users", uid, "meta", "settings");
@@ -28,12 +28,6 @@ function clean<T extends object>(obj: T): T {
 export function watchTasks(uid: string, cb: (t: Task[]) => void): Unsubscribe {
   return onSnapshot(col(uid, "tasks"), (snap) =>
     cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Task, "id">), id: d.id }))),
-  );
-}
-
-export function watchBlocks(uid: string, fromDate: string, cb: (b: Block[]) => void): Unsubscribe {
-  return onSnapshot(query(col(uid, "blocks"), where("date", ">=", fromDate)), (snap) =>
-    cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Block, "id">), id: d.id }))),
   );
 }
 
@@ -77,13 +71,6 @@ export function toggleDone(uid: string, task: Task, date: string, done: boolean)
 /** Pular (ou desfazer o pulo de) uma tarefa que repete, só neste dia. */
 export const setSkipped = (uid: string, task: Task, date: string, skipped: boolean) =>
   updateDoc(doc(db(), "users", uid, "tasks", task.id), { [`skipped.${date}`]: skipped, [`completions.${date}`]: false });
-
-// ---------- Blocos ----------
-
-export const addBlock = (uid: string, b: Omit<Block, "id">) => addDoc(col(uid, "blocks"), b);
-export const updateBlock = (uid: string, id: string, patch: Partial<Block>) =>
-  updateDoc(doc(db(), "users", uid, "blocks", id), patch);
-export const deleteBlock = (uid: string, id: string) => deleteDoc(doc(db(), "users", uid, "blocks", id));
 
 // ---------- Sessões ----------
 

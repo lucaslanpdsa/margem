@@ -18,8 +18,6 @@ export const weekDays = (key: string): string[] => {
 
 export const shiftDay = (key: string, n: number) => dayKey(addDays(fromKey(key), n));
 
-export const minutesBetween = (startIso: string, endIso: string) =>
-  Math.max(0, Math.round((Date.parse(endIso) - Date.parse(startIso)) / 60000));
 
 /** 135 -> "2h15", 45 -> "45min", -30 -> "-30min" */
 export const fmtMin = (min: number) => {

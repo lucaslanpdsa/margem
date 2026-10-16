@@ -15,14 +15,14 @@ export type TaskDraft = Partial<Task>;
 export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: () => void }) {
   const { uid, tasks } = useStore();
   const editing = !!initial.id;
-  // Metas semanais saíram do app: ao editar uma antiga, ela vira tarefa que repete, por tempo.
-  const legacyGoal = initial.repeat === "weeklyGoal";
   const [title, setTitle] = useState(initial.title ?? "");
   const [repeat, setRepeat] = useState<"once" | "weekdays">(initial.repeat === "once" || !initial.repeat ? "once" : "weekdays");
   const [estimate, setEstimate] = useState(initial.estimateMin ? fmtMin(initial.estimateMin) : "");
   const [date, setDate] = useState(initial.date ?? todayKey());
   const [slots, setSlotsState] = useState<TimeSlot[]>(() => slotsOf({ estimateMin: 0, ...initial } as Task));
-  const [doneBy, setDoneBy] = useState<"check" | "time">(legacyGoal ? "time" : (initial.doneBy ?? "check"));
+  const [doneBy, setDoneBy] = useState<"check" | "time">(initial.doneBy ?? "check");
+  // Horários e "como termina" ficam guardados em "Mais opções", abertos se a tarefa já usa algum.
+  const [more, setMore] = useState(() => slotsOf({ estimateMin: 0, ...initial } as Task).length > 0 || initial.doneBy === "time");
   const [weekdays, setWeekdays] = useState<number[]>(initial.weekdays ?? [1, 2, 3, 4, 5]);
   const [error, setError] = useState("");
   const parsed = parseDuration(estimate);
@@ -38,12 +38,11 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
       weekdays: repeat === "weekdays" ? weekdays : undefined,
       slots,
       estimateMin: parsed ?? 0,
-      priority: 2,
       createdAt: "2000-01-01T00:00:00.000Z",
     };
     const days = Array.from({ length: 14 }, (_, i) => shiftDay(todayKey(), i));
     const others = tasks.filter((t) => t.id !== draft.id && !t.archived);
-    const found = findConflicts(taskTimeBlocks([draft, ...others], [], days)).filter((c) => c.taskId === draft.id);
+    const found = findConflicts(taskTimeBlocks([draft, ...others], days)).filter((c) => c.taskId === draft.id);
     const byTask = new Map<string, { title: string; days: Set<number>; when: string }>();
     for (const c of found) {
       const other = others.find((t) => t.id === c.otherId);
@@ -80,7 +79,6 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
 
     const data: Omit<Task, "id" | "createdAt"> = {
       title: title.trim(),
-      priority: initial.priority ?? 2,
       repeat,
       estimateMin: parsed,
       date: repeat === "once" ? date || todayKey() : undefined,
@@ -153,45 +151,55 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           )}
         </div>
 
-        <div>
-          <span className="mb-1.5 block text-[13px] font-medium">Horários (opcional)</span>
-          {slots.length > 0 && (
-            <ul className="mb-2 space-y-2">
-              {slots.map((sl, i) => (
-                <li key={i} className="flex items-center gap-2">
-                  <TimeSelect label="Início" value={sl.start} onChange={(v) => setSlots(slots.map((x, j) => (j === i ? { ...x, start: v } : x)))} className="h-10" />
-                  <span className="text-sm text-muted">até</span>
-                  <TimeSelect label="Fim" value={sl.end} onChange={(v) => setSlots(slots.map((x, j) => (j === i ? { ...x, end: v } : x)))} className="h-10" />
-                  <IconButton label="Remover horário" type="button" onClick={() => setSlots(slots.filter((_, j) => j !== i))}>
-                    <Trash2 size={15} />
-                  </IconButton>
-                </li>
-              ))}
-            </ul>
-          )}
-          <Button type="button" size="sm" variant="ghost" onClick={addSlot} className="-ml-2.5 text-todo">
-            <Plus size={14} /> {slots.length ? "Adicionar outro horário" : "Adicionar horário"}
-          </Button>
-        </div>
-
         <Field label={doneBy === "time" ? "Meta de tempo" : "Quanto tempo leva"} hint={slots.length ? "Preenchido com a soma dos horários. Dá para mudar." : undefined}>
           <input className={cx(inputCls, "sm:w-56")} value={estimate} onChange={(e) => setEstimate(e.target.value)} placeholder="Ex: 45m, 1h30, 6h" />
         </Field>
 
-        <div>
-          <span className="mb-1.5 block text-[13px] font-medium">Como termina</span>
-          <Segmented
-            value={doneBy}
-            onChange={setDoneBy}
-            options={[
-              { value: "check" as const, label: "Marco como feita" },
-              { value: "time" as const, label: "Cumpro o tempo" },
-            ]}
-          />
-          <p className="mt-1.5 text-xs text-muted">
-            {doneBy === "check" ? "Terminou antes? Marque como feita e o tempo que sobrou volta para o dia." : "Ex: trabalhar 6h. Conclui sozinha quando o tempo reportado chegar na meta."}
-          </p>
-        </div>
+        {more ? (
+          <div className="space-y-5 rounded-xl border border-line p-4">
+          <div>
+            <span className="block text-[13px] font-medium">Horário</span>
+            <span className="mb-1.5 block text-xs text-muted">Com horário, o tempo conta sozinho enquanto o horário passa.</span>
+            {slots.length > 0 && (
+              <ul className="mb-2 space-y-2">
+                {slots.map((sl, i) => (
+                  <li key={i} className="flex items-center gap-2">
+                    <TimeSelect label="Início" value={sl.start} onChange={(v) => setSlots(slots.map((x, j) => (j === i ? { ...x, start: v } : x)))} className="h-10" />
+                    <span className="text-sm text-muted">até</span>
+                    <TimeSelect label="Fim" value={sl.end} onChange={(v) => setSlots(slots.map((x, j) => (j === i ? { ...x, end: v } : x)))} className="h-10" />
+                    <IconButton label="Remover horário" type="button" onClick={() => setSlots(slots.filter((_, j) => j !== i))}>
+                      <Trash2 size={15} />
+                    </IconButton>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <Button type="button" size="sm" variant="ghost" onClick={addSlot} className="-ml-2.5 text-todo">
+              <Plus size={14} /> {slots.length ? "Adicionar outro horário" : "Adicionar horário"}
+            </Button>
+          </div>
+
+          <div>
+            <span className="mb-1.5 block text-[13px] font-medium">Como termina</span>
+            <Segmented
+              value={doneBy}
+              onChange={setDoneBy}
+              options={[
+                { value: "check" as const, label: "Marco como feita" },
+                { value: "time" as const, label: "Cumpro o tempo" },
+              ]}
+            />
+            <p className="mt-1.5 text-xs text-muted">
+              {doneBy === "check" ? "Terminou antes? Marque como feita e o tempo que sobrou volta para o dia." : "Ex: trabalhar 6h. Conclui sozinha quando o tempo reportado chegar na meta."}
+            </p>
+          </div>
+
+          </div>
+        ) : (
+          <button type="button" onClick={() => setMore(true)} className="inline-flex items-center gap-1 text-[13px] font-medium text-todo hover:underline">
+            <Plus size={14} /> Mais opções: horário e como termina
+          </button>
+        )}
 
         {conflicts.length > 0 && (
           <div className="rounded-lg bg-break/12 px-3 py-2 text-sm text-ink">

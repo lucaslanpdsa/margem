@@ -23,7 +23,7 @@ export function QuickAdd({ date }: { date: string }) {
     const { title, minutes } = parseQuickAdd(text);
     if (!title) return;
     if (minutes === null) editTask({ title, date, repeat: "once" });
-    else await addTask(uid, { title, estimateMin: minutes, date, repeat: "once", priority: 2 });
+    else await addTask(uid, { title, estimateMin: minutes, date, repeat: "once" });
     setText("");
   }
 

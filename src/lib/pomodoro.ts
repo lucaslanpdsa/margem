@@ -10,7 +10,7 @@ import type { ActiveTimer, Settings } from "./types";
  * O timer ativo fica salvo como "começou em X" nas configurações,
  * então sobrevive a recarregar a página e aparece igual em outro dispositivo.
  *
- * Pomodoro: foco com tempo fixo, depois pausa. A pausa só conta como feito se a pessoa escolher.
+ * Pomodoro: foco com tempo fixo, depois pausa. Só o foco conta como feito.
  * Cronômetro: livre, conta até parar.
  * Sessão sem tarefa: conta como feito no dia e o app pergunta em que a pessoa trabalhou.
  */
@@ -46,7 +46,6 @@ async function closeCurrent(uid: string, settings: Settings, endedAt = new Date(
   if (!t || t.waiting) return;
   const min = elapsedMin(t, endedAt.getTime());
   if (t.phase === "focus") await record(uid, t, min, endedAt, isStopwatch(t) ? "sw" : "pomo");
-  else if (settings.countBreaks) await record(uid, t, min, endedAt, "pausa");
 }
 
 export async function startTimer(uid: string, settings: Settings, taskId: string, mode: "pomodoro" | "stopwatch" = "pomodoro") {
@@ -91,7 +90,6 @@ export async function finishPhase(uid: string, settings: Settings, t: ActiveTime
     await record(uid, t, t.durationMin, endedAt, "pomo");
     await saveSettings(uid, { activeTimer: phase(t, settings, "break", !!settings.autoStartBreaks) });
   } else {
-    if (settings.countBreaks) await record(uid, t, t.durationMin, endedAt, "pausa");
     await saveSettings(uid, { activeTimer: phase(t, settings, "focus", !!settings.autoStartFocus) });
   }
 }
