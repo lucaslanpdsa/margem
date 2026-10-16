@@ -211,8 +211,8 @@ export function TasksView() {
               description={g.description}
               right={
                 showing === "active" && g.kind !== "weeklyGoal" && (
-                  <Button size="sm" variant="ghost" onClick={() => editTask({ repeat: g.kind })}>
-                    <Plus size={14} /> Adicionar
+                  <Button size="sm" variant="secondary" onClick={() => editTask({ repeat: g.kind })}>
+                    <Plus size={14} /> Nova
                   </Button>
                 )
               }
