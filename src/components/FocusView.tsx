@@ -5,12 +5,12 @@ import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
 import { dayItems, weeklyGoals } from "@/lib/metrics";
-import { isStopwatch, startTimer, stopTimer } from "@/lib/pomodoro";
+import { isStopwatch, skipBreak, startTimer, startWaiting, stopTimer } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
 import { RecordTime } from "./EditableMinutes";
 import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
-import { Button, IconButton, Modal, Segmented, cx, inputCls } from "./ui";
+import { Button, IconButton, Modal, Segmented, Switch, cx, inputCls } from "./ui";
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -123,6 +123,10 @@ function PomodoroMenu({ onClose }: { onClose: () => void }) {
           ]}
         />
       </div>
+      <div className="mt-5 border-t border-line pt-3">
+        <Switch label="Começar a pausa sozinho" checked={!!settings.autoStartBreaks} onChange={(v) => saveSettings(uid, { autoStartBreaks: v })} />
+        <Switch label="Começar o próximo foco sozinho" checked={!!settings.autoStartFocus} onChange={(v) => saveSettings(uid, { autoStartFocus: v })} />
+      </div>
       {perm !== "unsupported" && (
         <div className="mt-5 border-t border-line pt-4">
           {perm === "granted" ? (
@@ -211,7 +215,17 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
   const runningTask = tasks.find((x) => x.id === t?.taskId);
 
   const clock = d?.text ?? (mode === "pomodoro" ? `${String(settings.focusMin).padStart(2, "0")}:00` : "00:00");
-  const status = !t ? "Pronto para começar" : t.phase === "break" ? "Pausa" : isStopwatch(t) ? "Contando" : "Foco";
+  const status = !t
+    ? "Pronto para começar"
+    : t.waiting
+      ? t.phase === "break"
+        ? "Pausa pronta"
+        : "Próximo foco"
+      : t.phase === "break"
+        ? "Pausa"
+        : isStopwatch(t)
+          ? "Contando"
+          : "Foco";
 
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-md flex-col items-center justify-center gap-7 lg:min-h-[calc(100dvh-5rem)]">
@@ -254,6 +268,25 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
           >
             <Play size={15} fill="currentColor" /> Começar
           </button>
+        ) : t.waiting ? (
+          <div className="space-y-2">
+            <button
+              onClick={() => startWaiting(uid, settings)}
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-white hover:bg-brand/90"
+            >
+              <Play size={15} fill="currentColor" /> {t.phase === "break" ? "Começar pausa" : "Começar foco"}
+            </button>
+            <div className={cx("grid gap-2", t.phase === "break" ? "grid-cols-2" : "grid-cols-1")}>
+              <button onClick={() => stopTimer(uid, settings)} className="h-12 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
+                Encerrar
+              </button>
+              {t.phase === "break" && (
+                <button onClick={() => skipBreak(uid, settings)} className="h-12 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
+                  Pular pausa
+                </button>
+              )}
+            </div>
+          </div>
         ) : t.phase === "focus" ? (
           <button
             onClick={() => stopTimer(uid, settings)}
@@ -266,7 +299,7 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
             <button onClick={() => stopTimer(uid, settings)} className="h-14 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
               Encerrar
             </button>
-            <button onClick={() => startTimer(uid, settings, t.taskId, "pomodoro")} className="h-14 rounded-full bg-brand font-semibold text-white hover:bg-brand/90">
+            <button onClick={() => skipBreak(uid, settings)} className="h-14 rounded-full bg-brand font-semibold text-white hover:bg-brand/90">
               Próximo foco
             </button>
           </div>

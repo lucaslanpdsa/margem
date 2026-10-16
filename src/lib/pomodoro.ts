@@ -43,7 +43,7 @@ async function record(uid: string, t: ActiveTimer, minutes: number, endedAt: Dat
 /** Encerra o que estiver rodando, gravando o tempo que deve contar. */
 async function closeCurrent(uid: string, settings: Settings, endedAt = new Date()) {
   const t = settings.activeTimer;
-  if (!t) return;
+  if (!t || t.waiting) return;
   const min = elapsedMin(t, endedAt.getTime());
   if (t.phase === "focus") await record(uid, t, min, endedAt, isStopwatch(t) ? "sw" : "pomo");
   else if (settings.countBreaks) await record(uid, t, min, endedAt, "pausa");
@@ -74,18 +74,41 @@ export async function stopTimer(uid: string, settings: Settings) {
   await saveSettings(uid, { activeTimer: null });
 }
 
+/** Monta a próxima fase: já rodando ou esperando o toque em começar. */
+const phase = (t: ActiveTimer, settings: Settings, p: "focus" | "break", auto: boolean): ActiveTimer => ({
+  mode: "pomodoro",
+  taskId: t.taskId,
+  phase: p,
+  startedAt: new Date().toISOString(),
+  durationMin: p === "focus" ? settings.focusMin : settings.breakMin,
+  waiting: !auto,
+});
+
 /** Fim natural de uma fase do pomodoro (chamado pelo timer quando o tempo acaba). */
 export async function finishPhase(uid: string, settings: Settings, t: ActiveTimer) {
   const endedAt = new Date(Date.parse(t.startedAt) + t.durationMin * 60000);
   if (t.phase === "focus") {
     await record(uid, t, t.durationMin, endedAt, "pomo");
-    await saveSettings(uid, {
-      activeTimer: { ...t, phase: "break", startedAt: new Date().toISOString(), durationMin: settings.breakMin },
-    });
+    await saveSettings(uid, { activeTimer: phase(t, settings, "break", !!settings.autoStartBreaks) });
   } else {
     if (settings.countBreaks) await record(uid, t, t.durationMin, endedAt, "pausa");
-    await saveSettings(uid, { activeTimer: null });
+    await saveSettings(uid, { activeTimer: phase(t, settings, "focus", !!settings.autoStartFocus) });
   }
+}
+
+/** Começa agora a fase que estava esperando. */
+export async function startWaiting(uid: string, settings: Settings) {
+  const t = settings.activeTimer;
+  if (!t) return;
+  await saveSettings(uid, { activeTimer: phase(t, settings, t.phase, true) });
+}
+
+/** Pula a pausa (rodando ou esperando) e começa o próximo foco. */
+export async function skipBreak(uid: string, settings: Settings) {
+  const t = settings.activeTimer;
+  if (!t) return;
+  await closeCurrent(uid, settings);
+  await saveSettings(uid, { activeTimer: phase(t, settings, "focus", true) });
 }
 
 export function notify(title: string, body: string) {

@@ -78,6 +78,8 @@ export interface ActiveTimer {
   startedAt: string; // ISO
   /** Duração da fase no pomodoro; 0 no cronômetro. */
   durationMin: number;
+  /** Fase pronta, esperando a pessoa tocar em começar (início automático desligado). */
+  waiting?: boolean;
 }
 
 /** Horário de um dia, "HH:mm". */
@@ -105,6 +107,10 @@ export interface Settings {
   activeTimer?: ActiveTimer | null;
   /** No pomodoro, a pausa também conta como feito. */
   countBreaks?: boolean;
+  /** Ao acabar o foco, a pausa começa sozinha. */
+  autoStartBreaks?: boolean;
+  /** Ao acabar a pausa, o próximo foco começa sozinho. */
+  autoStartFocus?: boolean;
   /** Sessão sem tarefa esperando a pessoa dizer em que trabalhou. */
   pendingAssign?: string | null;
   /** Já passou pela configuração inicial. */

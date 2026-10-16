@@ -29,7 +29,7 @@ interface Props {
 export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, extra, checkable = true, warning }: Props) {
   const { uid, settings } = useStore();
   const { editTask, logTime } = useDialogs();
-  const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus";
+  const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus" && !settings.activeTimer.waiting;
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
 
   return (

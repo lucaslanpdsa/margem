@@ -2,7 +2,7 @@
 
 import { Coffee, Square, Timer as TimerIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { finishPhase, isStopwatch, notify, startTimer, stopTimer } from "@/lib/pomodoro";
+import { finishPhase, isStopwatch, notify, skipBreak, startWaiting, stopTimer } from "@/lib/pomodoro";
 import type { ActiveTimer } from "@/lib/types";
 import { useStore } from "./store";
 import { Button, cx } from "./ui";
@@ -27,6 +27,7 @@ export const mmss = (ms: number) => {
 
 /** O que mostrar no relógio: contagem regressiva no pomodoro, crescente no cronômetro. */
 export function timerDisplay(t: ActiveTimer, now: number) {
+  if (t.waiting) return { text: mmss(t.durationMin * 60000), pct: 0 as number | null, remaining: Infinity };
   const elapsed = now - Date.parse(t.startedAt);
   if (isStopwatch(t)) return { text: mmss(elapsed), pct: null as number | null, remaining: Infinity };
   const total = t.durationMin * 60000;
@@ -50,8 +51,9 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
   useEffect(() => {
     if (!t || isStopwatch(t) || !d || d.remaining > 0 || handled.current === t.startedAt) return;
     handled.current = t.startedAt;
-    if (t.phase === "focus") notify("Pomodoro concluído", `${t.durationMin}min${task ? ` em "${task.title}"` : ""}. Hora da pausa.`);
-    else notify("Pausa terminou", "Pronto para o próximo?");
+    if (t.phase === "focus")
+      notify("Pomodoro concluído", `${t.durationMin}min${task ? ` em "${task.title}"` : ""}. ${settings.autoStartBreaks ? "A pausa começou." : "Hora da pausa."}`);
+    else notify("Pausa terminou", settings.autoStartFocus ? "O próximo foco começou." : "Pronto para o próximo?");
     finishPhase(uid, settings, t);
   }, [t, d, uid, settings, task]);
 
@@ -77,10 +79,27 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
             </span>
             <span className="min-w-0 flex-1">
               <span className="tabular block text-2xl leading-none font-semibold">{d.text}</span>
-              <span className="mt-1 block truncate text-[13px] text-muted">{focus ? (task?.title ?? "Sem tarefa") : "Pausa"}</span>
+              <span className="mt-1 block truncate text-[13px] text-muted">
+                {t.waiting ? (focus ? "Próximo foco" : "Pausa pronta") : focus ? (task?.title ?? "Sem tarefa") : "Pausa"}
+              </span>
             </span>
           </button>
-          {focus ? (
+          {t.waiting ? (
+            <div className="flex gap-1.5">
+              {focus ? (
+                <Button variant="ghost" onClick={() => stopTimer(uid, settings)}>
+                  Encerrar
+                </Button>
+              ) : (
+                <Button variant="ghost" onClick={() => skipBreak(uid, settings)}>
+                  Pular
+                </Button>
+              )}
+              <Button variant="primary" onClick={() => startWaiting(uid, settings)}>
+                Começar
+              </Button>
+            </div>
+          ) : focus ? (
             <Button variant="secondary" onClick={() => stopTimer(uid, settings)} title="Para agora e conta o tempo já feito">
               <Square size={12} fill="currentColor" /> Parar
             </Button>
@@ -89,7 +108,7 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
               <Button variant="ghost" onClick={() => stopTimer(uid, settings)}>
                 Encerrar
               </Button>
-              <Button variant="primary" onClick={() => startTimer(uid, settings, t.taskId, "pomodoro")}>
+              <Button variant="primary" onClick={() => skipBreak(uid, settings)}>
                 Próximo
               </Button>
             </div>
