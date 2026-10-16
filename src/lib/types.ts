@@ -22,7 +22,9 @@ export interface Task {
   deadline?: string;
   /** Como termina: marcando como feita (padrão) ou cumprindo o tempo (ex: trabalhar 6h). */
   doneBy?: "check" | "time";
-  /** Horário fixo "HH:mm" (avulsa com dia ou recorrente): a tarefa já aparece na agenda. */
+  /** Horários na agenda, ex: [{ start: "08:00", end: "11:00" }, { start: "14:00", end: "18:00" }]. */
+  slots?: TimeSlot[] | null;
+  /** (Antigo) horário de início único; a duração vinha da estimativa. Lido como um slot. */
   time?: string | null;
   /** "weekdays": 0 = domingo ... 6 = sábado. */
   weekdays?: number[];
@@ -36,6 +38,11 @@ export interface Task {
   createdAt: string;
 }
 
+export interface TimeSlot {
+  start: string; // "HH:mm"
+  end: string; // "HH:mm"
+}
+
 /** Pedaço de tempo reservado na agenda para uma tarefa. */
 export interface Block {
   id: string;
@@ -43,8 +50,10 @@ export interface Block {
   date: string; // dia do início
   start: string; // ISO
   end: string; // ISO
-  /** Gerado a partir do horário fixo da tarefa (não existe no banco). */
+  /** Gerado a partir dos horários da tarefa (não existe no banco). */
   virtual?: boolean;
+  /** Qual horário da tarefa gerou este bloco. */
+  slot?: number;
 }
 
 /** Tempo realmente trabalhado (pomodoro ou registro manual). */

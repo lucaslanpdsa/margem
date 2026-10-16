@@ -1,5 +1,5 @@
 import { dayKey, weekdayOf } from "./dates";
-import type { Block, BreakTime, DayWindow, Settings, Task } from "./types";
+import type { Block, BreakTime, DayWindow, Settings, Task, TimeSlot } from "./types";
 
 /** "07:30" -> 450 */
 export const toMin = (hhmm: string) => {
@@ -49,25 +49,41 @@ export function dayClock(settings: Settings, date: string, now: Date = new Date(
   return { window, capacityMin, elapsedMin, past: date < today || (date === today && elapsedMin >= capacityMin) };
 }
 
+const toHHmm = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+/** Horários da tarefa (aceita o formato antigo de um horário só, com a duração da estimativa). */
+export function slotsOf(t: Task): TimeSlot[] {
+  if (t.slots?.length) return t.slots;
+  if (t.time) return [{ start: t.time, end: toHHmm(toMin(t.time) + Math.max(15, t.estimateMin)) }];
+  return [];
+}
+
+/** Soma dos horários, em minutos. */
+export const slotsMinutes = (slots: TimeSlot[]) => slots.reduce((a, s) => a + Math.max(0, toMin(s.end) - toMin(s.start)), 0);
+
 /**
- * Blocos "virtuais" para tarefas com horário fixo, nos dias em que elas acontecem.
- * Se a tarefa já tem um bloco de verdade naquele dia, o virtual não é criado.
+ * Blocos "virtuais" para os horários das tarefas, nos dias em que elas acontecem.
+ * Se a tarefa já tem um bloco de verdade naquele dia, os virtuais não são criados.
  */
 export function taskTimeBlocks(tasks: Task[], realBlocks: Block[], dates: string[]): Block[] {
   const out: Block[] = [];
   for (const t of tasks) {
-    if (!t.time || t.archived || t.repeat === "weeklyGoal") continue;
+    const slots = slotsOf(t);
+    if (!slots.length || t.archived || t.repeat === "weeklyGoal") continue;
     const days =
       t.repeat === "once"
-        ? t.date && dates.includes(t.date)
-          ? [t.date]
+        ? (t.date ?? "") && dates.includes(t.date!)
+          ? [t.date!]
           : []
         : dates.filter((d) => t.weekdays?.includes(weekdayOf(d)) && t.createdAt.slice(0, 10) <= d);
     for (const d of days) {
       if (realBlocks.some((b) => b.taskId === t.id && b.date === d)) continue;
-      const start = new Date(`${d}T${t.time}:00`);
-      const end = new Date(start.getTime() + Math.max(15, t.estimateMin) * 60000);
-      out.push({ id: `t-${t.id}-${d}`, taskId: t.id, date: d, start: start.toISOString(), end: end.toISOString(), virtual: true });
+      slots.forEach((slot, i) => {
+        const start = new Date(`${d}T${slot.start}:00`);
+        const end = new Date(`${d}T${slot.end}:00`);
+        if (end <= start) return;
+        out.push({ id: `t-${t.id}-${d}-${i}`, taskId: t.id, date: d, start: start.toISOString(), end: end.toISOString(), virtual: true, slot: i });
+      });
     }
   }
   return out;

@@ -4,6 +4,7 @@ import { Check, Clock, GripVertical, Target } from "lucide-react";
 import type { ReactNode } from "react";
 import { fmtMin } from "@/lib/dates";
 import { isTimeTask } from "@/lib/metrics";
+import { slotsOf } from "@/lib/schedule";
 import { toggleDone } from "@/lib/db";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
@@ -79,9 +80,9 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, 
               {task.repeat === "weeklyGoal" && " na semana"}
             </span>
           </span>
-          {task.time && task.repeat !== "weeklyGoal" && (
+          {slotsOf(task).length > 0 && task.repeat !== "weeklyGoal" && (
             <span className="tabular inline-flex items-center gap-1 font-medium text-ink">
-              <Clock size={11} /> {task.time}
+              <Clock size={11} /> {slotsOf(task).map((sl) => `${sl.start}–${sl.end}`).join(", ")}
             </span>
           )}
           {isTimeTask(task) && task.repeat !== "weeklyGoal" && <span>meta de tempo</span>}

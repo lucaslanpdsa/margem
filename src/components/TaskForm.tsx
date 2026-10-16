@@ -1,12 +1,13 @@
 "use client";
 
-import { Trash2 } from "lucide-react";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, parseDuration, todayKey } from "@/lib/dates";
 import { addTask, deleteTask, replaceTask } from "@/lib/db";
-import type { Task } from "@/lib/types";
+import { slotsMinutes, slotsOf, toMin } from "@/lib/schedule";
+import type { Task, TimeSlot } from "@/lib/types";
 import { useStore } from "./store";
-import { Button, Field, Modal, Segmented, TimeSelect, cx, inputCls } from "./ui";
+import { Button, Field, IconButton, Modal, Segmented, TimeSelect, cx, inputCls } from "./ui";
 
 export type TaskDraft = Partial<Task>;
 
@@ -20,16 +21,30 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
   const [repeat, setRepeat] = useState<"once" | "weekdays">(initial.repeat === "once" || !initial.repeat ? "once" : "weekdays");
   const [estimate, setEstimate] = useState(initial.estimateMin ? fmtMin(initial.estimateMin) : "");
   const [date, setDate] = useState(initial.date ?? todayKey());
-  const [time, setTime] = useState(initial.time ?? "");
+  const [slots, setSlotsState] = useState<TimeSlot[]>(() => slotsOf({ estimateMin: 0, ...initial } as Task));
   const [doneBy, setDoneBy] = useState<"check" | "time">(legacyGoal ? "time" : (initial.doneBy ?? "check"));
   const [weekdays, setWeekdays] = useState<number[]>(initial.weekdays ?? [1, 2, 3, 4, 5]);
   const [error, setError] = useState("");
   const parsed = parseDuration(estimate);
 
+  // Ao mexer nos horários, o tempo da tarefa vira a soma deles (dá para mudar depois).
+  const setSlots = (next: TimeSlot[]) => {
+    setSlotsState(next);
+    const total = slotsMinutes(next);
+    if (total > 0) setEstimate(fmtMin(total));
+  };
+  const addSlot = () => {
+    const last = slots[slots.length - 1];
+    const startMin = last ? Math.min(toMin(last.end) + 60, 22 * 60) : 8 * 60;
+    const hhmm = (m: number) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
+    setSlots([...slots, { start: hhmm(startMin), end: hhmm(Math.min(startMin + 60, 23 * 60 + 45)) }]);
+  };
+
   async function save() {
     if (!title.trim()) return setError("Dê um nome para a tarefa.");
     if (!parsed) return setError("Informe o tempo, por exemplo 45m ou 1h30.");
     if (repeat === "weekdays" && weekdays.length === 0) return setError("Escolha pelo menos um dia.");
+    if (slots.some((sl) => toMin(sl.end) <= toMin(sl.start))) return setError("Cada horário precisa terminar depois de começar.");
 
     const data: Omit<Task, "id" | "createdAt"> = {
       title: title.trim(),
@@ -38,7 +53,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
       estimateMin: parsed,
       date: repeat === "once" ? date || todayKey() : undefined,
       weekdays: repeat === "weekdays" ? [...weekdays].sort() : undefined,
-      time: time || undefined,
+      slots: slots.length ? slots : undefined,
       doneBy: doneBy === "time" ? "time" : undefined,
       completedAt: repeat === "once" ? (initial.completedAt ?? undefined) : undefined,
       completions: repeat === "weekdays" ? initial.completions : undefined,
@@ -98,14 +113,30 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           )}
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Field label={doneBy === "time" ? "Meta de tempo" : "Quanto tempo leva"}>
-            <input className={inputCls} value={estimate} onChange={(e) => setEstimate(e.target.value)} placeholder="Ex: 45m, 1h30, 6h" />
-          </Field>
-          <Field label="Horário (opcional)">
-            <TimeSelect label="Horário" value={time} onChange={setTime} emptyLabel="Sem horário" className="h-10 w-full" />
-          </Field>
+        <div>
+          <span className="mb-1.5 block text-[13px] font-medium">Horários na agenda (opcional)</span>
+          {slots.length > 0 && (
+            <ul className="mb-2 space-y-2">
+              {slots.map((sl, i) => (
+                <li key={i} className="flex items-center gap-2">
+                  <TimeSelect label="Início" value={sl.start} onChange={(v) => setSlots(slots.map((x, j) => (j === i ? { ...x, start: v } : x)))} className="h-10" />
+                  <span className="text-sm text-muted">até</span>
+                  <TimeSelect label="Fim" value={sl.end} onChange={(v) => setSlots(slots.map((x, j) => (j === i ? { ...x, end: v } : x)))} className="h-10" />
+                  <IconButton label="Remover horário" type="button" onClick={() => setSlots(slots.filter((_, j) => j !== i))}>
+                    <Trash2 size={15} />
+                  </IconButton>
+                </li>
+              ))}
+            </ul>
+          )}
+          <Button type="button" size="sm" variant="ghost" onClick={addSlot} className="-ml-2.5 text-todo">
+            <Plus size={14} /> {slots.length ? "Adicionar outro horário" : "Adicionar horário"}
+          </Button>
         </div>
+
+        <Field label={doneBy === "time" ? "Meta de tempo" : "Quanto tempo leva"} hint={slots.length ? "Preenchido com a soma dos horários. Dá para mudar." : undefined}>
+          <input className={cx(inputCls, "sm:w-56")} value={estimate} onChange={(e) => setEstimate(e.target.value)} placeholder="Ex: 45m, 1h30, 6h" />
+        </Field>
 
         <div>
           <span className="mb-1.5 block text-[13px] font-medium">Como termina</span>

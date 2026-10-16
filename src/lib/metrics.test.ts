@@ -166,3 +166,35 @@ describe("tarefa por tempo", () => {
     expect(dayMetrics(D, settings, [work], [], s(360), early).items[0].completed).toBe(true);
   });
 });
+
+describe("vários horários na mesma tarefa", () => {
+  const work: Task = {
+    id: "w2",
+    title: "Trabalho",
+    repeat: "weekdays",
+    weekdays: [5],
+    doneBy: "time",
+    estimateMin: 420,
+    slots: [
+      { start: "08:00", end: "11:00" },
+      { start: "14:00", end: "18:00" },
+    ],
+    priority: 2,
+    createdAt: "2026-10-01T10:00:00.000Z",
+  };
+
+  it("gera um bloco por horário, no dia em que a tarefa acontece", () => {
+    const b = taskTimeBlocks([work], [], ["2026-10-15", "2026-10-16"]);
+    expect(b).toHaveLength(2);
+    expect(b.map((x) => new Date(x.start).getHours())).toEqual([8, 14]);
+    expect(b.map((x) => x.slot)).toEqual([0, 1]);
+  });
+
+  it("a tarefa continua uma só, com a meta somada", () => {
+    const blocks = taskTimeBlocks([work], [], [D]);
+    const m = dayMetrics(D, { ...settings, windows: [null, null, null, null, null, { start: "08:00", end: "18:00" }, null] }, [work], blocks, [], early);
+    expect(m.items).toHaveLength(1);
+    expect(m.items[0].estimateMin).toBe(420);
+    expect(m.items[0].outside).toBe(false);
+  });
+});

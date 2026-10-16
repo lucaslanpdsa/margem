@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, todayKey, weekDays } from "@/lib/dates";
 import { saveSettings, updateTask } from "@/lib/db";
 import { dayMetrics } from "@/lib/metrics";
+import { slotsOf } from "@/lib/schedule";
 import type { RepeatKind, Task } from "@/lib/types";
 import { Calendar } from "./Calendar";
 import { CapacityBar, DayBudget } from "./CapacityPanel";
@@ -118,10 +119,10 @@ const GROUPS: { kind: RepeatKind; title: string; description: string; icon: type
 
 function describe(t: Task) {
   if (t.repeat === "weekdays")
-    return `${fmtMin(t.estimateMin)} por dia, ${(t.weekdays ?? []).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")}${t.time ? ` às ${t.time}` : ""}`;
+    return `${fmtMin(t.estimateMin)} por dia, ${(t.weekdays ?? []).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")}${slotsOf(t).length ? `, ${slotsOf(t).map((sl) => `${sl.start}–${sl.end}`).join(", ")}` : ""}`;
   if (t.repeat === "weeklyGoal") return `${fmtMin(t.weeklyGoalMin ?? 0)} por semana`;
   const short = (k: string) => fromKey(k).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
-  return `${fmtMin(t.estimateMin)}, ${t.date ? short(t.date) : "hoje"}${t.time ? ` às ${t.time}` : ""}`;
+  return `${fmtMin(t.estimateMin)}, ${t.date ? short(t.date) : "hoje"}${slotsOf(t).length ? `, ${slotsOf(t).map((sl) => `${sl.start}–${sl.end}`).join(", ")}` : ""}`;
 }
 
 export function TasksView() {

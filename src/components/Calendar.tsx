@@ -9,7 +9,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { dayKey, fmtMin, fromKey, minutesBetween } from "@/lib/dates";
 import { addBlock, deleteBlock, toggleDone, updateBlock, updateTask } from "@/lib/db";
 import { blockOutside, dayMetrics, isCompletedOn, isTimeTask } from "@/lib/metrics";
-import { toMin, windowFor } from "@/lib/schedule";
+import { slotsMinutes, slotsOf, toMin, windowFor } from "@/lib/schedule";
 import type { Block, Task } from "@/lib/types";
 import { CapacityBar } from "./CapacityPanel";
 import { useNav } from "./nav";
@@ -85,12 +85,15 @@ export function Calendar({ view, onPickDay }: Props) {
     const end = info.event.end!;
     const day = dayKey(start);
     if (block?.virtual) {
-      // Horário fixo da tarefa: mover muda o horário (e o dia, se for avulsa); esticar muda a estimativa.
+      // Horário da tarefa: mover/esticar muda aquele horário (e o dia, se for avulsa).
       const task = taskById.get(block.taskId);
       if (!task) return;
-      const time = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
-      const estimateMin = Math.round((end.getTime() - start.getTime()) / 60000);
-      await updateTask(uid, task.id, { time, estimateMin, ...(task.repeat === "once" ? { date: day } : {}) });
+      const hhmm = (d: Date) => `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+      const old = slotsOf(task);
+      const slots = old.map((sl, i) => (i === (block.slot ?? 0) ? { start: hhmm(start), end: hhmm(end) } : sl));
+      // Se o tempo da tarefa era a soma dos horários, acompanha a mudança.
+      const estimateMin = task.estimateMin === slotsMinutes(old) ? slotsMinutes(slots) : task.estimateMin;
+      await updateTask(uid, task.id, { slots, time: null, estimateMin, ...(task.repeat === "once" ? { date: day } : {}) });
       return;
     }
     await updateBlock(uid, info.event.id, { date: day, start: start.toISOString(), end: end.toISOString() });
@@ -162,6 +165,12 @@ export function Calendar({ view, onPickDay }: Props) {
   );
 }
 
+/** Tira um dos horários da tarefa da agenda. */
+function removeSlot(uid: string, task: Task, index: number) {
+  const slots = slotsOf(task).filter((_, i) => i !== index);
+  return updateTask(uid, task.id, { slots, time: null });
+}
+
 function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onClose: () => void }) {
   const { uid } = useStore();
   const { goFocus } = useNav();
@@ -194,7 +203,7 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
         <Button
           variant="danger"
           className="h-11"
-          onClick={act(() => (block.virtual ? updateTask(uid, block.taskId, { time: null }) : deleteBlock(uid, block.id)))}
+          onClick={act(() => (block.virtual && task ? removeSlot(uid, task, block.slot ?? 0) : deleteBlock(uid, block.id)))}
         >
           <Trash2 size={14} /> Tirar da agenda
         </Button>
