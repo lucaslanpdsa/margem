@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { fmtMin } from "@/lib/dates";
 import { isTimeTask } from "@/lib/metrics";
 import { slotsOf } from "@/lib/schedule";
-import { toggleDone } from "@/lib/db";
+import { setSkipped, toggleDone } from "@/lib/db";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
@@ -41,9 +41,14 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
     >
 
       {skipped ? (
-        <span className="grid h-5 w-5 shrink-0 place-items-center text-muted" title="Pulada neste dia">
+        <button
+          onClick={() => setSkipped(uid, task, date, false)}
+          className="grid h-5 w-5 shrink-0 place-items-center text-muted hover:text-ink"
+          aria-label="Desfazer pulo"
+          title="Pulada neste dia. Toque para desfazer"
+        >
           <SkipForward size={15} />
-        </span>
+        </button>
       ) : checkable ? (
         <button
           onClick={() => toggleDone(uid, task, date, !completed)}
@@ -89,6 +94,16 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
       </button>
 
       {extra}
+      {task.repeat === "weekdays" && !completed && !skipped && (
+        <button
+          onClick={() => setSkipped(uid, task, date, true)}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full text-muted transition-colors hover:bg-sunken hover:text-ink"
+          aria-label="Pular hoje"
+          title="Pular hoje: sai da conta do dia"
+        >
+          <SkipForward size={16} />
+        </button>
+      )}
       <button
         onClick={() => logTime(task)}
         className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-todo/10 px-3 text-[13px] font-semibold text-todo transition-colors hover:bg-todo hover:text-white"
