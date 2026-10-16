@@ -4,7 +4,7 @@ import { Check, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, parseDuration } from "@/lib/dates";
 import { addSession, deleteSession, toggleDone } from "@/lib/db";
-import { isCompletedOn } from "@/lib/metrics";
+import { isCompletedOn, isTimeTask } from "@/lib/metrics";
 import { useDialogs } from "./dialogs";
 import type { Task } from "@/lib/types";
 import { useStore } from "./store";
@@ -16,7 +16,8 @@ const QUICK = [15, 30, 60, 120];
 export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const { uid, date, sessions } = useStore();
   const { editTask } = useDialogs();
-  const completed = task.repeat !== "weeklyGoal" && isCompletedOn(task, date);
+  const timeTask = isTimeTask(task);
+  const completed = !timeTask && isCompletedOn(task, date);
   const [other, setOther] = useState("");
   const [error, setError] = useState("");
 
@@ -104,7 +105,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         >
           <Pencil size={14} /> Editar tarefa
         </Button>
-        {task.repeat !== "weeklyGoal" && (
+        {!timeTask && (
           <Button
             variant={completed ? "ghost" : "secondary"}
             onClick={() => {

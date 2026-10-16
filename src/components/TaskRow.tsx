@@ -67,8 +67,11 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, 
           {completed && <Check size={12} strokeWidth={3} />}
         </button>
       ) : (
-        <span className="grid h-5 w-5 shrink-0 place-items-center text-todo" title="Meta semanal">
-          <Target size={16} />
+        <span
+          className={cx("grid h-5 w-5 shrink-0 place-items-center", completed ? "text-done" : "text-todo")}
+          title={task.repeat === "weeklyGoal" ? "Meta semanal: termina cumprindo o tempo" : "Termina cumprindo o tempo"}
+        >
+          {completed ? <Check size={16} strokeWidth={3} /> : <Target size={16} />}
         </span>
       )}
 
@@ -84,6 +87,11 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, 
               {task.repeat === "weeklyGoal" && " na semana"}
             </span>
           </span>
+          {task.time && task.repeat !== "weeklyGoal" && (
+            <span className="tabular inline-flex items-center gap-1 font-medium text-ink">
+              <Clock size={11} /> {task.time}
+            </span>
+          )}
           {task.repeat === "weekdays" && (
             <span className="inline-flex items-center gap-1">
               <Repeat size={11} /> Repete

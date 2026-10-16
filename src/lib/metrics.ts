@@ -33,6 +33,9 @@ export interface DayMetrics {
   items: DayItem[];
 }
 
+/** Tarefa que termina cumprindo o tempo (e não marcando como feita). Metas semanais sempre são assim. */
+export const isTimeTask = (task: Task) => task.repeat === "weeklyGoal" || task.doneBy === "time";
+
 export const isCompletedOn = (task: Task, date: string) =>
   task.repeat === "weekdays" ? !!task.completions?.[date] : !!task.completedAt;
 
@@ -76,7 +79,7 @@ export function dayItems(date: string, tasks: Task[], blocks: Block[], sessions:
 
     const taskBlocks = dayBlocks.filter((b) => b.taskId === task.id);
     const done = doneFor(task.id);
-    const completed = task.repeat === "weeklyGoal" ? done >= estimate : isCompletedOn(task, date);
+    const completed = isTimeTask(task) ? done >= estimate : isCompletedOn(task, date);
     items.push({
       task,
       estimateMin: estimate,

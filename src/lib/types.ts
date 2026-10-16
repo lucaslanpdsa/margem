@@ -20,6 +20,10 @@ export interface Task {
   date?: string;
   /** "once": prazo opcional. */
   deadline?: string;
+  /** Como termina: marcando como feita (padrão) ou cumprindo o tempo (ex: trabalhar 6h). */
+  doneBy?: "check" | "time";
+  /** Horário fixo "HH:mm" (avulsa com dia ou recorrente): a tarefa já aparece na agenda. */
+  time?: string | null;
   /** "weekdays": 0 = domingo ... 6 = sábado. */
   weekdays?: number[];
   /** "weeklyGoal": minutos por semana. */
@@ -39,6 +43,8 @@ export interface Block {
   date: string; // dia do início
   start: string; // ISO
   end: string; // ISO
+  /** Gerado a partir do horário fixo da tarefa (não existe no banco). */
+  virtual?: boolean;
 }
 
 /** Tempo realmente trabalhado (pomodoro ou registro manual). */

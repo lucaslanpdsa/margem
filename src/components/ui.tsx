@@ -154,15 +154,29 @@ export const PRIORITY_COLOR = { 1: "text-over", 2: "text-break", 3: "text-muted"
 const TIMES = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, "0")}:${String((i % 4) * 15).padStart(2, "0")}`);
 
 /** Escolha de horário em 24h, de 15 em 15 minutos (igual em todo navegador). */
-export function TimeSelect({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
-  const options = TIMES.includes(value) ? TIMES : [...TIMES, value].sort();
+export function TimeSelect({
+  value,
+  onChange,
+  label,
+  emptyLabel,
+  className,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  label: string;
+  /** Se definido, oferece uma opção vazia com esse texto (ex: "Sem horário"). */
+  emptyLabel?: string;
+  className?: string;
+}) {
+  const options = !value || TIMES.includes(value) ? TIMES : [...TIMES, value].sort();
   return (
     <select
       aria-label={label}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="tabular h-9 rounded-lg border border-line bg-surface px-2 text-sm outline-none focus:border-brand"
+      className={cx("tabular h-9 rounded-lg border border-line bg-surface px-2 text-sm outline-none focus:border-brand", className)}
     >
+      {emptyLabel !== undefined && <option value="">{emptyLabel}</option>}
       {options.map((t) => (
         <option key={t} value={t}>
           {t}

@@ -1,5 +1,5 @@
 import { dayKey, weekdayOf } from "./dates";
-import type { BreakTime, DayWindow, Settings } from "./types";
+import type { Block, BreakTime, DayWindow, Settings, Task } from "./types";
 
 /** "07:30" -> 450 */
 export const toMin = (hhmm: string) => {
@@ -47,4 +47,28 @@ export function dayClock(settings: Settings, date: string, now: Date = new Date(
     elapsedMin = availableBetween(start, Math.min(Math.max(nowMin, start), end), settings.breaks);
   }
   return { window, capacityMin, elapsedMin, past: date < today || (date === today && elapsedMin >= capacityMin) };
+}
+
+/**
+ * Blocos "virtuais" para tarefas com horário fixo, nos dias em que elas acontecem.
+ * Se a tarefa já tem um bloco de verdade naquele dia, o virtual não é criado.
+ */
+export function taskTimeBlocks(tasks: Task[], realBlocks: Block[], dates: string[]): Block[] {
+  const out: Block[] = [];
+  for (const t of tasks) {
+    if (!t.time || t.archived || t.repeat === "weeklyGoal") continue;
+    const days =
+      t.repeat === "once"
+        ? t.date && dates.includes(t.date)
+          ? [t.date]
+          : []
+        : dates.filter((d) => t.weekdays?.includes(weekdayOf(d)) && t.createdAt.slice(0, 10) <= d);
+    for (const d of days) {
+      if (realBlocks.some((b) => b.taskId === t.id && b.date === d)) continue;
+      const start = new Date(`${d}T${t.time}:00`);
+      const end = new Date(start.getTime() + Math.max(15, t.estimateMin) * 60000);
+      out.push({ id: `t-${t.id}-${d}`, taskId: t.id, date: d, start: start.toISOString(), end: end.toISOString(), virtual: true });
+    }
+  }
+  return out;
 }

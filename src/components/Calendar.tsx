@@ -8,7 +8,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { dayKey, fmtMin, fromKey, minutesBetween } from "@/lib/dates";
 import { addBlock, deleteBlock, toggleDone, updateBlock, updateTask } from "@/lib/db";
-import { blockOutside, dayMetrics, isCompletedOn } from "@/lib/metrics";
+import { blockOutside, dayMetrics, isCompletedOn, isTimeTask } from "@/lib/metrics";
 import { toMin, windowFor } from "@/lib/schedule";
 import type { Block, Task } from "@/lib/types";
 import { CapacityBar } from "./CapacityPanel";
@@ -35,7 +35,7 @@ export function Calendar({ view, onPickDay }: Props) {
 
   const blockEvents: EventInput[] = blocks.map((b) => {
     const t = taskById.get(b.taskId);
-    const done = t ? (t.repeat === "weeklyGoal" ? false : isCompletedOn(t, b.date)) : false;
+    const done = t ? (isTimeTask(t) ? false : isCompletedOn(t, b.date)) : false;
     const active = settings.activeTimer?.taskId === b.taskId && settings.activeTimer.phase === "focus";
     return {
       id: b.id,
@@ -84,6 +84,15 @@ export function Calendar({ view, onPickDay }: Props) {
     const start = info.event.start!;
     const end = info.event.end!;
     const day = dayKey(start);
+    if (block?.virtual) {
+      // Horário fixo da tarefa: mover muda o horário (e o dia, se for avulsa); esticar muda a estimativa.
+      const task = taskById.get(block.taskId);
+      if (!task) return;
+      const time = `${String(start.getHours()).padStart(2, "0")}:${String(start.getMinutes()).padStart(2, "0")}`;
+      const estimateMin = Math.round((end.getTime() - start.getTime()) / 60000);
+      await updateTask(uid, task.id, { time, estimateMin, ...(task.repeat === "once" ? { date: day } : {}) });
+      return;
+    }
     await updateBlock(uid, info.event.id, { date: day, start: start.toISOString(), end: end.toISOString() });
     if (block) await syncTaskDate(taskById.get(block.taskId), day);
   }
@@ -159,7 +168,7 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const now = useNow(30000);
   const passed = Date.parse(block.end) <= now;
-  const canComplete = task && task.repeat !== "weeklyGoal" && !isCompletedOn(task, block.date);
+  const canComplete = task && !isTimeTask(task) && !isCompletedOn(task, block.date);
   const act = (fn: () => unknown) => () => {
     fn();
     onClose();
@@ -182,7 +191,11 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
             <Timer size={15} /> Focar nela
           </Button>
         )}
-        <Button variant="danger" className="h-11" onClick={act(() => deleteBlock(uid, block.id))}>
+        <Button
+          variant="danger"
+          className="h-11"
+          onClick={act(() => (block.virtual ? updateTask(uid, block.taskId, { time: null }) : deleteBlock(uid, block.id)))}
+        >
           <Trash2 size={14} /> Tirar da agenda
         </Button>
       </div>

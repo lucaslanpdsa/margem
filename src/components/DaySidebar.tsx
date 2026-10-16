@@ -4,7 +4,7 @@ import { CalendarPlus, ChevronDown, Inbox, Plus, Repeat, Target, Timer, Triangle
 import { useState } from "react";
 import { fmtMin, parseQuickAdd, todayKey } from "@/lib/dates";
 import { addTask, updateTask } from "@/lib/db";
-import { flexibleQueue, inbox, overdue, suggestNow, weeklyGoals, type DayMetrics } from "@/lib/metrics";
+import { flexibleQueue, inbox, isTimeTask, overdue, suggestNow, weeklyGoals, type DayMetrics } from "@/lib/metrics";
 import type { RepeatKind } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useNav } from "./nav";
@@ -176,7 +176,7 @@ export function DayLists({ m }: { m: DayMetrics }) {
               {queue.length > 0 ? (
                 <ul className="space-y-1.5">
                   {queue.map((i) => (
-                    <TaskRow key={i.task.id} task={i.task} date={date} estimateMin={i.estimateMin} doneMin={i.doneMin} dragMin={i.remainingMin} />
+                    <TaskRow key={i.task.id} task={i.task} date={date} estimateMin={i.estimateMin} doneMin={i.doneMin} dragMin={i.remainingMin} checkable={!isTimeTask(i.task)} />
                   ))}
                 </ul>
               ) : (
@@ -197,7 +197,7 @@ export function DayLists({ m }: { m: DayMetrics }) {
                         estimateMin={i.estimateMin}
                         doneMin={i.doneMin}
                         completed={i.completed}
-                        checkable={i.task.repeat !== "weeklyGoal"}
+                        checkable={!isTimeTask(i.task)}
                       />
                     ))}
                   </ul>
@@ -215,8 +215,8 @@ export function DayLists({ m }: { m: DayMetrics }) {
                         date={date}
                         estimateMin={i.estimateMin}
                         doneMin={i.doneMin}
-                        checkable={i.task.repeat !== "weeklyGoal"}
-                        extra={<span className="tabular rounded-md bg-break/15 px-2 py-1 text-xs font-medium text-break">{blockTime(i.task.id)}</span>}
+                        checkable={!isTimeTask(i.task)}
+                        extra={i.task.time ? undefined : <span className="tabular rounded-md bg-break/15 px-2 py-1 text-xs font-medium text-break">{blockTime(i.task.id)}</span>}
                       />
                     ))}
                   </ul>
@@ -239,7 +239,7 @@ export function DayLists({ m }: { m: DayMetrics }) {
                           estimateMin={i.estimateMin}
                           doneMin={i.doneMin}
                           completed
-                          checkable={i.task.repeat !== "weeklyGoal"}
+                          checkable={!isTimeTask(i.task)}
                         />
                       ))}
                     </ul>

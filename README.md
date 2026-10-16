@@ -8,6 +8,8 @@ Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem
   - **Avulsa**: num dia específico, ou sem dia (vai para a *caixa de entrada*). Pode ter **prazo**.
   - **Dias fixos**: repete nos dias da semana escolhidos.
   - **Meta semanal**: X horas por semana, em qualquer dia (ex: 5h de inglês).
+- **Como termina**: marcando como feita (o tempo é só estimativa; terminou antes, o resto volta para o dia) ou cumprindo o tempo (ex: trabalhar 6h; conclui sozinha ao atingir a meta).
+- **Horário fixo opcional**: a tarefa já entra na agenda nesse horário (nas recorrentes, em todos os dias marcados).
 - **Prioridade** (alta, média, baixa) e **categoria**.
 - **Adição rápida**: digite `Revisar PR 45` ou `Estudar React 1h30` e a estimativa é lida do final.
 - **Agenda do dia e da semana**: arraste tarefas da lista para a agenda para criar blocos; mova e redimensione blocos.

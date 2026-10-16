@@ -2,11 +2,11 @@
 
 import { CalendarPlus, Repeat, Target, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { WEEKDAY_SHORT, fmtMin, parseDuration } from "@/lib/dates";
+import { WEEKDAY_SHORT, fmtMin, parseDuration, todayKey } from "@/lib/dates";
 import { addTask, deleteTask, replaceTask } from "@/lib/db";
 import type { Priority, RepeatKind, Task } from "@/lib/types";
 import { useStore } from "./store";
-import { Button, Field, Modal, Segmented, cx, inputCls } from "./ui";
+import { Button, Field, Modal, Segmented, TimeSelect, cx, inputCls } from "./ui";
 
 export type TaskDraft = Partial<Task>;
 
@@ -26,6 +26,8 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
   const [estimate, setEstimate] = useState(initial.estimateMin ? fmtMin(initial.estimateMin) : "");
   const [date, setDate] = useState(initial.date ?? "");
   const [deadline, setDeadline] = useState(initial.deadline ?? "");
+  const [time, setTime] = useState(initial.time ?? "");
+  const [doneBy, setDoneBy] = useState<"check" | "time">(initial.doneBy ?? "check");
   const [weekdays, setWeekdays] = useState<number[]>(initial.weekdays ?? [1, 2, 3, 4, 5]);
   const [goal, setGoal] = useState(initial.weeklyGoalMin ? fmtMin(initial.weeklyGoalMin) : "");
   const [error, setError] = useState("");
@@ -48,7 +50,10 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
       priority,
       repeat,
       estimateMin: repeat === "weeklyGoal" ? 0 : estimateMin,
-      date: repeat === "once" ? date || undefined : undefined,
+      // Horário sem dia: assume hoje, para a tarefa já aparecer na agenda.
+      date: repeat === "once" ? date || (time ? todayKey() : undefined) : undefined,
+      time: repeat !== "weeklyGoal" && time ? time : undefined,
+      doneBy: repeat !== "weeklyGoal" && doneBy === "time" ? "time" : undefined,
       deadline: repeat === "once" ? deadline || undefined : undefined,
       weekdays: repeat === "weekdays" ? [...weekdays].sort() : undefined,
       weeklyGoalMin: repeat === "weeklyGoal" ? weeklyGoalMin : undefined,
@@ -120,6 +125,25 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           </Field>
         )}
 
+        {repeat !== "weeklyGoal" && (
+          <div>
+            <span className="mb-1.5 block text-[13px] font-medium">Como termina?</span>
+            <Segmented
+              value={doneBy}
+              onChange={setDoneBy}
+              options={[
+                { value: "check" as const, label: "Marcando como feita" },
+                { value: "time" as const, label: "Cumprindo o tempo" },
+              ]}
+            />
+            <p className="mt-2 text-xs text-muted">
+              {doneBy === "check"
+                ? "O tempo é só uma estimativa. Terminou antes? Marque como feita e o que sobrou volta para o seu dia."
+                : "O tempo é a meta (ex: trabalhar 6h). Ela se conclui sozinha quando o tempo reportado chegar lá."}
+            </p>
+          </div>
+        )}
+
         <div className="grid gap-4 sm:grid-cols-2">
           {repeat === "weeklyGoal" ? (
             <Field label="Quantas horas por semana?" hint={parsedGoal ? `${fmtMin(parsedGoal)} por semana` : "Ex: 5h, 3h30, 300"}>
@@ -127,8 +151,8 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
             </Field>
           ) : (
             <Field
-              label={repeat === "weekdays" ? "Quanto tempo por dia?" : "Quanto tempo leva?"}
-              hint={parsedEstimate ? `Estimativa de ${fmtMin(parsedEstimate)}` : "Ex: 45, 1h, 1h30"}
+              label={doneBy === "time" ? (repeat === "weekdays" ? "Meta de tempo por dia" : "Meta de tempo") : repeat === "weekdays" ? "Quanto tempo por dia?" : "Quanto tempo leva?"}
+              hint={parsedEstimate ? `${doneBy === "time" ? "Meta" : "Estimativa"} de ${fmtMin(parsedEstimate)}` : "Ex: 45, 1h, 1h30"}
             >
               <input className={inputCls} value={estimate} onChange={(e) => setEstimate(e.target.value)} placeholder="1h" />
             </Field>
@@ -149,13 +173,22 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
 
         {repeat === "once" && (
           <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="Em que dia?" hint="Deixe vazio para guardar na caixa de entrada.">
+            <Field label="Em que dia?" hint="Vazio: fica na caixa de entrada.">
               <input type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
             </Field>
-            <Field label="Prazo (opcional)" hint="Tarefas com prazo perto sobem na lista.">
+            <Field label="Horário (opcional)" hint={time ? "Já entra na agenda." : "Com horário, já entra na agenda."}>
+              <TimeSelect label="Horário" value={time} onChange={setTime} emptyLabel="Sem horário" className="h-10 w-full" />
+            </Field>
+            <Field label="Prazo (opcional)" hint="Prazo perto sobe na lista.">
               <input type="date" className={inputCls} value={deadline} onChange={(e) => setDeadline(e.target.value)} />
             </Field>
           </div>
+        )}
+
+        {repeat === "weekdays" && (
+          <Field label="Horário (opcional)" hint={time ? "Entra na agenda nesse horário em todos os dias marcados." : "Com horário, entra na agenda em todos os dias marcados."}>
+            <TimeSelect label="Horário" value={time} onChange={setTime} emptyLabel="Sem horário" className="h-10 w-full sm:w-48" />
+          </Field>
         )}
 
         <Field label="Categoria (opcional)" hint="Para agrupar: Estudo, Trabalho, Casa…">

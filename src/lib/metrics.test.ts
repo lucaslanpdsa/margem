@@ -1,3 +1,4 @@
+import { taskTimeBlocks } from "./schedule";
 import { parseDuration, parseQuickAdd } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics, flexibleQueue, suggestNow, weeklyGoals } from "./metrics";
@@ -123,4 +124,45 @@ it("entende durações", () => {
   expect(["45", "45m", "1h", "1h30", "1:30", "1,5h", "2h05min", "abc"].map(parseDuration)).toEqual([45, 45, 60, 90, 90, 90, 125, null]);
   expect(parseQuickAdd("Estudar React 1h30")).toEqual({ title: "Estudar React", minutes: 90 });
   expect(parseQuickAdd("Ligar pro banco")).toEqual({ title: "Ligar pro banco", minutes: null });
+});
+
+describe("horário fixo da tarefa", () => {
+  const rec: Task = { id: "g", title: "Academia", repeat: "weekdays", weekdays: [1, 3, 5], time: "18:00", estimateMin: 90, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
+  const once: Task = { id: "o", title: "Dentista", repeat: "once", date: "2026-10-15", time: "14:30", estimateMin: 60, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
+  const dates = ["2026-10-14", "2026-10-15", "2026-10-16"]; // qua, qui, sex
+
+  it("cria blocos nos dias em que a tarefa acontece, na hora certa", () => {
+    const b = taskTimeBlocks([rec, once], [], dates);
+    expect(b.map((x) => x.date).sort()).toEqual(["2026-10-14", "2026-10-15", "2026-10-16"]);
+    const fri = b.find((x) => x.taskId === "g" && x.date === "2026-10-16")!;
+    expect(new Date(fri.start).getHours()).toBe(18);
+    expect((Date.parse(fri.end) - Date.parse(fri.start)) / 60000).toBe(90);
+  });
+
+  it("não duplica quando já existe um bloco de verdade no dia", () => {
+    const real: Block[] = [{ id: "r", taskId: "g", date: "2026-10-16", start: "2026-10-16T19:00:00", end: "2026-10-16T20:00:00" }];
+    expect(taskTimeBlocks([rec], real, dates).some((x) => x.date === "2026-10-16")).toBe(false);
+  });
+
+  it("a tarefa com horário conta como agendada no dia", () => {
+    const blocks = taskTimeBlocks([rec], [], dates);
+    const m = dayMetrics("2026-10-16", settings, [rec], blocks, [], early);
+    expect(m.items[0].scheduled).toBe(true);
+  });
+});
+
+describe("tarefa por tempo", () => {
+  const work: Task = { id: "w", title: "Trabalho", repeat: "weekdays", weekdays: [5], doneBy: "time", estimateMin: 360, priority: 1, createdAt: "2026-10-01T10:00:00.000Z" };
+  const s = (m: number): Session[] => [{ id: "x", taskId: "w", date: D, minutes: m, kind: "manual", startedAt: "", endedAt: "" }];
+
+  it("falta o que ainda não foi cumprido e não conclui antes da meta", () => {
+    const [i] = dayMetrics(D, settings, [work], [], s(240), early).items;
+    expect(i.completed).toBe(false);
+    expect(i.remainingMin).toBe(120);
+  });
+
+  it("conclui sozinha ao atingir a meta, mesmo marcada como feita antes", () => {
+    expect(dayMetrics(D, settings, [{ ...work, completions: { [D]: true } }], [], s(100), early).items[0].completed).toBe(false);
+    expect(dayMetrics(D, settings, [work], [], s(360), early).items[0].completed).toBe(true);
+  });
 });

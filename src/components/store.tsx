@@ -2,8 +2,10 @@
 
 import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { shiftDay, todayKey, weekDays } from "@/lib/dates";
+import { dayKey, fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
+import { addDays, differenceInCalendarDays } from "date-fns";
 import { watchBlocks, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import { taskTimeBlocks } from "@/lib/schedule";
 import { auth } from "@/lib/firebase";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "@/lib/types";
 
@@ -79,12 +81,20 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => subs.forEach((u) => u());
   }, [uid, fromDate]);
 
+  // Blocos reais + horários fixos das tarefas, do início carregado até 2 semanas depois do dia em foco.
+  const allBlocks = useMemo(() => {
+    const last = shiftDay(weekDays(date)[6], 7);
+    const n = differenceInCalendarDays(fromKey(last), fromKey(fromDate)) + 1;
+    const dates = Array.from({ length: n }, (_, i) => dayKey(addDays(fromKey(fromDate), i)));
+    return [...blocks, ...taskTimeBlocks(tasks, blocks, dates)];
+  }, [blocks, tasks, date, fromDate]);
+
   const value: Store = {
     user,
     uid,
     ready: authReady,
     tasks,
-    blocks,
+    blocks: allBlocks,
     sessions,
     settings,
     settingsReady,
