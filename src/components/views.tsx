@@ -60,18 +60,25 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
             : past || m.leftMin === 0
               ? `${fmtMin(m.doneMin)} feitos`
               : late
-                ? `${fmtMin(-m.freeMin)} a mais do que cabe`
+                ? `${fmtMin(-m.freeMin)} a mais`
                 : `Sobram ${fmtMin(m.freeMin)}`;
           return (
             <button key={m.date} onClick={() => onPickDay(m.date)} className={cx("flex w-full items-center gap-4 px-5 py-3.5 text-left hover:bg-sunken/60", past && "opacity-60")}>
-              <span className="w-24 shrink-0">
-                <span className={cx("block text-sm font-semibold capitalize", m.date === today && "text-todo")}>
-                  {m.date === today ? "Hoje" : fromKey(m.date).toLocaleDateString("pt-BR", { weekday: "long" })}
-                </span>
+              <span className="w-16 shrink-0">
+                <span className={cx("block text-sm font-semibold", m.date === today && "text-todo")}>{m.date === today ? "Hoje" : WEEKDAY_SHORT[fromKey(m.date).getDay()]}</span>
                 <span className="block text-xs text-muted">{fromKey(m.date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
               </span>
-              <span className="min-w-0 flex-1">{m.window ? <CapacityBar m={m} thin /> : <span className="block h-1.5 rounded-full bg-sunken" />}</span>
-              <span className={cx("tabular w-40 shrink-0 text-right text-[13px] font-medium", late ? "text-over" : "text-muted")}>{label}</span>
+              <span className="min-w-0 flex-1">
+                {m.window && !past ? (
+                  <CapacityBar m={m} thin />
+                ) : (
+                  // Dia que passou: só o quanto foi feito do horário.
+                  <span className="block h-1.5 overflow-hidden rounded-full bg-sunken">
+                    <span className="block h-full bg-done" style={{ width: `${m.capacityMin ? Math.min(100, (m.doneMin / m.capacityMin) * 100) : 0}%` }} />
+                  </span>
+                )}
+              </span>
+              <span className={cx("tabular w-32 shrink-0 text-right text-[13px] font-medium sm:w-44", late ? "text-over" : "text-muted")}>{label}</span>
             </button>
           );
         })}
