@@ -1,0 +1,89 @@
+"use client";
+
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { shiftDay, todayKey, weekDays } from "@/lib/dates";
+import { watchBlocks, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import { auth } from "@/lib/firebase";
+import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "@/lib/types";
+
+interface Store {
+  user: User | null;
+  uid: string;
+  ready: boolean;
+  tasks: Task[];
+  blocks: Block[];
+  sessions: Session[];
+  settings: Settings;
+  /** Dia em foco na tela. */
+  date: string;
+  setDate: (d: string) => void;
+  login: () => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+const Ctx = createContext<Store | null>(null);
+
+export function useStore() {
+  const s = useContext(Ctx);
+  if (!s) throw new Error("useStore fora do StoreProvider");
+  return s;
+}
+
+export function StoreProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null);
+  const [authReady, setAuthReady] = useState(false);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [blocks, setBlocks] = useState<Block[]>([]);
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [date, setDate] = useState(todayKey);
+
+  useEffect(
+    () =>
+      onAuthStateChanged(auth(), (u) => {
+        setUser(u);
+        setAuthReady(true);
+      }),
+    [],
+  );
+
+  const uid = user?.uid ?? "";
+
+  // Carrega a partir do menor entre: semana em foco e 4 semanas atrás (para metas e histórico recente).
+  const fromDate = useMemo(() => {
+    const a = weekDays(date)[0];
+    const b = shiftDay(todayKey(), -28);
+    return a < b ? a : b;
+  }, [date]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const subs = [watchTasks(uid, setTasks), watchSettings(uid, setSettings)];
+    return () => subs.forEach((u) => u());
+  }, [uid]);
+
+  useEffect(() => {
+    if (!uid) return;
+    const subs = [watchBlocks(uid, fromDate, setBlocks), watchSessions(uid, fromDate, setSessions)];
+    return () => subs.forEach((u) => u());
+  }, [uid, fromDate]);
+
+  const value: Store = {
+    user,
+    uid,
+    ready: authReady,
+    tasks,
+    blocks,
+    sessions,
+    settings,
+    date,
+    setDate,
+    login: async () => {
+      await signInWithPopup(auth(), new GoogleAuthProvider());
+    },
+    logout: () => signOut(auth()),
+  };
+
+  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+}

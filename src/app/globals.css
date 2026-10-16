@@ -1,0 +1,97 @@
+@import "tailwindcss";
+
+/* Paleta "papel e tinta": calma, legível, com um acento quente para o que já foi feito. */
+:root {
+  --paper: #f5f2ec;
+  --card: #fffdf9;
+  --ink: #1f1c18;
+  --muted: #6f6a62;
+  --line: #e4ded3;
+  --done: #c45a32; /* feito */
+  --todo: #2f5d62; /* falta */
+  --free: #d9d2c4; /* livre */
+  --warn: #b3261e;
+  --ok: #3b7a57;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #161513;
+    --card: #1f1d1a;
+    --ink: #ece7de;
+    --muted: #a39d92;
+    --line: #34312c;
+    --done: #e07a4f;
+    --todo: #6fa8ae;
+    --free: #3a3630;
+    --warn: #f2867c;
+    --ok: #7fbf96;
+  }
+}
+
+@theme inline {
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-done: var(--done);
+  --color-todo: var(--todo);
+  --color-free: var(--free);
+  --color-warn: var(--warn);
+  --color-ok: var(--ok);
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-display: ui-serif, Georgia, "Times New Roman", serif;
+}
+
+html,
+body {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- FullCalendar no tema do app ---- */
+.fc {
+  --fc-border-color: var(--line);
+  --fc-page-bg-color: var(--card);
+  --fc-neutral-bg-color: var(--paper);
+  --fc-today-bg-color: transparent;
+  --fc-now-indicator-color: var(--done);
+  --fc-event-bg-color: var(--todo);
+  --fc-event-border-color: var(--todo);
+  --fc-event-text-color: #fff;
+  font-size: 0.85rem;
+}
+.fc .fc-timegrid-slot {
+  height: 2.2em;
+}
+.fc .fc-timegrid-slot-label,
+.fc .fc-col-header-cell {
+  color: var(--muted);
+  font-weight: 500;
+}
+.fc .fc-event {
+  border-radius: 6px;
+  padding: 1px 4px;
+  cursor: pointer;
+}
+.fc .fc-event.is-done {
+  --fc-event-bg-color: var(--muted);
+  opacity: 0.6;
+  text-decoration: line-through;
+}
+.fc .fc-event.is-active {
+  box-shadow: 0 0 0 2px var(--done);
+}
+.fc-col-header-cell-cushion {
+  width: 100%;
+}

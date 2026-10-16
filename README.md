@@ -1,0 +1,100 @@
+# margem.
+
+Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem, quanto já fez, quanto falta e quanto ainda sobra** — com agenda estilo Google Agenda e pomodoro contando o tempo real das tarefas.
+
+## O que tem na v1
+
+- **Tarefas** de três tipos:
+  - **Avulsa**: num dia específico, ou sem dia (vai para a *caixa de entrada*). Pode ter **prazo**.
+  - **Dias fixos**: repete nos dias da semana escolhidos.
+  - **Meta semanal**: X horas por semana, em qualquer dia (ex: 5h de inglês).
+- **Prioridade** (alta, média, baixa) e **categoria**.
+- **Adição rápida**: digite `Revisar PR 45` ou `Estudar React 1h30` e a estimativa é lida do final.
+- **Agenda do dia e da semana**: arraste tarefas da lista para a agenda para criar blocos; mova e redimensione blocos.
+- **Capacidade do dia**: tempo disponível por dia da semana, ajuste pontual (“hoje só tenho 2h”) e **margem de folga** (padrão 15%) para pausas e imprevistos.
+- **Painel do dia**: feito / falta / planejado / livre, com alerta quando o dia passa do limite.
+- **Semana**: cada dia mostra sua barra de capacidade e o tempo livre no cabeçalho.
+- **Pomodoro**: conta **minutos reais** (parar no meio registra o parcial), sobrevive a recarregar a página e funciona entre dispositivos. Notificação + som ao fim.
+- **Registro manual de tempo** para o que foi feito sem timer, e correção de registros.
+- **“O que faço agora?”**: se há bloco na agenda agora, ele; senão, a primeira tarefa flexível (prazo → prioridade → menor) e quanto tempo há até o próximo compromisso.
+- **Atrasadas**: avulsas de dias passados aparecem hoje com botão para replanejar.
+- PWA: dá para instalar no celular.
+
+### Como as contas funcionam
+
+| Termo | Cálculo |
+|---|---|
+| Tempo do dia | padrão do dia da semana, ou o ajuste daquele dia |
+| Usável | tempo do dia × (1 − folga) |
+| Planejado | soma das estimativas das tarefas do dia (metas semanais entram pelo tempo dos blocos) |
+| Feito | tudo registrado no dia (pomodoro + manual) |
+| Falta | para cada tarefa não concluída: estimativa − feito |
+| Livre | usável − feito − falta (negativo = dia sobrecarregado) |
+
+Concluir uma tarefa antes da estimativa libera o tempo restante dela.
+
+## Stack
+
+Next.js (App Router) + TypeScript + Tailwind · Firebase (Auth com Google + Firestore) · FullCalendar · deploy na Vercel.
+
+## Configuração
+
+### 1. Firebase
+
+1. Crie um projeto em <https://console.firebase.google.com>.
+2. **Authentication → Método de login →** ative **Google**.
+3. **Firestore Database →** crie o banco (modo produção).
+4. **Firestore → Regras →** cole o conteúdo de [`firestore.rules`](firestore.rules) e publique.
+5. **Configurações do projeto → Seus apps →** adicione um **App da Web** e copie a configuração.
+
+### 2. Local
+
+```bash
+cp .env.example .env.local   # preencha com a configuração do passo 5
+npm install
+npm run dev                  # http://localhost:3000
+npm test                     # testes da lógica de capacidade
+```
+
+### 3. Vercel
+
+1. Importe o repositório na Vercel.
+2. Em **Settings → Environment Variables**, adicione as seis variáveis do `.env.example`.
+3. Faça o deploy.
+4. No Firebase, em **Authentication → Configurações → Domínios autorizados**, adicione o domínio da Vercel (ex: `margem.vercel.app`).
+
+## Estrutura
+
+```
+src/
+  app/                 layout, página e manifesto PWA
+  components/
+    App.tsx            casca: login, abas, navegação de datas
+    store.tsx          auth + dados em tempo real do Firestore
+    views.tsx          Dia, Semana, Tarefas, Ajustes
+    Calendar.tsx       agenda (FullCalendar) e blocos
+    DaySidebar.tsx     "agora", fila do dia, metas, caixa de entrada
+    CapacityPanel.tsx  painel e barra de capacidade
+    Timer.tsx          pomodoro flutuante
+    TaskForm.tsx / LogTimeForm.tsx
+  lib/
+    metrics.ts         toda a lógica de capacidade e ordenação (pura, testada)
+    db.ts              leitura/escrita no Firestore
+    pomodoro.ts        ciclo do timer
+```
+
+### Dados no Firestore
+
+```
+users/{uid}/tasks/{id}       tarefas
+users/{uid}/blocks/{id}      blocos na agenda
+users/{uid}/sessions/{id}    tempo trabalhado (pomodoro e manual)
+users/{uid}/meta/settings    capacidade, folga, pomodoro e timer ativo
+```
+
+## Próximos passos (v2)
+
+- Sugestão “o que faço agora” mais inteligente (cabe na janela livre, energia, contexto).
+- Estimado × real por categoria, para calibrar estimativas.
+- Revisão semanal.
+- Importar eventos do Google Agenda para descontar da capacidade.
