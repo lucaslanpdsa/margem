@@ -2,10 +2,11 @@
 
 import { Coffee, Square, Timer as TimerIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { finishPhase, isStopwatch, notify, skipBreak, startWaiting, stopTimer } from "@/lib/pomodoro";
+import { finishPhase, isStopwatch, notify, skipBreak, startWaiting } from "@/lib/pomodoro";
 import type { ActiveTimer } from "@/lib/types";
 import { useStore } from "./store";
 import { Button, cx } from "./ui";
+import { useTimerActions } from "./toast";
 
 export function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
@@ -44,6 +45,7 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
   const t = settings.activeTimer;
   const now = useNow();
   const handled = useRef<string | null>(null);
+  const timer = useTimerActions();
   const task = tasks.find((x) => x.id === t?.taskId);
   const d = t ? timerDisplay(t, now) : null;
 
@@ -87,7 +89,7 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
           {t.waiting ? (
             <div className="flex gap-1.5">
               {focus ? (
-                <Button variant="ghost" onClick={() => stopTimer(uid, settings)}>
+                <Button variant="ghost" onClick={() => timer.stop()}>
                   Encerrar
                 </Button>
               ) : (
@@ -100,12 +102,12 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
               </Button>
             </div>
           ) : focus ? (
-            <Button variant="secondary" onClick={() => stopTimer(uid, settings)} title="Para agora e conta o tempo já feito">
+            <Button variant="secondary" onClick={() => timer.stop()} title="Para agora e conta o tempo já feito">
               <Square size={12} fill="currentColor" /> Parar
             </Button>
           ) : (
             <div className="flex gap-1.5">
-              <Button variant="ghost" onClick={() => stopTimer(uid, settings)}>
+              <Button variant="ghost" onClick={() => timer.stop()}>
                 Encerrar
               </Button>
               <Button variant="primary" onClick={() => skipBreak(uid, settings)}>

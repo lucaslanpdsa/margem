@@ -5,12 +5,13 @@ import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
 import { dayItems } from "@/lib/metrics";
-import { isLive, isStopwatch, skipBreak, startTimer, startWaiting, stopTimer } from "@/lib/pomodoro";
+import { isLive, isStopwatch, skipBreak, startWaiting } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
 import { RecordTime } from "./EditableMinutes";
 import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
 import { Button, IconButton, Modal, Segmented, Switch, cx, inputCls } from "./ui";
+import { useTimerActions } from "./toast";
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -189,6 +190,7 @@ function History() {
 
 export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
   const { uid, settings, tasks } = useStore();
+  const timer = useTimerActions();
   const now = useNow();
   const t = settings.activeTimer;
   const [mode, setMode] = useState<"pomodoro" | "stopwatch">("pomodoro");
@@ -250,7 +252,7 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
 
         {!t ? (
           <button
-            onClick={() => startTimer(uid, settings, taskId, mode)}
+            onClick={() => timer.start(taskId, mode)}
             className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-white hover:bg-brand/90"
           >
             <Play size={15} fill="currentColor" /> Começar
@@ -264,7 +266,7 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
               <Play size={15} fill="currentColor" /> {t.phase === "break" ? "Começar pausa" : "Começar foco"}
             </button>
             <div className={cx("grid gap-2", t.phase === "break" ? "grid-cols-2" : "grid-cols-1")}>
-              <button onClick={() => stopTimer(uid, settings)} className="h-12 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
+              <button onClick={() => timer.stop()} className="h-12 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
                 Encerrar
               </button>
               {t.phase === "break" && (
@@ -276,14 +278,14 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
           </div>
         ) : t.phase === "focus" ? (
           <button
-            onClick={() => stopTimer(uid, settings)}
+            onClick={() => timer.stop()}
             className="flex h-14 w-full items-center justify-center gap-2 rounded-full border border-line bg-surface text-base font-semibold hover:bg-sunken"
           >
             <Square size={13} fill="currentColor" /> Parar e registrar
           </button>
         ) : (
           <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => stopTimer(uid, settings)} className="h-14 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
+            <button onClick={() => timer.stop()} className="h-14 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
               Encerrar
             </button>
             <button onClick={() => skipBreak(uid, settings)} className="h-14 rounded-full bg-brand font-semibold text-white hover:bg-brand/90">

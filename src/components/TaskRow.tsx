@@ -4,8 +4,8 @@ import { Check, ChevronRight, Clock, Play, SkipForward, Square, Target } from "l
 import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
 import { toggleDone } from "@/lib/db";
-import { startTimer, stopTimer } from "@/lib/pomodoro";
 import { timerDisplay, useNow } from "./Timer";
+import { useTimerActions } from "./toast";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
@@ -30,6 +30,7 @@ interface Props {
 export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, outside, checkable = true, warning }: Props) {
   const { uid, settings } = useStore();
   const { logTime } = useDialogs();
+  const timer = useTimerActions();
   const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus" && !settings.activeTimer.waiting;
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
   const slots = slotsOf(task);
@@ -93,7 +94,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
       {/* ▶ começa o timer nesta tarefa (no último modo usado); ■ para e registra. */}
       {!completed && !skipped && (
         <button
-          onClick={() => (running ? stopTimer(uid, settings) : startTimer(uid, settings, task.id, settings.lastTimerMode ?? "stopwatch"))}
+          onClick={() => (running ? timer.stop() : timer.start(task.id, settings.lastTimerMode ?? "stopwatch"))}
           className={cx(
             "mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors",
             running ? "bg-todo text-white hover:bg-todo/85" : "bg-todo/10 text-todo hover:bg-todo hover:text-white",

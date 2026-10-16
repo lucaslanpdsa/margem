@@ -9,6 +9,7 @@ import { AssignDialog, FocusView } from "./FocusView";
 import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
+import { ToastProvider } from "./toast";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
 import { DayView } from "./views";
@@ -49,9 +50,11 @@ export default function App() {
   if (!firebaseConfigured) return <SetupNeeded />;
   return (
     <StoreProvider>
-      <DialogsProvider>
-        <Shell />
-      </DialogsProvider>
+      <ToastProvider>
+        <DialogsProvider>
+          <Shell />
+        </DialogsProvider>
+      </ToastProvider>
     </StoreProvider>
   );
 }

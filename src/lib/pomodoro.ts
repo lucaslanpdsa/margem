@@ -46,9 +46,9 @@ export function liveSession(t: ActiveTimer | null | undefined, now = Date.now())
 
 export const isLive = (s: Session) => s.id === LIVE_SESSION_ID;
 
-/** Grava o tempo. O id vem do início, então gravar duas vezes não duplica. */
+/** Grava o tempo. O id vem do início, então gravar duas vezes não duplica. Menos de 1 minuto não grava. */
 async function record(uid: string, t: ActiveTimer, minutes: number, endedAt: Date, prefix: string) {
-  if (minutes < 1) return;
+  if (minutes < 1) return 0;
   const startedAt = new Date(t.startedAt);
   const id = `${prefix}-${startedAt.getTime()}`;
   await setDoc(doc(db(), "users", uid, "sessions", id), {
@@ -61,18 +61,26 @@ async function record(uid: string, t: ActiveTimer, minutes: number, endedAt: Dat
   });
   // Foco sem tarefa: pergunta depois em que a pessoa trabalhou.
   if (!t.taskId && t.phase === "focus") await saveSettings(uid, { pendingAssign: id });
+  return minutes;
 }
 
-/** Encerra o que estiver rodando, gravando o tempo que deve contar. */
-async function closeCurrent(uid: string, settings: Settings, endedAt = new Date()) {
+/** O que aconteceu com o foco encerrado: em que tarefa e quantos minutos foram registrados (0 = nada). */
+export interface Closed {
+  taskId: string;
+  minutes: number;
+}
+
+/** Encerra o que estiver rodando, gravando o tempo que deve contar. Devolve o foco encerrado, se havia. */
+async function closeCurrent(uid: string, settings: Settings, endedAt = new Date()): Promise<Closed | null> {
   const t = settings.activeTimer;
-  if (!t || t.waiting) return;
+  if (!t || t.waiting || t.phase !== "focus") return null;
   const min = elapsedMin(t, endedAt.getTime());
-  if (t.phase === "focus") await record(uid, t, min, endedAt, isStopwatch(t) ? "sw" : "pomo");
+  const minutes = await record(uid, t, min, endedAt, isStopwatch(t) ? "sw" : "pomo");
+  return { taskId: t.taskId, minutes };
 }
 
 export async function startTimer(uid: string, settings: Settings, taskId: string, mode: "pomodoro" | "stopwatch" = "pomodoro") {
-  await closeCurrent(uid, settings);
+  const closed = await closeCurrent(uid, settings);
   if (typeof Notification !== "undefined" && Notification.permission === "default") {
     Notification.requestPermission().catch(() => {});
   }
@@ -86,6 +94,7 @@ export async function startTimer(uid: string, settings: Settings, taskId: string
       durationMin: mode === "stopwatch" ? 0 : settings.focusMin,
     },
   });
+  return closed;
 }
 
 /** Atalho usado nas listas de tarefas: começa um pomodoro na tarefa. */
@@ -93,8 +102,9 @@ export const startFocus = (uid: string, settings: Settings, taskId: string) => s
 
 /** Parar agora: o tempo já feito conta. */
 export async function stopTimer(uid: string, settings: Settings) {
-  await closeCurrent(uid, settings);
+  const closed = await closeCurrent(uid, settings);
   await saveSettings(uid, { activeTimer: null });
+  return closed;
 }
 
 /** Monta a próxima fase: já rodando ou esperando o toque em começar. */

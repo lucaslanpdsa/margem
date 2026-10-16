@@ -6,8 +6,9 @@ import { entryTimes, fmtMin, parseTimeEntry, type TimeEntry } from "@/lib/dates"
 import { addSession, setSkipped, toggleDone } from "@/lib/db";
 import { isCompletedOn, isSkippedOn, isTimeTask, slotMinutesPassed } from "@/lib/metrics";
 import { windowFor } from "@/lib/schedule";
-import { isLive, startTimer, stopTimer } from "@/lib/pomodoro";
+import { isLive } from "@/lib/pomodoro";
 import { timerDisplay, useNow } from "./Timer";
+import { useTimerActions, useToast } from "./toast";
 import { useDialogs } from "./dialogs";
 import { RecordTime } from "./EditableMinutes";
 import type { Session, Task } from "@/lib/types";
@@ -25,6 +26,8 @@ const recordLabel = (s: Session) =>
 export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const { uid, date, sessions, settings } = useStore();
   const { editTask } = useDialogs();
+  const timer = useTimerActions();
+  const toast = useToast();
   const timeTask = isTimeTask(task);
   const skipped = isSkippedOn(task, date);
   const completed = !timeTask && !skipped && isCompletedOn(task, date);
@@ -40,7 +43,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   const canStart = !completed && !skipped;
 
   async function start(mode: "stopwatch" | "pomodoro") {
-    await startTimer(uid, settings, task.id, mode);
+    await timer.start(task.id, mode);
     onClose();
   }
   // Sem registro, tarefa com horário conta sozinha o horário que já passou.
@@ -49,6 +52,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
 
   async function register(entry: TimeEntry) {
     await addSession(uid, { taskId: task.id, date, minutes: entry.minutes, kind: "manual", ...entryTimes(entry, date) });
+    toast(`${fmtMin(entry.minutes)} adicionados em ${task.title}`);
     onClose();
   }
 
@@ -75,7 +79,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
             <span className="block text-[13px] text-muted">{t?.mode === "stopwatch" ? "Cronômetro rodando" : "Pomodoro rodando"}</span>
             <LiveClock />
           </span>
-          <Button variant="primary" onClick={() => stopTimer(uid, settings)}>
+          <Button variant="primary" onClick={() => timer.stop()}>
             <Square size={12} fill="currentColor" /> Parar
           </Button>
         </div>
