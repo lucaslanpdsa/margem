@@ -26,7 +26,7 @@ interface Props {
 
 export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, extra, checkable = true }: Props) {
   const { uid, settings } = useStore();
-  const { logTime } = useDialogs();
+  const { editTask, logTime } = useDialogs();
   const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus";
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
   const draggable = dragMin !== undefined;
@@ -68,7 +68,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, 
         </span>
       )}
 
-      <button className="min-w-0 flex-1 text-left" onClick={() => logTime(task)} title="Ver e reportar tempo">
+      <button className="min-w-0 flex-1 text-left" onClick={() => editTask(task)} title="Editar tarefa">
         <span className={cx("block truncate text-sm font-medium", completed && "text-muted line-through")}>{task.title}</span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           <span className="inline-flex items-center gap-1.5">
