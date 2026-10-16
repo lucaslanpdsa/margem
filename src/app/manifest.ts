@@ -7,8 +7,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Quanto cabe no seu dia, quanto já foi feito e quanto ainda sobra.",
     start_url: "/",
     display: "standalone",
-    background_color: "#f5f2ec",
-    theme_color: "#f5f2ec",
+    background_color: "#f6f7f9",
+    theme_color: "#f6f7f9",
     icons: [{ src: "/icon.svg", sizes: "any", type: "image/svg+xml" }],
   };
 }

@@ -1,17 +1,19 @@
 "use client";
 
 import { Draggable } from "@fullcalendar/interaction";
+import { Archive, ArchiveRestore, Bell, CalendarPlus, Plus, Repeat, Target } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, todayKey, weekDays } from "@/lib/dates";
+import { WEEKDAY_SHORT, fmtMin, fromKey, todayKey, weekDays } from "@/lib/dates";
 import { saveSettings, updateTask } from "@/lib/db";
 import { dayMetrics, weeklyGoals } from "@/lib/metrics";
 import type { RepeatKind, Task } from "@/lib/types";
 import { Calendar } from "./Calendar";
-import { CapacityPanel } from "./CapacityPanel";
-import { DaySidebar } from "./DaySidebar";
+import { CapacityBar, DayBudget } from "./CapacityPanel";
+import { DayLists } from "./DaySidebar";
 import { useDialogs } from "./dialogs";
+import { CapacityEditor } from "./Onboarding";
 import { useStore } from "./store";
-import { Button, Card, Field, PRIORITY_DOT, SectionTitle, cx, inputCls } from "./ui";
+import { Button, Panel, PanelHeader, Segmented, cx } from "./ui";
 
 // ---------------- Dia ----------------
 
@@ -37,13 +39,15 @@ export function DayView() {
   }, []);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_380px]">
-      <div className="space-y-4">
-        <CapacityPanel m={m} />
-        <Calendar view="timeGridDay" />
-      </div>
-      <div ref={listRef}>
-        <DaySidebar m={m} />
+    <div className="space-y-4">
+      <DayBudget m={m} />
+      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+        <div ref={listRef} className="min-w-0">
+          <DayLists m={m} />
+        </div>
+        <div className="min-w-0 xl:sticky xl:top-4">
+          <Calendar view="timeGridDay" />
+        </div>
       </div>
     </div>
   );
@@ -55,44 +59,55 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
   const { date, settings, tasks, blocks, sessions } = useStore();
   const days = weekDays(date);
   const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions));
-  const sum = (k: "usableMin" | "doneMin" | "remainingMin" | "freeMin") => ms.reduce((a, m) => a + m[k], 0);
+  const usable = ms.reduce((a, m) => a + m.usableMin, 0);
+  const done = ms.reduce((a, m) => a + m.doneMin, 0);
+  // Dias que já passaram não têm mais "por fazer": o que ficou para trás não conta como pendente.
+  const today = todayKey();
+  const remaining = ms.filter((m) => m.date >= today).reduce((a, m) => a + m.remainingMin, 0);
+  const free = usable - done - remaining;
   const goals = weeklyGoals(date, tasks, sessions);
+  const overDays = ms.filter((m) => m.freeMin < 0).length;
+  const weekMetrics = { date, capacityMin: usable, usableMin: usable, plannedMin: 0, doneMin: done, remainingMin: remaining, freeMin: free, items: [] };
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-4">
-        {[
-          ["Tempo usável", sum("usableMin"), "text-ink"],
-          ["Feito", sum("doneMin"), "text-done"],
-          ["Falta", sum("remainingMin"), "text-todo"],
-          ["Livre", sum("freeMin"), sum("freeMin") < 0 ? "text-warn" : "text-ink"],
-        ].map(([label, v, tone]) => (
-          <Card key={label as string} className="py-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-muted">{label}</p>
-            <p className={cx("tabular font-display text-2xl", tone as string)}>{fmtMin(v as number)}</p>
-          </Card>
-        ))}
-      </div>
+      <Panel className="p-5">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className={cx("tabular text-[28px] leading-none font-semibold tracking-tight", free < 0 && "text-over")}>
+              {free < 0 ? `${fmtMin(-free)} além do limite` : `${fmtMin(free)} livres na semana`}
+            </p>
+            <p className="mt-2 text-sm text-muted">
+              {fmtMin(done)} feitos e {fmtMin(remaining)} por fazer daqui em diante, de {fmtMin(usable)} usáveis.
+              {overDays > 0 && ` ${overDays === 1 ? "Um dia passou" : `${overDays} dias passaram`} do limite.`}
+            </p>
+          </div>
+          <p className="text-[13px] text-muted">Clique num dia para abrir.</p>
+        </div>
+        <div className="mt-4">
+          <CapacityBar m={weekMetrics} />
+        </div>
+      </Panel>
 
       {goals.length > 0 && (
-        <Card>
-          <SectionTitle>Metas da semana</SectionTitle>
-          <ul className="grid gap-3 sm:grid-cols-2">
+        <Panel>
+          <PanelHeader title="Metas da semana" description="Quanto já foi feito de cada meta, somando todos os dias." />
+          <ul className="grid gap-4 px-5 pb-5 sm:grid-cols-2">
             {goals.map((g) => (
               <li key={g.task.id}>
                 <div className="flex justify-between text-sm">
-                  <span>{g.task.title}</span>
+                  <span className="font-medium">{g.task.title}</span>
                   <span className="tabular text-muted">
-                    {fmtMin(g.doneMin)} / {fmtMin(g.goalMin)}
+                    {fmtMin(g.doneMin)} de {fmtMin(g.goalMin)}
                   </span>
                 </div>
-                <div className="mt-1 h-2 overflow-hidden rounded-full bg-paper">
-                  <div className="h-full bg-done" style={{ width: `${Math.min(100, (g.doneMin / Math.max(1, g.goalMin)) * 100)}%` }} />
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-sunken">
+                  <div className="h-full rounded-full bg-done" style={{ width: `${Math.min(100, (g.doneMin / Math.max(1, g.goalMin)) * 100)}%` }} />
                 </div>
               </li>
             ))}
           </ul>
-        </Card>
+        </Panel>
       )}
 
       <Calendar view="timeGridWeek" onPickDay={onPickDay} />
@@ -102,36 +117,38 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
 
 // ---------------- Tarefas ----------------
 
-const GROUPS: { kind: RepeatKind; title: string }[] = [
-  { kind: "weekdays", title: "Dias fixos" },
-  { kind: "weeklyGoal", title: "Metas semanais" },
-  { kind: "once", title: "Avulsas pendentes" },
+const GROUPS: { kind: RepeatKind; title: string; description: string; icon: typeof Repeat }[] = [
+  { kind: "weekdays", title: "Repetem", description: "Aparecem sozinhas nos dias marcados.", icon: Repeat },
+  { kind: "weeklyGoal", title: "Metas semanais", description: "Horas por semana, no dia que der.", icon: Target },
+  { kind: "once", title: "De uma vez, pendentes", description: "Avulsas ainda não concluídas.", icon: CalendarPlus },
 ];
 
 function describe(t: Task) {
-  if (t.repeat === "weekdays") return `${fmtMin(t.estimateMin)} · ${(t.weekdays ?? []).map((d) => WEEKDAY_SHORT[d]).join(", ")}`;
+  if (t.repeat === "weekdays") return `${fmtMin(t.estimateMin)} por dia, ${(t.weekdays ?? []).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")}`;
   if (t.repeat === "weeklyGoal") return `${fmtMin(t.weeklyGoalMin ?? 0)} por semana`;
-  const day = t.date ? fromKey(t.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" }) : "sem dia";
-  return `${fmtMin(t.estimateMin)} · ${day}${t.deadline ? ` · prazo ${fromKey(t.deadline).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}` : ""}`;
+  const short = (k: string) => fromKey(k).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
+  const day = t.date ? `para ${short(t.date)}` : "sem dia (caixa de entrada)";
+  return `${fmtMin(t.estimateMin)}, ${day}${t.deadline ? `, prazo ${short(t.deadline)}` : ""}`;
 }
 
 export function TasksView() {
   const { uid, tasks } = useStore();
   const { editTask } = useDialogs();
-  const [showArchived, setShowArchived] = useState(false);
-
-  const visible = tasks.filter((t) => (showArchived ? t.archived : !t.archived));
+  const [show, setShow] = useState<"active" | "archived">("active");
+  const visible = tasks.filter((t) => (show === "archived" ? t.archived : !t.archived));
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <div className="flex items-center justify-between">
-        <label className="flex items-center gap-2 text-sm text-muted">
-          <input type="checkbox" checked={showArchived} onChange={(e) => setShowArchived(e.target.checked)} />
-          Mostrar arquivadas
-        </label>
-        <Button variant="primary" onClick={() => editTask({ repeat: "weekdays" })}>
-          + Nova tarefa
-        </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted">Todas as suas tarefas, por tipo. Clique numa para editar.</p>
+        <Segmented
+          value={show}
+          onChange={setShow}
+          options={[
+            { value: "active", label: "Ativas" },
+            { value: "archived", label: "Arquivadas" },
+          ]}
+        />
       </div>
 
       {GROUPS.map((g) => {
@@ -139,29 +156,41 @@ export function TasksView() {
           .filter((t) => t.repeat === g.kind && (g.kind !== "once" || !t.completedAt))
           .sort((a, b) => a.title.localeCompare(b.title));
         return (
-          <Card key={g.kind}>
-            <SectionTitle>
-              {g.title} ({list.length})
-            </SectionTitle>
-            {list.length === 0 && <p className="text-sm text-muted">Nada aqui.</p>}
-            <ul className="divide-y divide-line">
-              {list.map((t) => (
-                <li key={t.id} className="flex items-center gap-3 py-2">
-                  <span className={cx("h-2 w-2 shrink-0 rounded-full", PRIORITY_DOT[t.priority])} />
-                  <button className="min-w-0 flex-1 text-left" onClick={() => editTask(t)}>
-                    <p className="truncate text-sm">{t.title}</p>
-                    <p className="text-xs text-muted">
-                      {describe(t)}
-                      {t.category && ` · ${t.category}`}
-                    </p>
-                  </button>
-                  <Button variant="ghost" onClick={() => updateTask(uid, t.id, { archived: !t.archived })}>
-                    {t.archived ? "Reativar" : "Arquivar"}
+          <Panel key={g.kind}>
+            <PanelHeader
+              title={`${g.title} (${list.length})`}
+              description={g.description}
+              right={
+                show === "active" && (
+                  <Button size="sm" variant="ghost" onClick={() => editTask({ repeat: g.kind })}>
+                    <Plus size={14} /> Adicionar
                   </Button>
-                </li>
-              ))}
-            </ul>
-          </Card>
+                )
+              }
+            />
+            {list.length === 0 ? (
+              <p className="px-5 pb-5 text-sm text-muted">Nenhuma ainda.</p>
+            ) : (
+              <ul className="divide-y divide-line border-t border-line">
+                {list.map((t) => (
+                  <li key={t.id} className="flex items-center gap-3 px-5 py-3 hover:bg-sunken/50">
+                    <g.icon size={16} className="shrink-0 text-muted" />
+                    <button className="min-w-0 flex-1 text-left" onClick={() => editTask(t)}>
+                      <p className="truncate text-sm font-medium">{t.title}</p>
+                      <p className="text-xs text-muted">
+                        {describe(t)}
+                        {t.category && ` · ${t.category}`}
+                      </p>
+                    </button>
+                    <Button size="sm" variant="ghost" onClick={() => updateTask(uid, t.id, { archived: !t.archived })}>
+                      {t.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                      {t.archived ? "Reativar" : "Arquivar"}
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panel>
         );
       })}
     </div>
@@ -172,77 +201,90 @@ export function TasksView() {
 
 export function SettingsView() {
   const { uid, settings, user, logout } = useStore();
-  const [caps, setCaps] = useState(settings.capacityByWeekday.map(fmtMin));
-  const [slack, setSlack] = useState(String(Math.round(settings.slack * 100)));
-  const [focus, setFocus] = useState(String(settings.focusMin));
-  const [brk, setBrk] = useState(String(settings.breakMin));
+  const [caps, setCaps] = useState(settings.capacityByWeekday);
+  const [slack, setSlack] = useState(Math.round(settings.slack * 100));
+  const [focus, setFocus] = useState(settings.focusMin);
+  const [brk, setBrk] = useState(settings.breakMin);
   const [saved, setSaved] = useState(false);
   const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
 
   async function save() {
-    await saveSettings(uid, {
-      capacityByWeekday: caps.map((c) => parseDuration(c) ?? 0),
-      slack: Math.min(50, Math.max(0, Number(slack) || 0)) / 100,
-      focusMin: Math.max(5, Number(focus) || 25),
-      breakMin: Math.max(1, Number(brk) || 5),
-    });
+    await saveSettings(uid, { capacityByWeekday: caps, slack: slack / 100, focusMin: focus, breakMin: brk });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
 
+  const num = (v: number, set: (n: number) => void, min: number, max: number) => (
+    <input
+      type="number"
+      min={min}
+      max={max}
+      value={v}
+      onChange={(e) => set(Math.max(min, Math.min(max, Number(e.target.value) || min)))}
+      className="tabular h-10 w-20 rounded-lg border border-line bg-surface px-3 text-sm outline-none focus:border-brand"
+    />
+  );
+
   return (
-    <div className="mx-auto max-w-2xl space-y-4">
-      <Card>
-        <SectionTitle>Tempo disponível para tarefas, por dia</SectionTitle>
-        <p className="mb-3 text-sm text-muted">Quanto do seu dia sobra para as tarefas daqui (fora trabalho fixo, refeições etc.). Para mudar só um dia, use o ✎ na tela do dia.</p>
-        <div className="grid grid-cols-7 gap-2">
-          {[1, 2, 3, 4, 5, 6, 0].map((d) => (
-            <Field key={d} label={WEEKDAY_SHORT[d]}>
-              <input
-                className={cx(inputCls, "px-2 text-center")}
-                value={caps[d]}
-                onChange={(e) => setCaps((c) => c.map((v, i) => (i === d ? e.target.value : v)))}
-              />
-            </Field>
-          ))}
+    <div className="mx-auto max-w-3xl space-y-4">
+      <Panel>
+        <PanelHeader
+          title="Tempo para tarefas em cada dia"
+          description="Quanto do dia sobra para as tarefas daqui, fora trabalho e compromissos fixos. Para mudar só um dia, use o botão “Mudar o tempo” na tela do dia."
+        />
+        <div className="px-5 pb-5">
+          <CapacityEditor value={caps} onChange={setCaps} />
+          <p className="mt-3 text-sm text-muted">
+            Total na semana: <span className="tabular font-semibold text-ink">{fmtMin(caps.reduce((a, b) => a + b, 0))}</span>
+          </p>
         </div>
-      </Card>
+      </Panel>
 
-      <Card>
-        <SectionTitle>Margem de folga e pomodoro</SectionTitle>
-        <div className="grid grid-cols-3 gap-3">
-          <Field label="Folga (%)" hint="Tempo reservado para pausas e imprevistos">
-            <input className={inputCls} value={slack} onChange={(e) => setSlack(e.target.value)} inputMode="numeric" />
-          </Field>
-          <Field label="Foco (min)">
-            <input className={inputCls} value={focus} onChange={(e) => setFocus(e.target.value)} inputMode="numeric" />
-          </Field>
-          <Field label="Pausa (min)">
-            <input className={inputCls} value={brk} onChange={(e) => setBrk(e.target.value)} inputMode="numeric" />
-          </Field>
+      <Panel>
+        <PanelHeader title="Margem de folga" description="Reserva do tempo do dia para pausas, transições e imprevistos. Ela não entra como tempo livre." />
+        <div className="px-5 pb-5">
+          <div className="flex items-center gap-4">
+            <input type="range" min={0} max={30} step={5} value={slack} onChange={(e) => setSlack(+e.target.value)} className="flex-1 accent-[var(--brand)]" />
+            <span className="tabular w-12 text-right text-sm font-semibold">{slack}%</span>
+          </div>
+          <p className="mt-2 text-[13px] text-muted">Exemplo: um dia de 4h fica com {fmtMin(240 * (1 - slack / 100))} usáveis.</p>
         </div>
-        {perm !== "granted" && perm !== "unsupported" && (
-          <Button className="mt-3" onClick={() => Notification.requestPermission().then(setPerm)}>
-            Ativar notificações do pomodoro
-          </Button>
-        )}
-      </Card>
+      </Panel>
 
-      <div className="flex items-center justify-between">
-        <div className="text-sm text-muted">
-          {user?.email} ·{" "}
-          <button className="underline" onClick={logout}>
-            sair
+      <Panel>
+        <PanelHeader title="Pomodoro" description="O tempo de foco é registrado como feito na tarefa. Parar antes do fim registra o tempo parcial." />
+        <div className="flex flex-wrap items-end gap-6 px-5 pb-5">
+          <label className="text-[13px] font-medium">
+            <span className="mb-1.5 block">Foco (min)</span>
+            {num(focus, setFocus, 5, 120)}
+          </label>
+          <label className="text-[13px] font-medium">
+            <span className="mb-1.5 block">Pausa (min)</span>
+            {num(brk, setBrk, 1, 60)}
+          </label>
+          {perm !== "granted" && perm !== "unsupported" && (
+            <Button onClick={() => Notification.requestPermission().then(setPerm)}>
+              <Bell size={14} /> Avisar quando o pomodoro acabar
+            </Button>
+          )}
+          {perm === "granted" && <p className="text-[13px] text-done">Notificações ativadas.</p>}
+        </div>
+      </Panel>
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="text-sm text-muted">
+          Conectado como {user?.email}.{" "}
+          <button className="font-medium text-brand hover:underline" onClick={logout}>
+            Sair
           </button>
-        </div>
+        </p>
         <div className="flex items-center gap-3">
-          {saved && <span className="text-sm text-ok">Salvo</span>}
+          {saved && <span className="text-sm text-done">Ajustes salvos</span>}
           <Button variant="primary" onClick={save}>
             Salvar ajustes
           </Button>
         </div>
       </div>
-      <p className="text-center text-xs text-muted">Hoje: {fromKey(todayKey()).toLocaleDateString("pt-BR", { dateStyle: "full" })}</p>
     </div>
   );
 }

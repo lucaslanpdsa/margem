@@ -1,47 +1,80 @@
 "use client";
 
+import { X } from "lucide-react";
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
 }
 
-type Variant = "primary" | "ghost" | "soft" | "danger";
+type Variant = "primary" | "secondary" | "ghost" | "danger";
+type Size = "sm" | "md";
 
 export function Button({
-  variant = "soft",
+  variant = "secondary",
+  size = "md",
   className,
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant }) {
+}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: Variant; size?: Size }) {
   return (
     <button
       {...props}
       className={cx(
-        "inline-flex items-center justify-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:opacity-40",
-        variant === "primary" && "bg-ink text-paper hover:opacity-90",
-        variant === "soft" && "bg-paper text-ink border border-line hover:border-muted",
-        variant === "ghost" && "text-muted hover:text-ink hover:bg-paper",
-        variant === "danger" && "text-warn hover:bg-warn/10",
+        "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg font-medium transition-colors disabled:pointer-events-none disabled:opacity-40",
+        size === "md" ? "h-9 px-3.5 text-sm" : "h-8 px-2.5 text-[13px]",
+        variant === "primary" && "bg-brand text-brand-ink hover:bg-brand/90",
+        variant === "secondary" && "border border-line bg-surface text-ink hover:bg-sunken",
+        variant === "ghost" && "text-muted hover:bg-sunken hover:text-ink",
+        variant === "danger" && "text-over hover:bg-over/10",
         className,
       )}
     />
   );
 }
 
-export function Card({ className, children }: { className?: string; children: ReactNode }) {
-  return <section className={cx("rounded-2xl border border-line bg-card p-4", className)}>{children}</section>;
-}
-
-export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
+export function IconButton({ label, className, ...props }: ButtonHTMLAttributes<HTMLButtonElement> & { label: string }) {
   return (
-    <div className="mb-2 flex items-center justify-between">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{children}</h3>
-      {right}
-    </div>
+    <button
+      {...props}
+      aria-label={label}
+      title={label}
+      className={cx(
+        "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-sunken hover:text-ink disabled:pointer-events-none disabled:opacity-30",
+        className,
+      )}
+    />
   );
 }
 
-export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: ReactNode }) {
+export function Panel({ className, children }: { className?: string; children: ReactNode }) {
+  return <section className={cx("rounded-2xl border border-line bg-surface", className)}>{children}</section>;
+}
+
+export function PanelHeader({ title, description, right }: { title: string; description?: string; right?: ReactNode }) {
+  return (
+    <header className="flex items-start justify-between gap-3 px-5 pt-4 pb-3">
+      <div>
+        <h2 className="text-[15px] font-semibold">{title}</h2>
+        {description && <p className="mt-0.5 text-[13px] text-muted">{description}</p>}
+      </div>
+      {right}
+    </header>
+  );
+}
+
+export function Modal({
+  title,
+  description,
+  onClose,
+  children,
+  wide,
+}: {
+  title: string;
+  description?: string;
+  onClose: () => void;
+  children: ReactNode;
+  wide?: boolean;
+}) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
     window.addEventListener("keydown", onKey);
@@ -49,35 +82,71 @@ export function Modal({ title, onClose, children }: { title: string; onClose: ()
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={onClose}>
       <div
-        className="max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-line bg-card p-5 shadow-xl sm:max-w-lg sm:rounded-2xl"
+        role="dialog"
+        aria-modal="true"
+        className={cx(
+          "max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-line bg-surface shadow-2xl sm:rounded-2xl",
+          wide ? "sm:max-w-2xl" : "sm:max-w-lg",
+        )}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="font-display text-xl">{title}</h2>
-          <button onClick={onClose} className="text-muted hover:text-ink" aria-label="Fechar">
-            ✕
-          </button>
+        <div className="flex items-start justify-between gap-4 px-6 pt-5">
+          <div>
+            <h2 className="text-lg font-semibold">{title}</h2>
+            {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+          </div>
+          <IconButton label="Fechar" onClick={onClose}>
+            <X size={18} />
+          </IconButton>
         </div>
-        {children}
+        <div className="px-6 pt-4 pb-6">{children}</div>
       </div>
     </div>
   );
 }
 
 export const inputCls =
-  "w-full rounded-lg border border-line bg-paper px-3 py-2 text-sm outline-none focus:border-muted placeholder:text-muted/70";
+  "h-10 w-full rounded-lg border border-line bg-surface px-3 text-sm outline-none transition-colors placeholder:text-muted/70 focus:border-brand focus:ring-2 focus:ring-brand/15";
 
 export function Field({ label, hint, children }: { label: string; hint?: string; children: ReactNode }) {
   return (
     <label className="block">
-      <span className="mb-1 block text-xs font-medium text-muted">{label}</span>
+      <span className="mb-1.5 block text-[13px] font-medium">{label}</span>
       {children}
       {hint && <span className="mt-1 block text-xs text-muted">{hint}</span>}
     </label>
   );
 }
 
+export function Segmented<T extends string | number>({
+  value,
+  options,
+  onChange,
+}: {
+  value: T;
+  options: { value: T; label: ReactNode }[];
+  onChange: (v: T) => void;
+}) {
+  return (
+    <div className="inline-flex rounded-lg bg-sunken p-0.5">
+      {options.map((o) => (
+        <button
+          type="button"
+          key={String(o.value)}
+          onClick={() => onChange(o.value)}
+          className={cx(
+            "rounded-md px-3 py-1.5 text-[13px] font-medium transition-colors",
+            value === o.value ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink",
+          )}
+        >
+          {o.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 export const PRIORITY_LABEL = { 1: "Alta", 2: "Média", 3: "Baixa" } as const;
-export const PRIORITY_DOT = { 1: "bg-warn", 2: "bg-done", 3: "bg-free" } as const;
+export const PRIORITY_COLOR = { 1: "text-over", 2: "text-break", 3: "text-muted" } as const;

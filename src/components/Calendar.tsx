@@ -14,7 +14,8 @@ import type { Block, Task } from "@/lib/types";
 import { CapacityBar } from "./CapacityPanel";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
-import { Button, Modal, cx } from "./ui";
+import { Clock, Pencil, Play, Trash2 } from "lucide-react";
+import { Button, Modal, Panel, PanelHeader, cx } from "./ui";
 
 interface Props {
   view: "timeGridDay" | "timeGridWeek";
@@ -73,7 +74,11 @@ export function Calendar({ view, onPickDay }: Props) {
   }
 
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-card">
+    <Panel className="overflow-hidden">
+      {view === "timeGridDay" && (
+        <PanelHeader title="Agenda" description="Arraste tarefas da lista para cá. Puxe a borda de um bloco para mudar a duração." />
+      )}
+      <div className={view === "timeGridDay" ? "border-t border-line" : ""}>
       <FullCalendar
         ref={ref}
         plugins={[timeGridPlugin, interactionPlugin]}
@@ -81,6 +86,7 @@ export function Calendar({ view, onPickDay }: Props) {
         initialView={view}
         initialDate={fromKey(date)}
         headerToolbar={false}
+        dayHeaders={view !== "timeGridDay"}
         allDaySlot={false}
         nowIndicator
         editable
@@ -88,11 +94,11 @@ export function Calendar({ view, onPickDay }: Props) {
         eventDurationEditable
         snapDuration="00:15:00"
         slotDuration="00:30:00"
-        slotMinTime="05:00:00"
+        slotMinTime="06:00:00"
         slotMaxTime="24:00:00"
-        scrollTime={`${String(Math.max(5, new Date().getHours() - 1)).padStart(2, "0")}:00:00`}
+        scrollTime={`${String(Math.max(6, new Date().getHours() - 1)).padStart(2, "0")}:00:00`}
         firstDay={1}
-        height={view === "timeGridDay" ? "72vh" : "78vh"}
+        height={view === "timeGridDay" ? "70vh" : "74vh"}
         events={events}
         eventReceive={onReceive}
         eventChange={onChange}
@@ -102,20 +108,21 @@ export function Calendar({ view, onPickDay }: Props) {
           const key = dayKey(arg.date);
           const m = dayMetrics(key, settings, tasks, blocks, sessions);
           return (
-            <button className="block w-full px-1 py-1 text-left" onClick={() => onPickDay?.(key)} title="Abrir o dia">
-              <span className={cx("text-xs", arg.isToday && "font-semibold text-done")}>{arg.text}</span>
-              <span className="mt-1 block">
+            <button className="block w-full rounded-lg px-1.5 py-1.5 text-left hover:bg-sunken" onClick={() => onPickDay?.(key)} title="Abrir este dia">
+              <span className={cx("block text-[13px] capitalize", arg.isToday ? "font-semibold text-todo" : "text-ink")}>{arg.text}</span>
+              <span className="mt-1.5 block">
                 <CapacityBar m={m} thin />
               </span>
-              <span className={cx("tabular mt-0.5 block text-[11px]", m.freeMin < 0 ? "text-warn" : "text-muted")}>
-                {m.freeMin < 0 ? `+${fmtMin(-m.freeMin)} além` : `${fmtMin(m.freeMin)} livre`}
+              <span className={cx("tabular mt-1 block text-[11px] font-normal", m.freeMin < 0 ? "text-over" : "text-muted")}>
+                {m.capacityMin === 0 ? "sem tempo" : m.freeMin < 0 ? `${fmtMin(-m.freeMin)} além` : `${fmtMin(m.freeMin)} livres`}
               </span>
             </button>
           );
         }}
       />
+      </div>
       {selected && <BlockActions block={selected} task={taskById.get(selected.taskId)} onClose={() => setSelected(null)} />}
-    </div>
+    </Panel>
   );
 }
 
@@ -125,7 +132,7 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
   return (
-    <Modal title={task?.title ?? "Bloco"} onClose={onClose}>
+    <Modal title={task?.title ?? "Bloco"} description="Bloco reservado na agenda" onClose={onClose}>
       <p className="mb-4 text-sm text-muted">
         {hhmm(block.start)}–{hhmm(block.end)} · {fmtMin(minutesBetween(block.start, block.end))}
       </p>
@@ -139,7 +146,7 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
                 onClose();
               }}
             >
-              ▶ Iniciar pomodoro
+              <Play size={14} fill="currentColor" /> Iniciar pomodoro
             </Button>
             <Button
               onClick={() => {
@@ -147,7 +154,7 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
                 logTime(task);
               }}
             >
-              Registrar tempo
+              <Clock size={14} /> Registrar tempo
             </Button>
             <Button
               onClick={() => {
@@ -155,7 +162,7 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
                 editTask(task);
               }}
             >
-              Editar tarefa
+              <Pencil size={14} /> Editar tarefa
             </Button>
           </>
         )}
@@ -166,7 +173,7 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
             onClose();
           }}
         >
-          Tirar da agenda
+          <Trash2 size={14} /> Tirar da agenda
         </Button>
       </div>
     </Modal>

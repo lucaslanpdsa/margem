@@ -26,7 +26,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   }
 
   return (
-    <Modal title={`Tempo em "${task.title}"`} onClose={onClose}>
+    <Modal title="Registrar tempo" description={`Para algo feito sem o timer em “${task.title}”. Conta como feito no dia escolhido.`} onClose={onClose}>
       <form
         className="flex items-end gap-2"
         onSubmit={(e) => {
@@ -34,20 +34,20 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
           save();
         }}
       >
-        <Field label="Tempo feito">
+        <Field label="Quanto tempo?">
           <input autoFocus className={inputCls} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="45, 1h30" />
         </Field>
         <Field label="Dia">
           <input type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
         </Field>
-        <Button type="submit" variant="primary" className="mb-0.5">
+        <Button type="submit" variant="primary" className="h-10!">
           Registrar
         </Button>
       </form>
-      {error && <p className="mt-2 text-sm text-warn">{error}</p>}
+      {error && <p className="mt-2 text-sm text-over">{error}</p>}
 
       <div className="mt-5">
-        <p className="mb-2 text-xs font-medium text-muted">Registros deste dia</p>
+        <p className="mb-2 text-[13px] font-medium">Registros neste dia</p>
         {list.length === 0 && <p className="text-sm text-muted">Nada registrado ainda.</p>}
         <ul className="divide-y divide-line">
           {list.map((s) => (

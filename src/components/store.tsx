@@ -7,7 +7,7 @@ import { watchBlocks, watchSessions, watchSettings, watchTasks } from "@/lib/db"
 import { auth } from "@/lib/firebase";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "@/lib/types";
 
-interface Store {
+export interface Store {
   user: User | null;
   uid: string;
   ready: boolean;
@@ -15,6 +15,8 @@ interface Store {
   blocks: Block[];
   sessions: Session[];
   settings: Settings;
+  /** As configurações já chegaram do banco. */
+  settingsReady: boolean;
   /** Dia em foco na tela. */
   date: string;
   setDate: (d: string) => void;
@@ -22,7 +24,8 @@ interface Store {
   logout: () => Promise<void>;
 }
 
-const Ctx = createContext<Store | null>(null);
+export const StoreCtx = createContext<Store | null>(null);
+const Ctx = StoreCtx;
 
 export function useStore() {
   const s = useContext(Ctx);
@@ -37,6 +40,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [blocks, setBlocks] = useState<Block[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
+  const [settingsReady, setSettingsReady] = useState(false);
   const [date, setDate] = useState(todayKey);
 
   useEffect(
@@ -59,7 +63,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!uid) return;
-    const subs = [watchTasks(uid, setTasks), watchSettings(uid, setSettings)];
+    const subs = [
+      watchTasks(uid, setTasks),
+      watchSettings(uid, (s) => {
+        setSettings(s);
+        setSettingsReady(true);
+      }),
+    ];
     return () => subs.forEach((u) => u());
   }, [uid]);
 
@@ -77,6 +87,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     blocks,
     sessions,
     settings,
+    settingsReady,
     date,
     setDate,
     login: async () => {

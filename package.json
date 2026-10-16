@@ -16,6 +16,8 @@
     "@fullcalendar/timegrid": "^6.1.22",
     "date-fns": "^4.4.0",
     "firebase": "^13.0.0",
+    "geist": "^1.8.1",
+    "lucide-react": "^1.58.0",
     "next": "16.4.2",
     "react": "19.3.0",
     "react-dom": "19.3.0"

@@ -69,6 +69,8 @@ export interface Settings {
   focusMin: number;
   breakMin: number;
   activeTimer?: ActiveTimer | null;
+  /** Já passou pela configuração inicial. */
+  onboarded?: boolean;
 }
 
 export const DEFAULT_SETTINGS: Settings = {

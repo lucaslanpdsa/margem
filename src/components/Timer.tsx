@@ -1,5 +1,6 @@
 "use client";
 
+import { Coffee, Square, Timer as TimerIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { saveSettings } from "@/lib/db";
 import { notify, recordFocus, startFocus, stopTimer } from "@/lib/pomodoro";
@@ -57,30 +58,32 @@ export function Timer() {
   const focus = t.phase === "focus";
 
   return (
-    <div className="fixed inset-x-3 bottom-3 z-40 sm:inset-x-auto sm:right-5 sm:bottom-5 sm:w-80">
-      <div className="overflow-hidden rounded-2xl border border-line bg-card shadow-lg">
-        <div className="h-1 bg-paper">
-          <div className={cx("h-full transition-all", focus ? "bg-done" : "bg-ok")} style={{ width: `${pct}%` }} />
+    <div className="fixed inset-x-3 bottom-20 z-40 lg:inset-x-auto lg:right-6 lg:bottom-6 lg:w-96">
+      <div className="overflow-hidden rounded-2xl border border-line bg-surface shadow-2xl">
+        <div className="h-1 bg-sunken">
+          <div className={cx("h-full transition-[width] duration-1000", focus ? "bg-todo" : "bg-break")} style={{ width: `${pct}%` }} />
         </div>
-        <div className="flex items-center gap-3 p-3">
-          <div className="tabular font-display text-3xl">{mmss(remaining)}</div>
+        <div className="flex items-center gap-4 p-4">
+          <div className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-full", focus ? "bg-todo/10 text-todo" : "bg-break/15 text-break")}>
+            {focus ? <TimerIcon size={20} /> : <Coffee size={20} />}
+          </div>
           <div className="min-w-0 flex-1">
-            <p className={cx("text-xs font-semibold uppercase tracking-wider", focus ? "text-done" : "text-ok")}>
-              {focus ? "Foco" : "Pausa"}
+            <p className="tabular text-2xl leading-none font-semibold">{mmss(remaining)}</p>
+            <p className="mt-1 truncate text-[13px] text-muted">
+              {focus ? `Foco em ${task?.title ?? "tarefa"}` : "Pausa. Levante, beba água."}
             </p>
-            <p className="truncate text-sm">{task?.title ?? "Tarefa"}</p>
           </div>
           {focus ? (
-            <Button variant="soft" onClick={() => stopTimer(uid, settings)} title="Parar e registrar o tempo feito">
-              Parar
+            <Button variant="secondary" onClick={() => stopTimer(uid, settings)} title="Para agora e conta o tempo já feito">
+              <Square size={12} fill="currentColor" /> Parar
             </Button>
           ) : (
-            <div className="flex flex-col gap-1">
-              <Button variant="primary" onClick={() => startFocus(uid, settings, t.taskId)}>
-                Próximo
-              </Button>
+            <div className="flex gap-1.5">
               <Button variant="ghost" onClick={() => stopTimer(uid, settings)}>
                 Encerrar
+              </Button>
+              <Button variant="primary" onClick={() => startFocus(uid, settings, t.taskId)}>
+                Próximo
               </Button>
             </div>
           )}

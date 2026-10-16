@@ -1,20 +1,23 @@
 "use client";
 
+import { CalendarPlus, ChevronDown, Inbox, Play, Plus, Repeat, Target, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, parseQuickAdd, todayKey } from "@/lib/dates";
 import { addTask, updateTask } from "@/lib/db";
 import { flexibleQueue, inbox, overdue, suggestNow, weeklyGoals, type DayMetrics } from "@/lib/metrics";
 import { startFocus } from "@/lib/pomodoro";
+import type { RepeatKind } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
 import { TaskRow } from "./TaskRow";
 import { useNow } from "./Timer";
-import { Button, Card, SectionTitle, cx, inputCls } from "./ui";
+import { Button, Panel, PanelHeader, cx, inputCls } from "./ui";
 
 export function QuickAdd({ date }: { date: string }) {
   const { uid } = useStore();
   const { editTask } = useDialogs();
   const [text, setText] = useState("");
+  const preview = parseQuickAdd(text);
 
   async function submit() {
     const { title, minutes } = parseQuickAdd(text);
@@ -26,72 +29,96 @@ export function QuickAdd({ date }: { date: string }) {
 
   return (
     <form
-      className="flex gap-2"
       onSubmit={(e) => {
         e.preventDefault();
         submit();
       }}
     >
-      <input className={inputCls} value={text} onChange={(e) => setText(e.target.value)} placeholder='Adicionar rápido: "Revisar PR 45"' />
-      <Button type="button" variant="soft" onClick={() => editTask({ date, repeat: "once" })} title="Formulário completo">
-        +
-      </Button>
+      <div className="relative">
+        <Plus size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
+        <input
+          className={cx(inputCls, "pl-9")}
+          value={text}
+          onChange={(e) => setText(e.target.value)}
+          placeholder="Adicionar tarefa, ex: Revisar PR 45min"
+          aria-label="Adicionar tarefa rápida"
+        />
+      </div>
+      <p className="mt-1.5 text-xs text-muted">
+        {text && preview.minutes !== null ? (
+          <>
+            Enter para criar <b className="font-medium text-ink">{preview.title}</b> com <b className="font-medium text-ink">{fmtMin(preview.minutes)}</b> estimados.
+          </>
+        ) : text ? (
+          "Sem tempo no final, abre o formulário completo ao apertar Enter."
+        ) : (
+          "Termine com a estimativa (30, 45min, 1h30) para criar direto."
+        )}
+      </p>
     </form>
   );
 }
 
 function NowCard({ m }: { m: DayMetrics }) {
-  const { uid, settings, blocks, tasks } = useStore();
+  const { uid, settings, blocks } = useStore();
   const now = useNow(30000);
-  const timer = settings.activeTimer;
   const s = suggestNow(new Date(now), m, blocks);
-  const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-
-  if (timer?.phase === "focus") {
-    const t = tasks.find((x) => x.id === timer.taskId);
-    return (
-      <Card className="border-done/40">
-        <SectionTitle>Agora</SectionTitle>
-        <p className="font-display text-lg">Em foco: {t?.title}</p>
-      </Card>
-    );
-  }
-
   const item = s.item;
-  if (!item) {
-    return (
-      <Card>
-        <SectionTitle>Agora</SectionTitle>
-        <p className="text-sm text-muted">
-          {m.items.length === 0 ? "Nenhuma tarefa para hoje ainda." : "Nada pendente fora da agenda. 🎉"}
-          {s.untilNextMin !== null && ` Próximo compromisso em ${fmtMin(s.untilNextMin)}.`}
-        </p>
-      </Card>
-    );
-  }
+  if (settings.activeTimer?.phase === "focus" || !item) return null;
+
+  const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const context =
+    s.kind === "block" && s.block
+      ? `Está na sua agenda até ${hhmm(s.block.end)}.`
+      : s.untilNextMin !== null
+        ? `Você tem ${fmtMin(s.untilNextMin)} até o próximo compromisso da agenda.`
+        : "Nada marcado na agenda pelo resto do dia.";
 
   return (
-    <Card>
-      <SectionTitle>{s.kind === "block" ? "Agora, pela agenda" : "Sugestão para agora"}</SectionTitle>
-      <div className="flex items-center gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="truncate font-display text-lg">{item.task.title}</p>
-          <p className="text-xs text-muted">
-            falta {fmtMin(item.remainingMin)}
-            {s.kind === "block" && s.block && ` · até ${hhmm(s.block.end)}`}
-            {s.kind === "flex" &&
-              (s.untilNextMin !== null ? ` · você tem ${fmtMin(s.untilNextMin)} até o próximo compromisso` : " · agenda livre pelo resto do dia")}
-          </p>
-        </div>
-        <Button variant="primary" onClick={() => startFocus(uid, settings, item.task.id)}>
-          ▶ Começar
-        </Button>
+    <div className="flex flex-wrap items-center gap-4 rounded-2xl bg-todo px-5 py-4 text-white">
+      <div className="min-w-0 flex-1">
+        <p className="text-[13px] text-white/75">{s.kind === "block" ? "Agora, pela sua agenda" : "Sugestão para agora"}</p>
+        <p className="truncate text-lg font-semibold">{item.task.title}</p>
+        <p className="text-[13px] text-white/75">
+          Falta {fmtMin(item.remainingMin)}. {context}
+        </p>
       </div>
-    </Card>
+      <button
+        onClick={() => startFocus(uid, settings, item.task.id)}
+        className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-todo transition-opacity hover:opacity-90"
+      >
+        <Play size={14} fill="currentColor" /> Começar pomodoro
+      </button>
+    </div>
   );
 }
 
-export function DaySidebar({ m }: { m: DayMetrics }) {
+const STARTERS: { repeat: RepeatKind; icon: typeof Repeat; title: string; text: string }[] = [
+  { repeat: "weekdays", icon: Repeat, title: "Algo que se repete", text: "Ex: estudar 1h toda segunda, quarta e sexta." },
+  { repeat: "weeklyGoal", icon: Target, title: "Uma meta da semana", text: "Ex: 5h de inglês, no dia que der." },
+  { repeat: "once", icon: CalendarPlus, title: "Algo só uma vez", text: "Ex: entregar o relatório até sexta." },
+];
+
+function Starters({ date }: { date: string }) {
+  const { editTask } = useDialogs();
+  return (
+    <div className="grid gap-2 sm:grid-cols-3">
+      {STARTERS.map((s) => (
+        <button
+          key={s.repeat}
+          onClick={() => editTask({ repeat: s.repeat, date: s.repeat === "once" ? date : undefined })}
+          className="rounded-xl border border-dashed border-line p-3 text-left transition-colors hover:border-todo hover:bg-todo/[0.03]"
+        >
+          <s.icon size={18} className="text-todo" />
+          <p className="mt-2 text-sm font-medium">{s.title}</p>
+          <p className="mt-0.5 text-xs text-muted">{s.text}</p>
+        </button>
+      ))}
+    </div>
+  );
+}
+
+export function DayLists({ m }: { m: DayMetrics }) {
   const { uid, tasks, sessions, date } = useStore();
   const [showDone, setShowDone] = useState(false);
   const isToday = date === todayKey();
@@ -103,67 +130,115 @@ export function DaySidebar({ m }: { m: DayMetrics }) {
   const goals = weeklyGoals(date, tasks, sessions);
   const box = inbox(tasks);
   const doneFor = (id: string) => sessions.filter((s) => s.taskId === id && s.date === date).reduce((a, s) => a + s.minutes, 0);
+  const firstUse = tasks.filter((t) => !t.archived).length === 0;
 
   const toDay = (id: string) => (
-    <button onClick={() => updateTask(uid, id, { date })} className="rounded-md px-2 py-1 text-xs text-todo hover:bg-card" title="Planejar para este dia">
-      {isToday ? "Hoje" : "Neste dia"}
-    </button>
+    <Button size="sm" variant="ghost" onClick={() => updateTask(uid, id, { date })} title="Planejar para este dia" className="text-todo">
+      {isToday ? "Fazer hoje" : "Neste dia"}
+    </Button>
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {isToday && <NowCard m={m} />}
 
-      <Card>
-        <SectionTitle right={<span className="text-xs text-muted">arraste para a agenda</span>}>Para fazer ({queue.length})</SectionTitle>
-        <QuickAdd date={date} />
-        <ul className="mt-2 space-y-0.5">
-          {queue.map((i) => (
-            <TaskRow key={i.task.id} task={i.task} date={date} estimateMin={i.estimateMin} doneMin={i.doneMin} dragMin={i.remainingMin} />
-          ))}
-        </ul>
-        {queue.length === 0 && <p className="mt-2 text-sm text-muted">Nada sem horário. Use a caixa de entrada ou adicione acima.</p>}
+      <Panel>
+        <PanelHeader
+          title={isToday ? "Tarefas de hoje" : "Tarefas do dia"}
+          description="Na ordem sugerida: prazo mais perto primeiro, depois prioridade. Arraste para a agenda para marcar horário."
+        />
+        <div className="space-y-3 px-5 pb-5">
+          <QuickAdd date={date} />
 
-        {scheduled.length > 0 && (
-          <>
-            <p className="mt-3 mb-1 text-xs font-medium text-muted">Na agenda</p>
-            <ul className="space-y-0.5">
-              {scheduled.map((i) => (
-                <TaskRow key={i.task.id} task={i.task} date={date} estimateMin={i.estimateMin} doneMin={i.doneMin} completed={i.completed} checkable={i.task.repeat !== "weeklyGoal"} />
-              ))}
-            </ul>
-          </>
-        )}
+          {firstUse ? (
+            <div className="pt-2">
+              <p className="mb-2 text-sm text-muted">Ou comece pelo que faz parte da sua rotina:</p>
+              <Starters date={date} />
+            </div>
+          ) : (
+            <>
+              {queue.length > 0 ? (
+                <ul className="space-y-1.5">
+                  {queue.map((i) => (
+                    <TaskRow key={i.task.id} task={i.task} date={date} estimateMin={i.estimateMin} doneMin={i.doneMin} dragMin={i.remainingMin} />
+                  ))}
+                </ul>
+              ) : (
+                <p className="rounded-xl bg-sunken px-4 py-3 text-sm text-muted">
+                  {m.items.length === 0 ? "Nenhuma tarefa neste dia ainda." : "Tudo que sobrou já está com horário na agenda."}
+                </p>
+              )}
 
-        {done.length > 0 && (
-          <button onClick={() => setShowDone((v) => !v)} className="mt-3 text-xs text-muted hover:text-ink">
-            {showDone ? "▾" : "▸"} Concluídas ({done.length})
-          </button>
-        )}
-        {showDone && (
-          <ul className="space-y-0.5">
-            {done.map((i) => (
-              <TaskRow key={i.task.id} task={i.task} date={date} estimateMin={i.estimateMin} doneMin={i.doneMin} completed checkable={i.task.repeat !== "weeklyGoal"} />
-            ))}
-          </ul>
-        )}
-      </Card>
+              {scheduled.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-[13px] font-medium text-muted">Com horário na agenda</p>
+                  <ul className="space-y-1.5">
+                    {scheduled.map((i) => (
+                      <TaskRow
+                        key={i.task.id}
+                        task={i.task}
+                        date={date}
+                        estimateMin={i.estimateMin}
+                        doneMin={i.doneMin}
+                        completed={i.completed}
+                        checkable={i.task.repeat !== "weeklyGoal"}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {done.length > 0 && (
+                <div>
+                  <button onClick={() => setShowDone((v) => !v)} className="inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-ink">
+                    <ChevronDown size={14} className={cx("transition-transform", !showDone && "-rotate-90")} />
+                    Concluídas ({done.length})
+                  </button>
+                  {showDone && (
+                    <ul className="mt-1.5 space-y-1.5">
+                      {done.map((i) => (
+                        <TaskRow
+                          key={i.task.id}
+                          task={i.task}
+                          date={date}
+                          estimateMin={i.estimateMin}
+                          doneMin={i.doneMin}
+                          completed
+                          checkable={i.task.repeat !== "weeklyGoal"}
+                        />
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      </Panel>
 
       {late.length > 0 && (
-        <Card className="border-warn/40">
-          <SectionTitle>Atrasadas ({late.length})</SectionTitle>
-          <ul className="space-y-0.5">
+        <Panel className="border-over/30">
+          <PanelHeader
+            title={`Atrasadas (${late.length})`}
+            description="Eram para dias que já passaram. Traga para hoje ou edite a data."
+            right={<TriangleAlert size={18} className="text-over" />}
+          />
+          <ul className="space-y-1.5 px-5 pb-5">
             {late.map((t) => (
               <TaskRow key={t.id} task={t} date={date} estimateMin={t.estimateMin} doneMin={doneFor(t.id)} extra={toDay(t.id)} />
             ))}
           </ul>
-        </Card>
+        </Panel>
       )}
 
       {goals.length > 0 && (
-        <Card>
-          <SectionTitle right={<span className="text-xs text-muted">arraste para reservar tempo</span>}>Metas da semana</SectionTitle>
-          <ul className="space-y-0.5">
+        <Panel>
+          <PanelHeader
+            title="Metas da semana"
+            description="Não têm dia certo. Arraste para a agenda quando quiser reservar um tempo para elas."
+            right={<Target size={18} className="text-todo" />}
+          />
+          <ul className="space-y-1.5 px-5 pb-5">
             {goals.map((g) => (
               <TaskRow
                 key={g.task.id}
@@ -177,29 +252,37 @@ export function DaySidebar({ m }: { m: DayMetrics }) {
               />
             ))}
           </ul>
-        </Card>
+        </Panel>
       )}
 
-      <Card>
-        <SectionTitle>Caixa de entrada ({box.length})</SectionTitle>
-        {box.length === 0 ? (
-          <p className="text-sm text-muted">Tarefas avulsas sem dia aparecem aqui, ordenadas por prazo e prioridade.</p>
-        ) : (
-          <ul className={cx("space-y-0.5")}>
-            {box.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                date={date}
-                estimateMin={t.estimateMin}
-                doneMin={doneFor(t.id)}
-                dragMin={Math.max(15, t.estimateMin - doneFor(t.id))}
-                extra={toDay(t.id)}
-              />
-            ))}
-          </ul>
-        )}
-      </Card>
+      {(box.length > 0 || !firstUse) && (
+        <Panel>
+          <PanelHeader
+            title={`Caixa de entrada (${box.length})`}
+            description="Tarefas sem dia definido. Traga para um dia quando tiver espaço."
+            right={<Inbox size={18} className="text-muted" />}
+          />
+          <div className="px-5 pb-5">
+            {box.length === 0 ? (
+              <p className="text-sm text-muted">Vazia. Ao criar uma tarefa avulsa sem data, ela fica aqui.</p>
+            ) : (
+              <ul className="space-y-1.5">
+                {box.map((t) => (
+                  <TaskRow
+                    key={t.id}
+                    task={t}
+                    date={date}
+                    estimateMin={t.estimateMin}
+                    doneMin={doneFor(t.id)}
+                    dragMin={Math.max(15, t.estimateMin - doneFor(t.id))}
+                    extra={toDay(t.id)}
+                  />
+                ))}
+              </ul>
+            )}
+          </div>
+        </Panel>
+      )}
     </div>
   );
 }
