@@ -1,9 +1,11 @@
 "use client";
 
-import { Check, ChevronRight, Clock, SkipForward, Target } from "lucide-react";
+import { Check, ChevronRight, Clock, Play, SkipForward, Square, Target } from "lucide-react";
 import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
 import { toggleDone } from "@/lib/db";
+import { startTimer, stopTimer } from "@/lib/pomodoro";
+import { timerDisplay, useNow } from "./Timer";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
@@ -79,7 +81,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
                 <Clock size={11} /> {slots.map((sl) => `${sl.start}–${sl.end}`).join(", ")}
               </span>
             )}
-            {running && <span className="font-medium text-todo">em foco</span>}
+            {running && <RunningClock />}
             {skipped && <span className="font-medium">pulada</span>}
             {outside && <span className="rounded bg-break/15 px-1.5 font-medium text-break">extra</span>}
             {warning && <span className="font-medium text-break">⚠ {warning}</span>}
@@ -87,6 +89,30 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
         </span>
         <ChevronRight size={16} className="shrink-0 text-muted" />
       </button>
+
+      {/* ▶ começa o timer nesta tarefa (no último modo usado); ■ para e registra. */}
+      {!completed && !skipped && (
+        <button
+          onClick={() => (running ? stopTimer(uid, settings) : startTimer(uid, settings, task.id, settings.lastTimerMode ?? "stopwatch"))}
+          className={cx(
+            "mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors",
+            running ? "bg-todo text-white hover:bg-todo/85" : "bg-todo/10 text-todo hover:bg-todo hover:text-white",
+          )}
+          aria-label={running ? "Parar e registrar" : "Começar timer nesta tarefa"}
+          title={running ? "Parar e registrar" : settings.lastTimerMode === "pomodoro" ? "Começar pomodoro" : "Começar cronômetro"}
+        >
+          {running ? <Square size={13} fill="currentColor" /> : <Play size={15} fill="currentColor" className="ml-0.5" />}
+        </button>
+      )}
     </li>
   );
+}
+
+/** Tempo do timer rodando, atualizado a cada segundo. */
+function RunningClock() {
+  const { settings } = useStore();
+  const now = useNow();
+  const t = settings.activeTimer;
+  if (!t) return null;
+  return <span className="tabular font-semibold text-todo">● {timerDisplay(t, now).text}</span>;
 }

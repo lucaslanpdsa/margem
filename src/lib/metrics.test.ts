@@ -3,6 +3,7 @@ import { parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
 import { migrateTask } from "./migrate";
+import { isLive, liveSession } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -258,4 +259,28 @@ it("meta semanal antiga vira tarefa que repete de segunda a sexta, por tempo", (
   expect(task).toMatchObject({ repeat: "weekdays", weekdays: [1, 2, 3, 4, 5], estimateMin: 60, doneBy: "time" });
   expect("weeklyGoalMin" in task).toBe(false);
   expect(migrateTask({ ...task }).changed).toBe(false);
+});
+
+describe("timer rodando conta ao vivo", () => {
+  const start = new Date(`${D}T14:00:00`);
+  const sw = { mode: "stopwatch" as const, taskId: "b", phase: "focus" as const, startedAt: start.toISOString(), durationMin: 0 };
+
+  it("vira um registro provisório com o tempo até agora", () => {
+    const live = liveSession(sw, start.getTime() + 47 * 60000)!;
+    expect(live.minutes).toBe(47);
+    expect(live.taskId).toBe("b");
+    expect(isLive(live)).toBe(true);
+  });
+
+  it("entra no feito do dia e da tarefa", () => {
+    const live = liveSession(sw, start.getTime() + 60 * 60000)!;
+    const m = dayMetrics(D, settings, tasks, blocks, [live], new Date(`${D}T15:00:00`));
+    expect(m.doneMin).toBe(60);
+    expect(m.items.find((i) => i.task.id === "b")!.doneMin).toBe(60);
+  });
+
+  it("pausa e fase esperando não contam", () => {
+    expect(liveSession({ ...sw, mode: "pomodoro", phase: "break", durationMin: 5 }, start.getTime() + 3 * 60000)).toBeNull();
+    expect(liveSession({ ...sw, waiting: true }, start.getTime() + 30 * 60000)).toBeNull();
+  });
 });

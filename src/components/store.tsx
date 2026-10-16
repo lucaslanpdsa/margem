@@ -7,6 +7,7 @@ import { addDays, differenceInCalendarDays } from "date-fns";
 import { replaceTask, watchSessions, watchSettings, watchTasks } from "@/lib/db";
 import { migrateTask } from "@/lib/migrate";
 import { taskTimeBlocks } from "@/lib/schedule";
+import { liveSession } from "@/lib/pomodoro";
 import { auth } from "@/lib/firebase";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "@/lib/types";
 
@@ -94,13 +95,30 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return taskTimeBlocks(tasks, dates);
   }, [tasks, date, fromDate]);
 
+  // Timer rodando: o tempo dele entra na conta ao vivo, atualizado a cada 30s.
+  const [tick, setTick] = useState(() => Date.now());
+  const running = !!settings.activeTimer && !settings.activeTimer.waiting && settings.activeTimer.phase === "focus";
+  useEffect(() => {
+    if (!running) return;
+    const first = setTimeout(() => setTick(Date.now()), 0);
+    const id = setInterval(() => setTick(Date.now()), 30000);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+    };
+  }, [running, settings.activeTimer?.startedAt]);
+  const allSessions = useMemo(() => {
+    const live = liveSession(settings.activeTimer, tick);
+    return live ? [...sessions, live] : sessions;
+  }, [sessions, settings.activeTimer, tick]);
+
   const value: Store = {
     user,
     uid,
     ready: authReady,
     tasks,
     blocks: allBlocks,
-    sessions,
+    sessions: allSessions,
     settings,
     settingsReady,
     date,

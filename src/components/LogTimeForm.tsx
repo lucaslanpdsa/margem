@@ -1,11 +1,13 @@
 "use client";
 
-import { Check, Pencil, SkipForward, Undo2 } from "lucide-react";
+import { Check, Pencil, Play, SkipForward, Square, Timer as TimerIcon, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { entryTimes, fmtMin, parseTimeEntry, type TimeEntry } from "@/lib/dates";
 import { addSession, setSkipped, toggleDone } from "@/lib/db";
 import { isCompletedOn, isSkippedOn, isTimeTask, slotMinutesPassed } from "@/lib/metrics";
 import { windowFor } from "@/lib/schedule";
+import { isLive, startTimer, stopTimer } from "@/lib/pomodoro";
+import { timerDisplay, useNow } from "./Timer";
 import { useDialogs } from "./dialogs";
 import { RecordTime } from "./EditableMinutes";
 import type { Session, Task } from "@/lib/types";
@@ -29,8 +31,18 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   const [other, setOther] = useState("");
   const [error, setError] = useState("");
 
-  const list = sessions.filter((s) => s.taskId === task.id && s.date === date).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-  const logged = list.reduce((a, s) => a + s.minutes, 0);
+  const mine = sessions.filter((s) => s.taskId === task.id && s.date === date);
+  // O timer rodando entra no total, mas não na lista de registros (ainda não é um registro).
+  const list = mine.filter((s) => !isLive(s)).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
+  const logged = mine.reduce((a, s) => a + s.minutes, 0);
+  const t = settings.activeTimer;
+  const running = !!t && t.taskId === task.id && t.phase === "focus" && !t.waiting;
+  const canStart = !completed && !skipped;
+
+  async function start(mode: "stopwatch" | "pomodoro") {
+    await startTimer(uid, settings, task.id, mode);
+    onClose();
+  }
   // Sem registro, tarefa com horário conta sozinha o horário que já passou.
   const auto = logged > 0 || skipped ? 0 : slotMinutesPassed(task, date, windowFor(settings, date), settings.breaks, new Date());
   const total = logged || auto;
@@ -56,7 +68,40 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         {auto > 0 && <p className="mt-2 text-xs text-muted">O horário da tarefa conta sozinho. Se registrar tempo, vale o registrado.</p>}
       </div>
 
-      <p className="mb-2 text-[13px] font-medium">Reportar tempo</p>
+      {running ? (
+        <div className="mb-5 flex items-center gap-3 rounded-xl border border-todo/40 bg-todo/[0.05] p-3">
+          <TimerIcon size={18} className="shrink-0 text-todo" />
+          <span className="min-w-0 flex-1">
+            <span className="block text-[13px] text-muted">{t?.mode === "stopwatch" ? "Cronômetro rodando" : "Pomodoro rodando"}</span>
+            <LiveClock />
+          </span>
+          <Button variant="primary" onClick={() => stopTimer(uid, settings)}>
+            <Square size={12} fill="currentColor" /> Parar
+          </Button>
+        </div>
+      ) : (
+        canStart && (
+          <>
+            <p className="mb-2 text-[13px] font-medium">Começar agora</p>
+            <div className="mb-5 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => start("stopwatch")}
+                className="flex h-14 items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-white hover:bg-brand/90"
+              >
+                <Play size={15} fill="currentColor" /> Cronômetro
+              </button>
+              <button
+                onClick={() => start("pomodoro")}
+                className="flex h-14 items-center justify-center gap-2 rounded-xl border border-todo/40 font-semibold text-todo hover:bg-todo/[0.06]"
+              >
+                <TimerIcon size={16} /> Pomodoro {settings.focusMin}min
+              </button>
+            </div>
+          </>
+        )
+      )}
+
+      <p className="mb-2 text-[13px] font-medium">Adicionar tempo já feito</p>
       <div className="grid grid-cols-4 gap-2">
         {QUICK.map((m) => (
           <button
@@ -80,7 +125,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
       >
         <input className={cx(inputCls, "h-11")} value={other} onChange={(e) => setOther(e.target.value)} placeholder="45m, 1h30 ou 14:00-15:30" aria-label="Outro valor" />
         <Button type="submit" variant="primary" className="h-11">
-          Registrar
+          Adicionar
         </Button>
       </form>
       {error && <p className="mt-2 text-sm text-over">{error}</p>}
@@ -136,4 +181,12 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
       </div>
     </Modal>
   );
+}
+
+function LiveClock() {
+  const { settings } = useStore();
+  const now = useNow();
+  const t = settings.activeTimer;
+  if (!t) return null;
+  return <span className="tabular block text-xl font-semibold">{timerDisplay(t, now).text}</span>;
 }

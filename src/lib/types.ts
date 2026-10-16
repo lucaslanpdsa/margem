@@ -96,6 +96,8 @@ export interface Settings {
   focusMin: number;
   breakMin: number;
   activeTimer?: ActiveTimer | null;
+  /** Último modo de timer usado; o ▶ da tarefa começa nele. */
+  lastTimerMode?: "pomodoro" | "stopwatch";
   /** Ao acabar o foco, a pausa começa sozinha. */
   autoStartBreaks?: boolean;
   /** Ao acabar a pausa, o próximo foco começa sozinho. */

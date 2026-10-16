@@ -5,7 +5,7 @@ import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
 import { dayItems } from "@/lib/metrics";
-import { isStopwatch, skipBreak, startTimer, startWaiting, stopTimer } from "@/lib/pomodoro";
+import { isLive, isStopwatch, skipBreak, startTimer, startWaiting, stopTimer } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
 import { RecordTime } from "./EditableMinutes";
 import { useStore } from "./store";
@@ -140,7 +140,7 @@ const kindOf = (s: Session) => (s.kind === "manual" ? "Manual" : (KIND_LABEL[s.i
 function History() {
   const { uid, sessions, tasks } = useStore();
   const today = todayKey();
-  const list = sessions.filter((s) => s.date === today).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
+  const list = sessions.filter((s) => s.date === today && !isLive(s)).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const total = list.reduce((a, s) => a + s.minutes, 0);
 
   const [open, setOpen] = useState(false);

@@ -147,10 +147,13 @@ export function DayBudget({ m }: { m: DayMetrics }) {
  * Primeiro as sem horário (as com horário já têm hora marcada), as maiores antes.
  */
 function WhatToDrop({ m, excess }: { m: DayMetrics; excess: number }) {
-  const { uid } = useStore();
+  const { uid, settings } = useStore();
   const tomorrow = shiftDay(m.date, 1);
+  const t = settings.activeTimer;
+  const runningId = t && t.phase === "focus" && !t.waiting ? t.taskId : null;
+  // Não sugere tirar o que você está fazendo agora.
   const candidates = m.items
-    .filter((i) => !i.completed && !i.skipped && !i.outside && i.remainingMin > 0)
+    .filter((i) => !i.completed && !i.skipped && !i.outside && i.remainingMin > 0 && i.task.id !== runningId)
     .sort((a, b) => Number(slotsOf(a.task).length > 0) - Number(slotsOf(b.task).length > 0) || b.remainingMin - a.remainingMin)
     .slice(0, 4);
   if (!candidates.length) return null;

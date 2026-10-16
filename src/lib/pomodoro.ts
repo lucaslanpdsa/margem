@@ -4,7 +4,7 @@ import { doc, setDoc } from "firebase/firestore";
 import { dayKey } from "./dates";
 import { saveSettings } from "./db";
 import { db } from "./firebase";
-import type { ActiveTimer, Settings } from "./types";
+import type { ActiveTimer, Session, Settings } from "./types";
 
 /**
  * O timer ativo fica salvo como "começou em X" nas configurações,
@@ -22,6 +22,29 @@ export function elapsedMin(t: ActiveTimer, now = Date.now()) {
   const m = Math.floor((now - Date.parse(t.startedAt)) / 60000);
   return isStopwatch(t) ? m : Math.min(t.durationMin, m);
 }
+
+export const LIVE_SESSION_ID = "ao-vivo";
+
+/**
+ * O timer rodando como um registro provisório, para o tempo entrar na conta do dia ao vivo.
+ * Só o foco conta (pausa e fase esperando, não). Some quando o timer para e vira um registro de verdade.
+ */
+export function liveSession(t: ActiveTimer | null | undefined, now = Date.now()): Session | null {
+  if (!t || t.waiting || t.phase !== "focus") return null;
+  const minutes = elapsedMin(t, now);
+  if (minutes < 1) return null;
+  return {
+    id: LIVE_SESSION_ID,
+    taskId: t.taskId,
+    date: dayKey(new Date(t.startedAt)),
+    minutes,
+    kind: "pomodoro",
+    startedAt: t.startedAt,
+    endedAt: new Date(now).toISOString(),
+  };
+}
+
+export const isLive = (s: Session) => s.id === LIVE_SESSION_ID;
 
 /** Grava o tempo. O id vem do início, então gravar duas vezes não duplica. */
 async function record(uid: string, t: ActiveTimer, minutes: number, endedAt: Date, prefix: string) {
@@ -54,6 +77,7 @@ export async function startTimer(uid: string, settings: Settings, taskId: string
     Notification.requestPermission().catch(() => {});
   }
   await saveSettings(uid, {
+    lastTimerMode: mode,
     activeTimer: {
       mode,
       taskId,
