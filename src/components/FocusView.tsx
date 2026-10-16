@@ -2,8 +2,8 @@
 
 import { Bell, Check, Minus, MoreHorizontal, Play, Plus, Square } from "lucide-react";
 import { useState } from "react";
-import { entryTimes, fmtMin, parseTimeEntry, todayKey } from "@/lib/dates";
-import { addSession, saveSettings, updateSession } from "@/lib/db";
+import { fmtMin, todayKey } from "@/lib/dates";
+import { saveSettings, updateSession } from "@/lib/db";
 import { dayItems, weeklyGoals } from "@/lib/metrics";
 import { isStopwatch, startTimer, stopTimer } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
@@ -138,22 +138,11 @@ function History() {
   const today = todayKey();
   const list = sessions.filter((s) => s.date === today).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
   const total = list.reduce((a, s) => a + s.minutes, 0);
-  const [taskId, setTaskId] = useState("");
-  const [amount, setAmount] = useState("");
-  const [error, setError] = useState("");
-
-  async function addManual() {
-    const entry = parseTimeEntry(amount);
-    if (!entry) return setError("Escreva a duração (30m, 2h) ou o horário (14:00-15:30).");
-    await addSession(uid, { taskId, date: today, minutes: entry.minutes, kind: "manual", ...entryTimes(entry, today) });
-    setAmount("");
-    setError("");
-  }
 
   return (
     <Panel className="flex flex-col">
-      <PanelHeader title="Hoje" description="Tudo que foi registrado hoje." right={<span className="tabular font-semibold">{fmtMin(total)}</span>} />
-      <ul className="space-y-1.5 px-4">
+      <PanelHeader title="Hoje" description="Tudo que foi registrado hoje. Para reportar sem timer, use Registrar na tarefa." right={<span className="tabular font-semibold">{fmtMin(total)}</span>} />
+      <ul className="space-y-1.5 px-4 pb-4">
         {list.length === 0 && <li className="rounded-xl bg-sunken px-4 py-3 text-sm text-muted">Nada registrado ainda hoje.</li>}
         {list.map((s) => {
           const task = tasks.find((t) => t.id === s.taskId);
@@ -184,25 +173,6 @@ function History() {
         })}
       </ul>
 
-      <form
-        className="mt-auto space-y-2 border-t border-line px-4 pt-4 pb-4 [&]:mt-4"
-        onSubmit={(e) => {
-          e.preventDefault();
-          addManual();
-        }}
-      >
-        <p className="text-[13px] font-medium">Registrar sem timer</p>
-        <div className="flex flex-wrap gap-2">
-          <div className="min-w-0 flex-[2_1_180px]">
-            <TaskSelect value={taskId} onChange={setTaskId} />
-          </div>
-          <input className={cx(inputCls, "h-11 w-24 flex-[0_0_6rem]")} value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="2h ou 14-16" aria-label="Quanto tempo" />
-          <Button type="submit" variant="secondary" className="h-11">
-            Registrar
-          </Button>
-        </div>
-        {error && <p className="text-sm text-over">{error}</p>}
-      </form>
     </Panel>
   );
 }
