@@ -124,8 +124,8 @@ function PomodoroMenu({ onClose }: { onClose: () => void }) {
         />
       </div>
       <div className="mt-5 border-t border-line pt-3">
-        <Switch label="Começar a pausa sozinho" checked={!!settings.autoStartBreaks} onChange={(v) => saveSettings(uid, { autoStartBreaks: v })} />
-        <Switch label="Começar o próximo foco sozinho" checked={!!settings.autoStartFocus} onChange={(v) => saveSettings(uid, { autoStartFocus: v })} />
+        <Switch label="Início de foco automático" checked={!!settings.autoStartFocus} onChange={(v) => saveSettings(uid, { autoStartFocus: v })} />
+        <Switch label="Pausas automáticas" checked={!!settings.autoStartBreaks} onChange={(v) => saveSettings(uid, { autoStartBreaks: v })} />
       </div>
       {perm !== "unsupported" && (
         <div className="mt-5 border-t border-line pt-4">
