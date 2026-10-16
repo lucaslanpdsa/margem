@@ -108,7 +108,6 @@ export function DayLists({ m }: { m: DayMetrics }) {
             estimateMin={i.estimateMin}
             doneMin={i.doneMin}
             checkable={!isTimeTask(i.task)}
-            dragMin={i.scheduled ? undefined : i.remainingMin}
             extra={i.outside ? <span className="rounded-md bg-break/15 px-2 py-1 text-xs font-medium text-break">extra</span> : undefined}
           />
         ))}

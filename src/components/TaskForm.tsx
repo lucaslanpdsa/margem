@@ -114,7 +114,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
         </div>
 
         <div>
-          <span className="mb-1.5 block text-[13px] font-medium">Horários na agenda (opcional)</span>
+          <span className="mb-1.5 block text-[13px] font-medium">Horários (opcional)</span>
           {slots.length > 0 && (
             <ul className="mb-2 space-y-2">
               {slots.map((sl, i) => (

@@ -1,27 +1,16 @@
 # margem.
 
-Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem, quanto já fez, quanto falta e quanto ainda sobra** — com agenda estilo Google Agenda e pomodoro contando o tempo real das tarefas.
+Responde duas perguntas: **quanto tempo eu ainda tenho hoje?** e **estou em dia ou atrasado?**
 
-## O que tem na v1
+## O que o app faz
 
-- **Tarefas** de três tipos:
-  - **Avulsa**: num dia específico, ou sem dia (vai para a *caixa de entrada*). Pode ter **prazo**.
-  - **Dias fixos**: repete nos dias da semana escolhidos.
-  - **Meta semanal**: X horas por semana, em qualquer dia (ex: 5h de inglês).
-- **Como termina**: marcando como feita (o tempo é só estimativa; terminou antes, o resto volta para o dia) ou cumprindo o tempo (ex: trabalhar 6h; conclui sozinha ao atingir a meta).
-- **Horário fixo opcional**: a tarefa já entra na agenda nesse horário (nas recorrentes, em todos os dias marcados).
-- **Prioridade** (alta, média, baixa) e **categoria**.
-- **Adição rápida**: digite `Revisar PR 45` ou `Estudar React 1h30` e a estimativa é lida do final.
-- **Agenda do dia e da semana**: arraste tarefas da lista para a agenda para criar blocos; mova e redimensione blocos.
-- **Seu horário**: de que horas a que horas você tem para tarefas em cada dia, com pausas fixas (almoço). O app acompanha o relógio e sabe quanto do dia já passou. Dá para mudar o horário de um dia específico.
-- **Extras fora do horário**: tarefa marcada na agenda fora do seu horário (ex: aula às 20h) não ocupa o tempo do dia e aparece separada.
-- **Painel do dia**: feito / falta / planejado / livre, com alerta quando o dia passa do limite.
-- **Semana**: cada dia mostra sua barra de capacidade e o tempo livre no cabeçalho.
-- **Tela Foco**: pomodoro ou cronômetro, com tarefa ou sem. No pomodoro você escolhe se conta só o foco ou foco + pausa; a configuração fica nos três pontinhos. Foco sem tarefa conta no dia e o app pergunta depois em que você trabalhou. Mostra o histórico do dia, com troca de tarefa e registro sem timer (30m, 2h).
-- **Concluir libera o tempo**: tarefa concluída zera o que faltava dela, sem perguntar quanto levou.
-- **“O que faço agora?”**: se há bloco na agenda agora, ele; senão, a primeira tarefa flexível (prazo → prioridade → menor) e quanto tempo há até o próximo compromisso.
-- **Atrasadas**: avulsas de dias passados aparecem hoje com botão para replanejar.
-- PWA: dá para instalar no celular.
+- **Seu horário**: de que horas a que horas você tem para tarefas em cada dia, com pausas fixas (almoço). O app acompanha o relógio.
+- **Tarefas** de uma vez (num dia) ou que repetem (em dias da semana), com o tempo de cada uma e horários opcionais (pode ter mais de um, ex: 08–11 e 14–18).
+- **Como termina**: marcando como feita (o tempo é estimativa; terminou antes, o resto volta para o dia) ou cumprindo o tempo (ex: trabalhar 7h).
+- **Reportar tempo**: botão Registrar em cada tarefa (15m, 30m, 1h, 2h ou outro valor), ou a aba **Foco** (pomodoro ou cronômetro).
+- **Topo do dia**: "Em dia · sobram 2h10" ou "Atrasado · 1h50 a mais do que cabe".
+- **Semana**: cada dia com a barra e quanto sobra ou passa.
+- Tarefa com horário fora do seu horário vira extra e não ocupa o tempo do dia. Tarefas de dias anteriores não concluídas aparecem para trazer para hoje.
 
 ### Como as contas funcionam
 
@@ -37,7 +26,7 @@ Concluir uma tarefa antes da estimativa libera o tempo restante dela.
 
 ## Stack
 
-Next.js (App Router) + TypeScript + Tailwind · Firebase (Auth com Google + Firestore) · FullCalendar · deploy na Vercel.
+Next.js (App Router) + TypeScript + Tailwind · Firebase (Auth com Google + Firestore) · deploy na Vercel.
 
 ## Configuração
 
@@ -74,13 +63,13 @@ src/
     App.tsx            casca: login, abas, navegação de datas
     store.tsx          auth + dados em tempo real do Firestore
     views.tsx          Dia, Semana, Tarefas, Ajustes
-    Calendar.tsx       agenda (FullCalendar) e blocos
-    DaySidebar.tsx     "agora", fila do dia, metas, caixa de entrada
-    CapacityPanel.tsx  painel e barra de capacidade
-    Timer.tsx          pomodoro flutuante
-    TaskForm.tsx / LogTimeForm.tsx
+    CapacityPanel.tsx  topo do dia (em dia / atrasado) e barra
+    DaySidebar.tsx     lista de tarefas do dia
+    FocusView.tsx      aba Foco (pomodoro / cronômetro)
+    TaskForm.tsx / LogTimeForm.tsx / ScheduleEditor.tsx
   lib/
-    metrics.ts         toda a lógica de capacidade e ordenação (pura, testada)
+    metrics.ts         conta do dia (pura, testada)
+    schedule.ts        horário, relógio e horários das tarefas
     db.ts              leitura/escrita no Firestore
     pomodoro.ts        ciclo do timer
 ```
@@ -93,10 +82,3 @@ users/{uid}/blocks/{id}      blocos na agenda
 users/{uid}/sessions/{id}    tempo trabalhado (pomodoro e manual)
 users/{uid}/meta/settings    horário, pausas, pomodoro e timer ativo
 ```
-
-## Próximos passos (v2)
-
-- Sugestão “o que faço agora” mais inteligente (cabe na janela livre, energia, contexto).
-- Estimado × real por categoria, para calibrar estimativas.
-- Revisão semanal.
-- Importar eventos do Google Agenda para descontar da capacidade.

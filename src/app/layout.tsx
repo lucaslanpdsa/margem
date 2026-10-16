@@ -4,7 +4,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Margem",
-  description: "Gerenciador de rotina flexível: capacidade do dia, agenda e pomodoro.",
+  description: "Quanto tempo você ainda tem no dia e se está em dia ou atrasado.",
   icons: { icon: "/icon.svg", apple: "/icon.svg" },
   appleWebApp: { capable: true, title: "Margem", statusBarStyle: "default" },
 };

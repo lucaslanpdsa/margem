@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Clock, GripVertical, Target } from "lucide-react";
+import { Check, Clock, Target } from "lucide-react";
 import type { ReactNode } from "react";
 import { fmtMin } from "@/lib/dates";
 import { isTimeTask } from "@/lib/metrics";
@@ -18,34 +18,23 @@ interface Props {
   estimateMin: number;
   doneMin: number;
   completed?: boolean;
-  /** Se definido, a linha pode ser arrastada para a agenda com essa duração. */
-  dragMin?: number;
   extra?: ReactNode;
   checkable?: boolean;
 }
 
-export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, extra, checkable = true }: Props) {
+export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, checkable = true }: Props) {
   const { uid, settings } = useStore();
   const { editTask, logTime } = useDialogs();
   const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus";
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
-  const draggable = dragMin !== undefined;
-  const dragDuration = Math.min(240, Math.max(15, Math.round((dragMin ?? estimateMin) / 15) * 15 || 30));
 
   return (
     <li
       className={cx(
-        "group relative flex items-center gap-2 rounded-xl border bg-surface py-2.5 pr-2 pl-1.5 transition-colors",
+        "group relative flex items-center gap-3 rounded-xl border bg-surface py-2.5 pr-2 pl-3 transition-colors",
         running ? "border-todo/50 bg-todo/[0.04]" : "border-line hover:border-muted/40",
-        draggable && "fc-drag",
       )}
-      data-task-id={task.id}
-      data-title={task.title}
-      data-duration={dragDuration}
     >
-      <span className={cx("grid w-4 place-items-center text-muted/50", draggable ? "cursor-grab" : "invisible")} title="Arraste para a agenda">
-        <GripVertical size={14} />
-      </span>
 
       {checkable ? (
         <button

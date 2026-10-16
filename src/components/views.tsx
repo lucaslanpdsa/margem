@@ -1,14 +1,12 @@
 "use client";
 
-import { Draggable } from "@fullcalendar/interaction";
 import { Archive, ArchiveRestore, CalendarPlus, Plus, Repeat, Target } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, todayKey, weekDays } from "@/lib/dates";
 import { saveSettings, updateTask } from "@/lib/db";
 import { dayMetrics } from "@/lib/metrics";
 import { slotsOf } from "@/lib/schedule";
 import type { RepeatKind, Task } from "@/lib/types";
-import { Calendar } from "./Calendar";
 import { CapacityBar, DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
 import { useDialogs } from "./dialogs";
@@ -23,35 +21,10 @@ export function DayView() {
   const { date, settings, tasks, blocks, sessions } = useStore();
   const now = new Date(useNow(60000));
   const m = dayMetrics(date, settings, tasks, blocks, sessions, now);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  // Itens com a classe .fc-drag podem ser arrastados para a agenda.
-  useEffect(() => {
-    if (!listRef.current) return;
-    const d = new Draggable(listRef.current, {
-      itemSelector: ".fc-drag",
-      minDistance: 8,
-      eventData: (el) => ({
-        title: el.dataset.title,
-        duration: { minutes: Number(el.dataset.duration) || 30 },
-        extendedProps: { taskId: el.dataset.taskId },
-        create: true,
-      }),
-    });
-    return () => d.destroy();
-  }, []);
-
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4">
       <DayBudget m={m} />
-      <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-        <div ref={listRef} className="min-w-0">
-          <DayLists m={m} />
-        </div>
-        <div className="min-w-0 xl:sticky xl:top-4">
-          <Calendar view="timeGridDay" />
-        </div>
-      </div>
+      <DayLists m={m} />
     </div>
   );
 }
@@ -60,51 +33,49 @@ export function DayView() {
 
 export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
   const { date, settings, tasks, blocks, sessions } = useStore();
-  const days = weekDays(date);
   const now = new Date(useNow(60000));
-  const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now));
-  const sum = (k: "capacityMin" | "doneMin" | "elapsedMin" | "idleMin" | "leftMin" | "remainingMin" | "freeMin" | "outsideMin") =>
-    ms.reduce((a, m) => a + m[k], 0);
-  // Dias que já passaram não têm mais "por fazer": o que ficou para trás não conta como pendente.
   const today = todayKey();
-  const ahead = ms.filter((m) => m.date >= today);
-  const remaining = ahead.reduce((a, m) => a + m.remainingMin, 0);
+  const ms = weekDays(date).map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now));
+  // Dias que já passaram não entram na conta do que falta.
+  const ahead = ms.filter((m) => m.date >= today && m.window);
   const free = ahead.reduce((a, m) => a + m.freeMin, 0);
-  const done = sum("doneMin");
-  const left = sum("leftMin");
-  const overDays = ahead.filter((m) => m.freeMin < 0).length;
-  const weekMetrics = {
-    ...ms[0],
-    capacityMin: sum("capacityMin"),
-    elapsedMin: sum("elapsedMin"),
-    doneMin: done,
-    idleMin: sum("idleMin"),
-    remainingMin: remaining,
-    freeMin: free,
-    items: [],
-  };
+  const lateDays = ahead.filter((m) => m.freeMin < 0).length;
 
   return (
-    <div className="space-y-4">
+    <div className="mx-auto max-w-3xl space-y-4">
       <Panel className="p-5">
-        <div className="flex flex-wrap items-end justify-between gap-4">
-          <div>
-            <p className={cx("tabular text-[28px] leading-none font-semibold tracking-tight", free < 0 && "text-over")}>
-              {free < 0 ? `${fmtMin(-free)} além do limite` : `${fmtMin(free)} livres na semana`}
-            </p>
-            <p className="mt-2 text-sm text-muted">
-              Restam {fmtMin(left)} do seu horário nesta semana. {fmtMin(done)} feitos até agora e {fmtMin(remaining)} de tarefas por fazer.
-              {overDays > 0 && ` ${overDays === 1 ? "Um dia passou" : `${overDays} dias passaram`} do limite.`}
-            </p>
-          </div>
-          <p className="text-[13px] text-muted">Clique num dia para abrir.</p>
-        </div>
-        <div className="mt-4">
-          <CapacityBar m={weekMetrics} />
-        </div>
+        <p className={cx("text-sm font-semibold", lateDays ? "text-over" : "text-done")}>{lateDays ? "Atrasado" : "Em dia"}</p>
+        <p className={cx("tabular mt-1 text-[28px] leading-none font-semibold tracking-tight", lateDays > 0 && "text-over")}>
+          {lateDays ? `${lateDays === 1 ? "1 dia" : `${lateDays} dias`} com mais do que cabe` : `Sobram ${fmtMin(Math.max(0, free))} na semana`}
+        </p>
+        <p className="mt-2 text-sm text-muted">Contando de hoje até domingo. Toque num dia para abrir.</p>
       </Panel>
 
-      <Calendar view="timeGridWeek" onPickDay={onPickDay} />
+      <Panel className="divide-y divide-line">
+        {ms.map((m) => {
+          const past = m.date < today;
+          const late = !past && m.freeMin < 0;
+          const label = !m.window
+            ? "Sem horário"
+            : past || m.leftMin === 0
+              ? `${fmtMin(m.doneMin)} feitos`
+              : late
+                ? `${fmtMin(-m.freeMin)} a mais do que cabe`
+                : `Sobram ${fmtMin(m.freeMin)}`;
+          return (
+            <button key={m.date} onClick={() => onPickDay(m.date)} className={cx("flex w-full items-center gap-4 px-5 py-3.5 text-left hover:bg-sunken/60", past && "opacity-60")}>
+              <span className="w-24 shrink-0">
+                <span className={cx("block text-sm font-semibold capitalize", m.date === today && "text-todo")}>
+                  {m.date === today ? "Hoje" : fromKey(m.date).toLocaleDateString("pt-BR", { weekday: "long" })}
+                </span>
+                <span className="block text-xs text-muted">{fromKey(m.date).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}</span>
+              </span>
+              <span className="min-w-0 flex-1">{m.window ? <CapacityBar m={m} thin /> : <span className="block h-1.5 rounded-full bg-sunken" />}</span>
+              <span className={cx("tabular w-40 shrink-0 text-right text-[13px] font-medium", late ? "text-over" : "text-muted")}>{label}</span>
+            </button>
+          );
+        })}
+      </Panel>
     </div>
   );
 }
@@ -211,7 +182,7 @@ export function SettingsView() {
       <Panel>
         <PanelHeader
           title="Seu horário"
-          description="De que horas a que horas você tem para tarefas. Para mudar só um dia, use “Mudar horário” na tela do dia. Tarefas marcadas na agenda fora desse horário contam como extra."
+          description="De que horas a que horas você tem para tarefas. Para mudar só um dia, use “Mudar hoje” na tela do dia. Tarefas com horário fora dele contam como extra."
         />
         <div className="px-5 pb-5">
           <ScheduleEditor value={schedule} onChange={setSchedule} />

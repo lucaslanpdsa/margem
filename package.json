@@ -10,10 +10,6 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@fullcalendar/core": "^6.1.22",
-    "@fullcalendar/interaction": "^6.1.22",
-    "@fullcalendar/react": "^6.1.22",
-    "@fullcalendar/timegrid": "^6.1.22",
     "date-fns": "^4.4.0",
     "firebase": "^13.0.0",
     "geist": "^1.8.1",
