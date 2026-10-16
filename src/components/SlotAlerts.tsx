@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { todayKey } from "@/lib/dates";
 import { notify } from "@/lib/pomodoro";
-import { slotEvents } from "@/lib/schedule";
+import { slotEventText, slotEvents } from "@/lib/schedule";
 import { useStore } from "./store";
 import { useToast } from "./toast";
 
@@ -46,10 +46,9 @@ export function SlotAlerts() {
       for (const e of slotEvents(tasks, today)) {
         if (nowMin < e.atMin || nowMin > e.atMin + GRACE_MIN || sent.current!.has(e.key)) continue;
         sent.current!.add(e.key);
-        const when = `${e.slot.start}–${e.slot.end}`;
-        const title = e.kind === "start" ? `${e.task.title} começa agora` : `${e.task.title} terminou`;
-        notify(title, when);
-        toast(`${title} (${when})`, "info");
+        const text = slotEventText(e);
+        notify(text, "Margem");
+        toast(text, "info");
       }
       saveSent(sent.current!, today);
     };

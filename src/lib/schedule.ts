@@ -139,6 +139,11 @@ export interface SlotEvent {
   kind: "start" | "end";
   /** Minuto do dia em que acontece. */
   atMin: number;
+  /** Primeiro horário da tarefa no dia (início = começa) e último (fim = terminou por hoje). */
+  first: boolean;
+  last: boolean;
+  /** Próximo horário da tarefa no dia, se houver (para "volta às 14:00"). */
+  next?: TimeSlot;
 }
 
 /** Inícios e fins dos horários das tarefas num dia (as pausadas e as puladas ficam de fora). */
@@ -152,10 +157,22 @@ export function slotEvents(tasks: Task[], date: string): SlotEvent[] {
         ? (t.date ?? "") === date && !t.completedAt
         : !!t.weekdays?.includes(dow) && t.createdAt.slice(0, 10) <= date && !t.skipped?.[date];
     if (!happens) continue;
-    slotsOf(t).forEach((slot, i) => {
-      out.push({ key: `${t.id}|${date}|${i}|start`, task: t, slot, kind: "start", atMin: toMin(slot.start) });
-      out.push({ key: `${t.id}|${date}|${i}|end`, task: t, slot, kind: "end", atMin: toMin(slot.end) });
+    const slots = [...slotsOf(t)].sort((a, b) => toMin(a.start) - toMin(b.start));
+    slots.forEach((slot, i) => {
+      const base = { task: t, slot, first: i === 0, last: i === slots.length - 1, next: slots[i + 1] };
+      out.push({ ...base, key: `${t.id}|${date}|${i}|start`, kind: "start", atMin: toMin(slot.start) });
+      out.push({ ...base, key: `${t.id}|${date}|${i}|end`, kind: "end", atMin: toMin(slot.end) });
     });
   }
   return out.sort((a, b) => a.atMin - b.atMin);
+}
+
+/** Texto do aviso: começa, pausa (com outro horário depois), recomeça ou terminou por hoje. */
+export function slotEventText(e: SlotEvent): string {
+  const name = e.task.title;
+  const when = `${e.slot.start}–${e.slot.end}`;
+  // Nome sempre na frente, para servir a qualquer tarefa ("Academia", "Trabalho"...).
+  if (e.kind === "start") return e.first ? `${name} começa agora (${when})` : `${name} recomeça agora (${when})`;
+  if (!e.last && e.next) return `${name}: pausa até as ${e.next.start}`;
+  return e.first ? `${name} terminou (${when})` : `${name} terminou por hoje`;
 }

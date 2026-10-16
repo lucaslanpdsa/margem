@@ -1,4 +1,4 @@
-import { findConflicts, slotEvents, taskTimeBlocks } from "./schedule";
+import { findConflicts, slotEventText, slotEvents, taskTimeBlocks } from "./schedule";
 import { parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
@@ -301,4 +301,25 @@ describe("avisos de início e fim do horário", () => {
     expect(slotEvents([{ ...job, archived: true }], D)).toHaveLength(0);
     expect(slotEvents([job], "2026-10-15")).toHaveLength(0);
   });
+});
+
+it("com dois horários, o fim do primeiro é pausa e o último é fim do dia", () => {
+  const job: Task = {
+    id: "j2",
+    title: "Trabalho",
+    repeat: "weekdays",
+    weekdays: [5],
+    estimateMin: 420,
+    slots: [
+      { start: "14:00", end: "18:00" },
+      { start: "08:00", end: "11:00" },
+    ],
+    createdAt: "2026-10-01T10:00:00.000Z",
+  };
+  expect(slotEvents([job], D).map(slotEventText)).toEqual([
+    "Trabalho começa agora (08:00–11:00)",
+    "Trabalho: pausa até as 14:00",
+    "Trabalho recomeça agora (14:00–18:00)",
+    "Trabalho terminou por hoje",
+  ]);
 });
