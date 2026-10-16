@@ -110,8 +110,9 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
   );
 }
 
-/** Tarefas de um dia na semana: só leitura (nome, horário, tempo, feito). */
+/** Tarefas de um dia na agenda: toque numa para editar. */
 function WeekDayTasks({ m, onOpenDay }: { m: DayMetrics; onOpenDay: () => void }) {
+  const { editTask } = useDialogs();
   const items = [...m.items].sort((a, b) => (slotsOf(a.task)[0]?.start ?? "99").localeCompare(slotsOf(b.task)[0]?.start ?? "99"));
   return (
     <div className="bg-sunken/40 px-5 pt-1 pb-3">
@@ -122,7 +123,8 @@ function WeekDayTasks({ m, onOpenDay }: { m: DayMetrics; onOpenDay: () => void }
           {items.map((i) => {
             const slots = slotsOf(i.task);
             return (
-              <li key={i.task.id} className="flex items-center gap-3 py-2 text-sm">
+              <li key={i.task.id}>
+                <button onClick={() => editTask(i.task)} className="flex w-full items-center gap-3 py-2 text-left text-sm hover:text-todo" title="Editar tarefa">
                 <span className={cx("grid h-4 w-4 shrink-0 place-items-center rounded-full border", i.completed ? "border-done bg-done text-white" : "border-line")}>
                   {i.completed && <Check size={10} strokeWidth={3.5} />}
                 </span>
@@ -133,14 +135,20 @@ function WeekDayTasks({ m, onOpenDay }: { m: DayMetrics; onOpenDay: () => void }
                 <span className="tabular w-20 shrink-0 text-right text-xs text-muted">
                   {i.doneMin > 0 ? `${fmtMin(i.doneMin)} de ${fmtMin(i.estimateMin)}` : fmtMin(i.estimateMin)}
                 </span>
+                </button>
               </li>
             );
           })}
         </ul>
       )}
-      <button onClick={onOpenDay} className="mt-1 text-[13px] font-medium text-brand hover:underline">
-        Abrir o dia
-      </button>
+      <div className="mt-1 flex gap-4">
+        <button onClick={() => editTask({ repeat: "once", date: m.date })} className="inline-flex items-center gap-1 text-[13px] font-medium text-brand hover:underline">
+          <Plus size={13} /> Tarefa neste dia
+        </button>
+        <button onClick={onOpenDay} className="text-[13px] font-medium text-muted hover:text-ink hover:underline">
+          Abrir o dia
+        </button>
+      </div>
     </div>
   );
 }
@@ -182,8 +190,7 @@ export function TasksView() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">Todas as suas tarefas, por tipo.</p>
+      <div className="flex flex-wrap items-center justify-end gap-3 empty:hidden">
         {hasPaused && (
           <Segmented
             value={showing}

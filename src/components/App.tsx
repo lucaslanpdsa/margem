@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
@@ -9,7 +9,7 @@ import { AssignDialog, FocusView } from "./FocusView";
 import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
-import { Button, IconButton, cx } from "./ui";
+import { Button, IconButton, Segmented, cx } from "./ui";
 import { DayView, SettingsView, TasksView, WeekView } from "./views";
 
 type Tab = "dia" | "semana" | "foco" | "tarefas" | "ajustes";
@@ -35,13 +35,14 @@ function useTab(): [Tab, (t: Tab) => void] {
   };
   return [tab, setTab];
 }
+// "Tarefas" é uma aba só, com duas vistas: agenda (semana, id "semana") e lista (id "tarefas").
 const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: "dia", label: "Dia", icon: Sun },
-  { id: "semana", label: "Semana", icon: CalendarDays },
-  { id: "foco", label: "Foco", icon: TimerIcon },
   { id: "tarefas", label: "Tarefas", icon: ListChecks },
+  { id: "foco", label: "Foco", icon: TimerIcon },
   { id: "ajustes", label: "Ajustes", icon: Settings },
 ];
+const isTasksTab = (t: Tab) => t === "semana" || t === "tarefas";
 
 export default function App() {
   if (!firebaseConfigured) return <SetupNeeded />;
@@ -69,6 +70,27 @@ export function Shell() {
   const { editTask } = useDialogs();
   const [tab, setTab] = useTab();
   const [help, setHelp] = useState(false);
+  // Última vista usada em Tarefas (agenda ou lista), lembrada neste navegador.
+  const [tasksView, setTasksView] = useState<"semana" | "tarefas">(() => {
+    try {
+      return localStorage.getItem("margem.tarefas") === "lista" ? "tarefas" : "semana";
+    } catch {
+      return "semana";
+    }
+  });
+  const go = (t: Tab) => {
+    if (isTasksTab(t)) {
+      const v = t === "tarefas" && !isTasksTab(tab) ? tasksView : (t as "semana" | "tarefas");
+      setTasksView(v);
+      try {
+        localStorage.setItem("margem.tarefas", v === "tarefas" ? "lista" : "agenda");
+      } catch {
+        /* sem armazenamento: só não lembra */
+      }
+      setTab(v);
+    } else setTab(t);
+  };
+  const isActive = (id: Tab) => (id === "tarefas" ? isTasksTab(tab) : tab === id);
   // Barra lateral recolhida (só ícones), lembrada neste navegador.
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -118,7 +140,7 @@ export function Shell() {
   const fmt = (k: string, o: Intl.DateTimeFormatOptions) => fromKey(k).toLocaleDateString("pt-BR", o);
   const titles: Record<Tab, string> = {
     dia: isToday ? "Hoje" : fmt(date, { weekday: "long" }),
-    semana: days.includes(todayKey()) ? "Esta semana" : "Semana",
+    semana: "Tarefas",
     foco: "Foco",
     tarefas: "Tarefas",
     ajustes: "Ajustes",
@@ -127,11 +149,11 @@ export function Shell() {
     tab === "dia"
       ? fmt(date, { weekday: isToday ? "long" : undefined, day: "numeric", month: "long" })
       : tab === "semana"
-        ? `${fmt(days[0], { day: "numeric", month: "short" })} a ${fmt(days[6], { day: "numeric", month: "short" })}`
+        ? `${days.includes(todayKey()) ? "Esta semana, " : ""}${fmt(days[0], { day: "numeric", month: "short" })} a ${fmt(days[6], { day: "numeric", month: "short" })}`
         : tab === "foco"
           ? "Pomodoro ou cronômetro, com ou sem tarefa"
           : tab === "tarefas"
-            ? "Tudo o que você cadastrou"
+            ? "Todas, por tipo"
             : "Seu horário";
   const step = tab === "semana" ? 7 : 1;
   const showNav = tab === "dia" || tab === "semana";
@@ -172,13 +194,13 @@ export function Shell() {
           {TABS.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTab(t.id)}
+              onClick={() => go(t.id)}
               title={collapsed ? t.label : undefined}
               aria-label={t.label}
               className={cx(
                 "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
                 collapsed ? "h-10 w-10 justify-center" : "w-full px-3 py-2",
-                tab === t.id ? "bg-todo/10 text-todo" : "text-muted hover:bg-sunken hover:text-ink",
+                isActive(t.id) ? "bg-todo/10 text-todo" : "text-muted hover:bg-sunken hover:text-ink",
               )}
             >
               <t.icon size={18} /> {!collapsed && t.label}
@@ -234,9 +256,7 @@ export function Shell() {
               <IconButton label="Como funciona" onClick={() => setHelp(true)}>
                 <CircleHelp size={18} />
               </IconButton>
-              <IconButton label="Ajustes" onClick={() => setTab("ajustes")} className={tab === "ajustes" ? "text-todo" : ""}>
-                <Settings size={18} />
-              </IconButton>
+
             </div>
           </div>
           <header className={cx("mb-5 flex flex-wrap items-center gap-x-4 gap-y-3", tab === "foco" && "sr-only")}>
@@ -244,6 +264,16 @@ export function Shell() {
               <h1 className="text-2xl font-semibold tracking-tight first-letter:uppercase">{titles[tab]}</h1>
               <p className="text-sm text-muted first-letter:uppercase">{subtitle}</p>
             </div>
+            {isTasksTab(tab) && (
+              <Segmented
+                value={tab as "semana" | "tarefas"}
+                onChange={(v) => go(v)}
+                options={[
+                  { value: "semana", label: "Agenda" },
+                  { value: "tarefas", label: "Lista" },
+                ]}
+              />
+            )}
             {showNav && (
               <div className="flex items-center gap-1.5">
                 {backToNow && (
@@ -283,7 +313,7 @@ export function Shell() {
       {/* Navegação inferior (celular) */}
       <nav className="fixed inset-x-0 bottom-0 z-30 flex border-t border-line bg-surface/95 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] backdrop-blur lg:hidden">
         {TABS.slice(0, 2).map((t) => (
-          <MobileTab key={t.id} active={tab === t.id} onClick={() => setTab(t.id)} icon={t.icon} label={t.label} />
+          <MobileTab key={t.id} active={isActive(t.id)} onClick={() => go(t.id)} icon={t.icon} label={t.label} />
         ))}
         <button
           onClick={() => editTask({ repeat: "once", date })}
@@ -293,7 +323,7 @@ export function Shell() {
           <Plus size={22} />
         </button>
         {TABS.slice(2, 4).map((t) => (
-          <MobileTab key={t.id} active={tab === t.id} onClick={() => setTab(t.id)} icon={t.icon} label={t.label} />
+          <MobileTab key={t.id} active={isActive(t.id)} onClick={() => go(t.id)} icon={t.icon} label={t.label} />
         ))}
       </nav>
 
