@@ -159,7 +159,10 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           <div className="space-y-5 rounded-xl border border-line p-4">
           <div>
             <span className="block text-[13px] font-medium">Horário</span>
-            <span className="mb-1.5 block text-xs text-muted">Com horário, o tempo conta sozinho enquanto o horário passa.</span>
+            <span className="mb-1.5 block text-xs text-muted">
+              Com horário, o tempo conta sozinho enquanto o horário passa, e o app avisa no início e no fim (com o app aberto).
+            </span>
+            {slots.length > 0 && <NotifyPermission />}
             {slots.length > 0 && (
               <ul className="mb-2 space-y-2">
                 {slots.map((sl, i) => (
@@ -242,5 +245,16 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
         </div>
       </form>
     </Modal>
+  );
+}
+
+/** Pede permissão de notificação, se ainda não foi dada, para os avisos de início e fim do horário. */
+function NotifyPermission() {
+  const [perm, setPerm] = useState(() => (typeof Notification !== "undefined" ? Notification.permission : "unsupported"));
+  if (perm !== "default") return null;
+  return (
+    <button type="button" onClick={() => Notification.requestPermission().then(setPerm)} className="mb-2 text-xs font-medium text-todo hover:underline">
+      Permitir notificações para os avisos
+    </button>
   );
 }

@@ -1,4 +1,4 @@
-import { findConflicts, taskTimeBlocks } from "./schedule";
+import { findConflicts, slotEvents, taskTimeBlocks } from "./schedule";
 import { parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
@@ -282,5 +282,23 @@ describe("timer rodando conta ao vivo", () => {
   it("pausa e fase esperando não contam", () => {
     expect(liveSession({ ...sw, mode: "pomodoro", phase: "break", durationMin: 5 }, start.getTime() + 3 * 60000)).toBeNull();
     expect(liveSession({ ...sw, waiting: true }, start.getTime() + 30 * 60000)).toBeNull();
+  });
+});
+
+describe("avisos de início e fim do horário", () => {
+  const job: Task = { id: "j", title: "Trabalho", repeat: "weekdays", weekdays: [5], estimateMin: 180, slots: [{ start: "08:00", end: "11:00" }], createdAt: "2026-10-01T10:00:00.000Z" };
+
+  it("um aviso no início e outro no fim de cada horário", () => {
+    const ev = slotEvents([job], D);
+    expect(ev.map((e) => [e.kind, e.atMin])).toEqual([
+      ["start", 480],
+      ["end", 660],
+    ]);
+  });
+
+  it("pulada, pausada ou de outro dia não avisa", () => {
+    expect(slotEvents([{ ...job, skipped: { [D]: true } }], D)).toHaveLength(0);
+    expect(slotEvents([{ ...job, archived: true }], D)).toHaveLength(0);
+    expect(slotEvents([job], "2026-10-15")).toHaveLength(0);
   });
 });

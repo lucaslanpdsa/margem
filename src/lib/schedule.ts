@@ -130,3 +130,32 @@ export function findConflicts(blocks: Block[]): Conflict[] {
   }
   return out;
 }
+
+export interface SlotEvent {
+  /** Identifica o aviso (tarefa, dia, horário e início/fim), para não repetir. */
+  key: string;
+  task: Task;
+  slot: TimeSlot;
+  kind: "start" | "end";
+  /** Minuto do dia em que acontece. */
+  atMin: number;
+}
+
+/** Inícios e fins dos horários das tarefas num dia (as pausadas e as puladas ficam de fora). */
+export function slotEvents(tasks: Task[], date: string): SlotEvent[] {
+  const dow = weekdayOf(date);
+  const out: SlotEvent[] = [];
+  for (const t of tasks) {
+    if (t.archived) continue;
+    const happens =
+      t.repeat === "once"
+        ? (t.date ?? "") === date && !t.completedAt
+        : !!t.weekdays?.includes(dow) && t.createdAt.slice(0, 10) <= date && !t.skipped?.[date];
+    if (!happens) continue;
+    slotsOf(t).forEach((slot, i) => {
+      out.push({ key: `${t.id}|${date}|${i}|start`, task: t, slot, kind: "start", atMin: toMin(slot.start) });
+      out.push({ key: `${t.id}|${date}|${i}|end`, task: t, slot, kind: "end", atMin: toMin(slot.end) });
+    });
+  }
+  return out.sort((a, b) => a.atMin - b.atMin);
+}

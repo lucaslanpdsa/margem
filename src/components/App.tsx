@@ -10,6 +10,7 @@ import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
 import { ToastProvider } from "./toast";
+import { SlotAlerts } from "./SlotAlerts";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
 import { DayView } from "./views";
@@ -281,6 +282,7 @@ export function Shell() {
       </nav>
 
       <Timer hidden={tab === "foco"} onOpen={() => setTab("foco")} />
+      <SlotAlerts />
       <AssignDialog />
       {settingsReady && !settings.scheduleSet && <Onboarding />}
       {help && <HelpDialog onClose={() => setHelp(false)} />}
