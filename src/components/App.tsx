@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
+import { ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Sun, Timer as TimerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fromKey, shiftDay, todayKey } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
@@ -11,10 +11,10 @@ import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
-import { DayView, SettingsView } from "./views";
+import { DayView } from "./views";
 
-type Tab = "dia" | "foco" | "tarefas" | "ajustes";
-const TAB_IDS: Tab[] = ["dia", "foco", "tarefas", "ajustes"];
+type Tab = "dia" | "foco" | "tarefas";
+const TAB_IDS: Tab[] = ["dia", "foco", "tarefas"];
 
 /** Aba atual guardada no endereço (#tarefas), para sobreviver ao recarregar e o "voltar" do celular funcionar. */
 function useTab(): [Tab, (t: Tab) => void] {
@@ -22,8 +22,8 @@ function useTab(): [Tab, (t: Tab) => void] {
   useEffect(() => {
     const read = () => {
       const raw = window.location.hash.slice(1);
-      // "#semana" era a antiga aba da semana, que virou parte de Tarefas.
-      const h = (raw === "semana" ? "tarefas" : raw) as Tab;
+      // "#semana" e "#ajustes" eram abas antigas, que viraram parte de Tarefas.
+      const h = (raw === "semana" || raw === "ajustes" ? "tarefas" : raw) as Tab;
       setTabState(TAB_IDS.includes(h) ? h : "dia");
     };
     read();
@@ -42,7 +42,6 @@ const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: "dia", label: "Dia", icon: Sun },
   { id: "tarefas", label: "Tarefas", icon: ListChecks },
   { id: "foco", label: "Foco", icon: TimerIcon },
-  { id: "ajustes", label: "Ajustes", icon: Settings },
 ];
 
 
@@ -124,16 +123,13 @@ export function Shell() {
     dia: isToday ? "Hoje" : fmt(date, { weekday: "long" }),
     foco: "Foco",
     tarefas: "Tarefas",
-    ajustes: "Ajustes",
   };
   const subtitle =
     tab === "dia"
       ? fmt(date, { weekday: isToday ? "long" : undefined, day: "numeric", month: "long" })
       : tab === "foco"
-          ? "Pomodoro ou cronômetro, com ou sem tarefa"
-          : tab === "tarefas"
-            ? "O que você faz e quando"
-            : "Seu horário";
+        ? "Pomodoro ou cronômetro, com ou sem tarefa"
+        : "Seu horário e o que você faz em cada dia";
   const showNav = tab === "dia";
 
   return (
@@ -264,7 +260,6 @@ export function Shell() {
             {tab === "dia" && <DayView />}
             {tab === "foco" && <FocusView />}
             {tab === "tarefas" && <TasksPage />}
-            {tab === "ajustes" && <SettingsView key={JSON.stringify([settings.windows, settings.breaks])} />}
           </main>
         </div>
       </div>
@@ -276,12 +271,15 @@ export function Shell() {
         ))}
         <button
           onClick={() => editTask({ repeat: "once", date })}
-          className="mx-1 -mt-5 grid h-12 w-12 shrink-0 place-items-center self-start rounded-full bg-brand text-white shadow-lg"
+          className="flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium text-todo"
           aria-label="Nova tarefa"
         >
-          <Plus size={22} />
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-white">
+            <Plus size={16} strokeWidth={2.5} />
+          </span>
+          Nova
         </button>
-        {TABS.slice(2, 4).map((t) => (
+        {TABS.slice(2).map((t) => (
           <MobileTab key={t.id} active={isActive(t.id)} onClick={() => go(t.id)} icon={t.icon} label={t.label} />
         ))}
       </nav>

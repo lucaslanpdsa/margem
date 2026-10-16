@@ -1,14 +1,15 @@
 "use client";
 
-import { ChevronDown, Pause, Play, Plus, Search, Target } from "lucide-react";
+import { ChevronDown, Clock, Pause, Play, Plus, Search, Target } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
-import { addTask, updateTask } from "@/lib/db";
+import { addTask, saveSettings, updateTask } from "@/lib/db";
 import { allSlotsOutside, slotsOf, toMin, weekdayCapacity } from "@/lib/schedule";
-import type { Task } from "@/lib/types";
+import type { DayWindow, Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
-import { cx, inputCls } from "./ui";
+import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
+import { Button, Modal, cx, inputCls } from "./ui";
 
 /**
  * Tela de organização das tarefas.
@@ -39,7 +40,7 @@ const byTimeThenTitle = (a: Task, b: Task) => {
 };
 
 export function TasksPage() {
-  const { tasks } = useStore();
+  const { tasks, user, logout } = useStore();
   const [query, setQuery] = useState("");
   const q = norm(query.trim());
   const match = (t: Task) => !q || norm(t.title).includes(q);
@@ -52,6 +53,8 @@ export function TasksPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
+      <ScheduleCard />
+
       <label className="relative block">
         <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar tarefa" aria-label="Buscar tarefa" className={cx(inputCls, "pl-9")} />
@@ -61,7 +64,85 @@ export function TasksPage() {
       <OnceCard tasks={once.filter(match)} searching={!!q} />
       {goals.filter(match).length > 0 && <GoalsCard tasks={goals.filter(match)} />}
       {paused.filter(match).length > 0 && <PausedCard tasks={paused.filter(match)} />}
+
+      <p className="pt-4 text-center text-[13px] text-muted">
+        {user?.email ? `Conectado como ${user.email}. ` : ""}
+        <button className="font-medium text-brand hover:underline" onClick={logout}>
+          Sair
+        </button>
+      </p>
     </div>
+  );
+}
+
+// ---------------- Seu horário ----------------
+
+const same = (a: DayWindow | null, b: DayWindow | null) => (a && b ? a.start === b.start && a.end === b.end : a === b);
+
+/** "Seg a Sex, 08:00–18:00 · Sáb, 09:00–12:00": dias seguidos com o mesmo horário viram um trecho. */
+function describeWindows(windows: (DayWindow | null)[]) {
+  const parts: string[] = [];
+  let i = 0;
+  while (i < WEEK.length) {
+    const w = windows[WEEK[i]] ?? null;
+    let j = i;
+    while (j + 1 < WEEK.length && same(windows[WEEK[j + 1]] ?? null, w)) j++;
+    if (w) {
+      const days = i === j ? WEEKDAY_SHORT[WEEK[i]] : `${WEEKDAY_SHORT[WEEK[i]]}${j === i + 1 ? " e " : " a "}${WEEKDAY_SHORT[WEEK[j]]}`;
+      parts.push(`${days}, ${w.start}–${w.end}`);
+    }
+    i = j + 1;
+  }
+  return parts.length ? parts.join(" · ") : "Nenhum dia com horário";
+}
+
+/** O horário do dia para tarefas, resumido numa linha; tocar abre a edição. */
+function ScheduleCard() {
+  const { uid, settings } = useStore();
+  const [editing, setEditing] = useState<Schedule | null>(null);
+  const breaks = settings.breaks.map((b) => `${b.label.toLowerCase()} ${b.start}–${b.end}`).join(", ");
+
+  async function save() {
+    if (!editing) return;
+    await saveSettings(uid, { windows: editing.windows, breaks: editing.breaks, scheduleSet: true });
+    setEditing(null);
+  }
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface">
+      <button
+        onClick={() => setEditing({ windows: settings.windows, breaks: settings.breaks })}
+        className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-sunken/50 sm:px-5"
+        title="Mudar seu horário"
+      >
+        <Clock size={18} className="shrink-0 text-todo" />
+        <span className="min-w-0 flex-1">
+          <span className="block text-[15px] font-semibold">Seu horário</span>
+          <span className="tabular block text-[13px] text-muted">
+            {describeWindows(settings.windows)}
+            {breaks && ` · ${breaks}`}
+          </span>
+        </span>
+        <span className="shrink-0 text-[13px] font-medium text-brand">Editar</span>
+      </button>
+      {editing && (
+        <Modal
+          title="Seu horário"
+          description="De que horas a que horas você tem para tarefas. Para mudar só um dia, use “Mudar hoje” na tela do dia. Tarefas com horário fora dele contam como extra."
+          onClose={() => setEditing(null)}
+        >
+          <ScheduleEditor value={editing} onChange={setEditing} />
+          <div className="mt-6 flex justify-end gap-2 border-t border-line pt-4">
+            <Button variant="ghost" onClick={() => setEditing(null)}>
+              Cancelar
+            </Button>
+            <Button variant="primary" onClick={save}>
+              Salvar
+            </Button>
+          </div>
+        </Modal>
+      )}
+    </section>
   );
 }
 
