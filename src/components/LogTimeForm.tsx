@@ -11,14 +11,14 @@ import { Button, Field, Modal, inputCls } from "./ui";
 export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const { uid, date: focusDate, sessions } = useStore();
   const [minutes, setMinutes] = useState("");
-  const [date, setDate] = useState(focusDate);
+  const date = focusDate;
   const [error, setError] = useState("");
 
   const list = sessions.filter((s) => s.taskId === task.id && s.date === date).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
 
   async function save() {
     const m = parseDuration(minutes);
-    if (!m) return setError("Informe o tempo (ex: 30, 1h).");
+    if (!m) return setError("Escreva o tempo, por exemplo 30m ou 2h.");
     const now = new Date().toISOString();
     await addSession(uid, { taskId: task.id, date, minutes: m, kind: "manual", startedAt: now, endedAt: now });
     setMinutes("");
@@ -35,10 +35,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         }}
       >
         <Field label="Quanto tempo?">
-          <input autoFocus className={inputCls} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="45, 1h30" />
-        </Field>
-        <Field label="Dia">
-          <input type="date" className={inputCls} value={date} onChange={(e) => setDate(e.target.value)} />
+          <input autoFocus className={inputCls} value={minutes} onChange={(e) => setMinutes(e.target.value)} placeholder="30m, 2h" />
         </Field>
         <Button type="submit" variant="primary" className="h-10!">
           Registrar

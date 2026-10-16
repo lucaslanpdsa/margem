@@ -1,20 +1,22 @@
 "use client";
 
-import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, Plus, Settings, Sun } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
 import { useState } from "react";
 import { fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
 import { DialogsProvider, useDialogs } from "./dialogs";
+import { AssignDialog, FocusView } from "./FocusView";
 import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
 import { Button, IconButton, cx } from "./ui";
 import { DayView, SettingsView, TasksView, WeekView } from "./views";
 
-type Tab = "dia" | "semana" | "tarefas" | "ajustes";
+type Tab = "dia" | "semana" | "foco" | "tarefas" | "ajustes";
 const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: "dia", label: "Dia", icon: Sun },
   { id: "semana", label: "Semana", icon: CalendarDays },
+  { id: "foco", label: "Foco", icon: TimerIcon },
   { id: "tarefas", label: "Tarefas", icon: ListChecks },
   { id: "ajustes", label: "Ajustes", icon: Settings },
 ];
@@ -78,6 +80,7 @@ export function Shell() {
   const titles: Record<Tab, string> = {
     dia: isToday ? "Hoje" : fmt(date, { weekday: "long" }),
     semana: days.includes(todayKey()) ? "Esta semana" : "Semana",
+    foco: "Foco",
     tarefas: "Tarefas",
     ajustes: "Ajustes",
   };
@@ -86,9 +89,11 @@ export function Shell() {
       ? fmt(date, { weekday: isToday ? "long" : undefined, day: "numeric", month: "long" })
       : tab === "semana"
         ? `${fmt(days[0], { day: "numeric", month: "short" })} a ${fmt(days[6], { day: "numeric", month: "short" })}`
-        : tab === "tarefas"
-          ? "Tudo o que você cadastrou"
-          : "Seu horário e pomodoro";
+        : tab === "foco"
+          ? "Pomodoro ou cronômetro, com ou sem tarefa"
+          : tab === "tarefas"
+            ? "Tudo o que você cadastrou"
+            : "Seu horário";
   const step = tab === "semana" ? 7 : 1;
   const showNav = tab === "dia" || tab === "semana";
   const backToNow = tab === "semana" ? !days.includes(todayKey()) : !isToday;
@@ -136,14 +141,19 @@ export function Shell() {
         </div>
       </aside>
 
-      <div className={cx("min-w-0 flex-1 px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:pt-7 lg:pb-10", settings.activeTimer && "pb-48 lg:pb-32")}>
+      <div className={cx("min-w-0 flex-1 px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:pt-7 lg:pb-10", settings.activeTimer && tab !== "foco" && "pb-48 lg:pb-32")}>
         <div className="mx-auto max-w-[1400px]">
           {/* Topo */}
           <div className="mb-4 flex items-center justify-between lg:hidden">
             <Logo />
-            <IconButton label="Como funciona" onClick={() => setHelp(true)}>
-              <CircleHelp size={18} />
-            </IconButton>
+            <div className="flex gap-1">
+              <IconButton label="Como funciona" onClick={() => setHelp(true)}>
+                <CircleHelp size={18} />
+              </IconButton>
+              <IconButton label="Ajustes" onClick={() => setTab("ajustes")} className={tab === "ajustes" ? "text-todo" : ""}>
+                <Settings size={18} />
+              </IconButton>
+            </div>
           </div>
           <header className="mb-5 flex flex-wrap items-center gap-x-4 gap-y-3">
             <div className="mr-auto">
@@ -179,8 +189,9 @@ export function Shell() {
                 }}
               />
             )}
+            {tab === "foco" && <FocusView />}
             {tab === "tarefas" && <TasksView />}
-            {tab === "ajustes" && <SettingsView key={JSON.stringify([settings.windows, settings.breaks, settings.focusMin, settings.breakMin])} />}
+            {tab === "ajustes" && <SettingsView key={JSON.stringify([settings.windows, settings.breaks])} />}
           </main>
         </div>
       </div>
@@ -197,12 +208,13 @@ export function Shell() {
         >
           <Plus size={22} />
         </button>
-        {TABS.slice(2).map((t) => (
+        {TABS.slice(2, 4).map((t) => (
           <MobileTab key={t.id} active={tab === t.id} onClick={() => setTab(t.id)} icon={t.icon} label={t.label} />
         ))}
       </nav>
 
-      <Timer />
+      <Timer hidden={tab === "foco"} onOpen={() => setTab("foco")} />
+      <AssignDialog />
       {settingsReady && !settings.scheduleSet && <Onboarding />}
       {help && <HelpDialog onClose={() => setHelp(false)} />}
     </div>

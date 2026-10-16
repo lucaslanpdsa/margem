@@ -15,8 +15,8 @@ Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem
 - **Extras fora do horário**: tarefa marcada na agenda fora do seu horário (ex: aula às 20h) não ocupa o tempo do dia e aparece separada.
 - **Painel do dia**: feito / falta / planejado / livre, com alerta quando o dia passa do limite.
 - **Semana**: cada dia mostra sua barra de capacidade e o tempo livre no cabeçalho.
-- **Pomodoro**: conta **minutos reais** (parar no meio registra o parcial), sobrevive a recarregar a página e funciona entre dispositivos. Notificação + som ao fim.
-- **Registro manual de tempo** para o que foi feito sem timer, e correção de registros.
+- **Tela Foco**: pomodoro ou cronômetro, com tarefa ou sem. No pomodoro você escolhe se conta só o foco ou foco + pausa; a configuração fica nos três pontinhos. Foco sem tarefa conta no dia e o app pergunta depois em que você trabalhou. Mostra o histórico do dia, com troca de tarefa e registro sem timer (30m, 2h).
+- **Concluir libera o tempo**: tarefa concluída zera o que faltava dela, sem perguntar quanto levou.
 - **“O que faço agora?”**: se há bloco na agenda agora, ele; senão, a primeira tarefa flexível (prazo → prioridade → menor) e quanto tempo há até o próximo compromisso.
 - **Atrasadas**: avulsas de dias passados aparecem hoje com botão para replanejar.
 - PWA: dá para instalar no celular.

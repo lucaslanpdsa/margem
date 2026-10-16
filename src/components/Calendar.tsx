@@ -7,15 +7,15 @@ import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { dayKey, fmtMin, fromKey, minutesBetween } from "@/lib/dates";
-import { addBlock, deleteBlock, updateBlock, updateTask } from "@/lib/db";
+import { addBlock, deleteBlock, toggleDone, updateBlock, updateTask } from "@/lib/db";
 import { blockOutside, dayMetrics, isCompletedOn } from "@/lib/metrics";
 import { toMin, windowFor } from "@/lib/schedule";
 import { startFocus } from "@/lib/pomodoro";
 import type { Block, Task } from "@/lib/types";
 import { CapacityBar } from "./CapacityPanel";
-import { useDialogs } from "./dialogs";
+import { useNow } from "./Timer";
 import { useStore } from "./store";
-import { Clock, Pencil, Play, Trash2 } from "lucide-react";
+import { Check, Play, Trash2 } from "lucide-react";
 import { Button, Modal, Panel, PanelHeader, cx } from "./ui";
 
 interface Props {
@@ -155,51 +155,33 @@ export function Calendar({ view, onPickDay }: Props) {
 
 function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onClose: () => void }) {
   const { uid, settings } = useStore();
-  const { editTask, logTime } = useDialogs();
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  const now = useNow(30000);
+  const passed = Date.parse(block.end) <= now;
+  const canComplete = task && task.repeat !== "weeklyGoal" && !isCompletedOn(task, block.date);
+  const act = (fn: () => unknown) => () => {
+    fn();
+    onClose();
+  };
 
   return (
-    <Modal title={task?.title ?? "Bloco"} description="Bloco reservado na agenda" onClose={onClose}>
-      <p className="mb-4 text-sm text-muted">
-        {hhmm(block.start)}–{hhmm(block.end)} · {fmtMin(minutesBetween(block.start, block.end))}
-      </p>
-      <div className="flex flex-wrap gap-2">
-        {task && (
-          <>
-            <Button
-              variant="primary"
-              onClick={() => {
-                startFocus(uid, settings, task.id);
-                onClose();
-              }}
-            >
-              <Play size={14} fill="currentColor" /> Iniciar pomodoro
-            </Button>
-            <Button
-              onClick={() => {
-                onClose();
-                logTime(task);
-              }}
-            >
-              <Clock size={14} /> Registrar tempo
-            </Button>
-            <Button
-              onClick={() => {
-                onClose();
-                editTask(task);
-              }}
-            >
-              <Pencil size={14} /> Editar tarefa
-            </Button>
-          </>
+    <Modal
+      title={task?.title ?? "Bloco"}
+      description={`${hhmm(block.start)}–${hhmm(block.end)} · ${fmtMin(minutesBetween(block.start, block.end))}${passed ? " · já passou" : ""}`}
+      onClose={onClose}
+    >
+      <div className="flex flex-col gap-2">
+        {canComplete && (
+          <Button variant={passed ? "primary" : "secondary"} className="h-11" onClick={act(() => toggleDone(uid, task!, block.date, true))}>
+            <Check size={16} /> Concluir
+          </Button>
         )}
-        <Button
-          variant="danger"
-          onClick={() => {
-            deleteBlock(uid, block.id);
-            onClose();
-          }}
-        >
+        {task && !passed && (
+          <Button variant="primary" className="h-11" onClick={act(() => startFocus(uid, settings, task.id))}>
+            <Play size={14} fill="currentColor" /> Começar foco
+          </Button>
+        )}
+        <Button variant="danger" className="h-11" onClick={act(() => deleteBlock(uid, block.id))}>
           <Trash2 size={14} /> Tirar da agenda
         </Button>
       </div>

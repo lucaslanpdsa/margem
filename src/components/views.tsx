@@ -1,7 +1,7 @@
 "use client";
 
 import { Draggable } from "@fullcalendar/interaction";
-import { Archive, ArchiveRestore, Bell, CalendarPlus, Plus, Repeat, Target } from "lucide-react";
+import { Archive, ArchiveRestore, CalendarPlus, Plus, Repeat, Target } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, todayKey, weekDays } from "@/lib/dates";
 import { saveSettings, updateTask } from "@/lib/db";
@@ -13,7 +13,6 @@ import { DayLists } from "./DaySidebar";
 import { useDialogs } from "./dialogs";
 import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
 import { useNow } from "./Timer";
-import { PomodoroPicker } from "./pickers";
 import { useStore } from "./store";
 import { Button, Panel, PanelHeader, Segmented, cx } from "./ui";
 
@@ -218,13 +217,10 @@ export function TasksView() {
 export function SettingsView() {
   const { uid, settings, user, logout } = useStore();
   const [schedule, setSchedule] = useState<Schedule>({ windows: settings.windows, breaks: settings.breaks });
-  const [focus, setFocus] = useState(settings.focusMin);
-  const [brk, setBrk] = useState(settings.breakMin);
   const [saved, setSaved] = useState(false);
-  const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
 
   async function save() {
-    await saveSettings(uid, { windows: schedule.windows, breaks: schedule.breaks, scheduleSet: true, focusMin: focus, breakMin: brk });
+    await saveSettings(uid, { windows: schedule.windows, breaks: schedule.breaks, scheduleSet: true });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -239,26 +235,6 @@ export function SettingsView() {
         />
         <div className="px-5 pb-5">
           <ScheduleEditor value={schedule} onChange={setSchedule} />
-        </div>
-      </Panel>
-
-      <Panel>
-        <PanelHeader title="Pomodoro" />
-        <div className="space-y-4 px-5 pb-5">
-          <PomodoroPicker
-            focus={focus}
-            brk={brk}
-            onChange={(f, b) => {
-              setFocus(f);
-              setBrk(b);
-            }}
-          />
-          {perm !== "granted" && perm !== "unsupported" && (
-            <Button onClick={() => Notification.requestPermission().then(setPerm)}>
-              <Bell size={14} /> Avisar quando o pomodoro acabar
-            </Button>
-          )}
-          {perm === "granted" && <p className="text-[13px] text-done">Notificações ativadas.</p>}
         </div>
       </Panel>
 

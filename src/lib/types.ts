@@ -53,9 +53,13 @@ export interface Session {
 }
 
 export interface ActiveTimer {
+  /** Pomodoro (tempo fixo, com pausa) ou cronômetro (livre). Ausente = pomodoro. */
+  mode?: "pomodoro" | "stopwatch";
+  /** Tarefa ligada; "" = sem tarefa. */
   taskId: string;
   phase: "focus" | "break";
   startedAt: string; // ISO
+  /** Duração da fase no pomodoro; 0 no cronômetro. */
   durationMin: number;
 }
 
@@ -82,6 +86,10 @@ export interface Settings {
   focusMin: number;
   breakMin: number;
   activeTimer?: ActiveTimer | null;
+  /** No pomodoro, a pausa também conta como feito. */
+  countBreaks?: boolean;
+  /** Sessão sem tarefa esperando a pessoa dizer em que trabalhou. */
+  pendingAssign?: string | null;
   /** Já passou pela configuração inicial. */
   onboarded?: boolean;
   /** Já definiu o horário do dia (configuração nova, por horário). */

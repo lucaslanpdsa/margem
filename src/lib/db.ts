@@ -84,6 +84,8 @@ export const deleteBlock = (uid: string, id: string) => deleteDoc(doc(db(), "use
 // ---------- Sessões ----------
 
 export const addSession = (uid: string, s: Omit<Session, "id">) => addDoc(col(uid, "sessions"), s);
+export const updateSession = (uid: string, id: string, patch: Partial<Session>) =>
+  updateDoc(doc(db(), "users", uid, "sessions", id), patch);
 export const deleteSession = (uid: string, id: string) => deleteDoc(doc(db(), "users", uid, "sessions", id));
 
 // ---------- Configurações ----------
