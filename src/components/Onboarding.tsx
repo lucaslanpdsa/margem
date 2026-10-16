@@ -42,9 +42,9 @@ export function HowItWorks() {
       <div className="rounded-xl bg-sunken p-4">
         <div className="flex h-8 gap-[2px] overflow-hidden rounded-lg text-[11px] font-semibold">
           <div className="flex w-[22%] items-center bg-done px-2 text-white">Feito</div>
-          <div className="flex w-[12%] items-center bg-idle px-2 text-white">Passou</div>
-          <div className="flex w-[36%] items-center bg-todo px-2 text-white">Falta</div>
-          <div className="hatch flex flex-1 items-center px-2 text-muted">Livre</div>
+          <div className="flex w-[14%] items-center bg-idle px-2 text-white">Sem reg.</div>
+          <div className="flex w-[34%] items-center bg-todo px-2 text-white">A fazer</div>
+          <div className="hatch flex flex-1 items-center px-2 text-muted">Sobra</div>
         </div>
         <p className="mt-2 text-xs text-muted">É essa régua que você vê no topo de cada dia.</p>
       </div>
