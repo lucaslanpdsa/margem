@@ -1,9 +1,9 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Pause, Play, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, shiftDay, todayKey } from "@/lib/dates";
-import { addTask, deleteTask, replaceTask } from "@/lib/db";
+import { addTask, deleteTask, replaceTask, updateTask } from "@/lib/db";
 import { findConflicts, slotsMinutes, slotsOf, taskTimeBlocks, toMin } from "@/lib/schedule";
 import type { Task, TimeSlot } from "@/lib/types";
 import { useStore } from "./store";
@@ -89,9 +89,16 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
       doneBy: doneBy === "time" ? "time" : undefined,
       completedAt: repeat === "once" ? (initial.completedAt ?? undefined) : undefined,
       completions: repeat === "weekdays" ? initial.completions : undefined,
+      archived: repeat === "weekdays" ? initial.archived : undefined,
     };
     if (editing) await replaceTask(uid, { ...data, id: initial.id!, createdAt: initial.createdAt! });
     else await addTask(uid, data);
+    onClose();
+  }
+
+  // Pausar só vale para o que repete: para de aparecer nos dias, sem perder o histórico.
+  async function togglePause() {
+    await updateTask(uid, initial.id!, { archived: !initial.archived });
     onClose();
   }
 
@@ -201,9 +208,17 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
 
         <div className="flex items-center justify-between border-t border-line pt-4">
           {editing ? (
-            <Button type="button" variant="danger" onClick={remove}>
-              <Trash2 size={14} /> Excluir
-            </Button>
+            <div className="flex gap-2">
+              <Button type="button" variant="danger" onClick={remove}>
+                <Trash2 size={14} /> Excluir
+              </Button>
+              {initial.repeat === "weekdays" && (
+                <Button type="button" variant="ghost" onClick={togglePause}>
+                  {initial.archived ? <Play size={14} /> : <Pause size={14} />}
+                  {initial.archived ? "Retomar" : "Pausar"}
+                </Button>
+              )}
+            </div>
           ) : (
             <span />
           )}

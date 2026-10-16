@@ -1,9 +1,9 @@
 "use client";
 
-import { Archive, ArchiveRestore, CalendarPlus, Check, ChevronDown, Plus, Repeat, Target } from "lucide-react";
+import { CalendarPlus, Check, ChevronDown, Pencil, Plus, Repeat, Target } from "lucide-react";
 import { useState } from "react";
-import { WEEKDAY_SHORT, fmtMin, fromKey, todayKey, weekDays } from "@/lib/dates";
-import { saveSettings, updateTask } from "@/lib/db";
+import { WEEKDAY_SHORT, fmtMin, fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
+import { saveSettings } from "@/lib/db";
 import { dayMetrics, type DayMetrics } from "@/lib/metrics";
 import { slotsOf } from "@/lib/schedule";
 import type { RepeatKind, Task } from "@/lib/types";
@@ -148,42 +148,61 @@ function WeekDayTasks({ m, onOpenDay }: { m: DayMetrics; onOpenDay: () => void }
 
 const GROUPS: { kind: RepeatKind; title: string; description: string; icon: typeof Repeat }[] = [
   { kind: "weekdays", title: "Repetem", description: "Aparecem sozinhas nos dias marcados.", icon: Repeat },
-  { kind: "once", title: "Uma vez, pendentes", description: "Ainda não concluídas.", icon: CalendarPlus },
+  { kind: "once", title: "Não repetem", description: "As que ainda não foram feitas, por data.", icon: CalendarPlus },
   { kind: "weeklyGoal", title: "Metas semanais (antigas)", description: "Tipo que saiu do app. Edite para virar uma tarefa que repete.", icon: Target },
 ];
+
+/** "hoje", "amanhã", "sex, 23 out" ou "atrasada · 14 out". */
+function dayLabel(key: string | undefined) {
+  const today = todayKey();
+  const k = key ?? today;
+  const d = fromKey(k);
+  const short = d.toLocaleDateString("pt-BR", { day: "numeric", month: "short" }).replace(".", "");
+  if (k === today) return { text: "hoje", late: false };
+  if (k === shiftDay(today, 1)) return { text: "amanhã", late: false };
+  if (k < today) return { text: `atrasada · ${short}`, late: true };
+  return { text: `${WEEKDAY_SHORT[d.getDay()].toLowerCase()}, ${short}`, late: false };
+}
 
 function describe(t: Task) {
   if (t.repeat === "weekdays")
     return `${fmtMin(t.estimateMin)} por dia, ${(t.weekdays ?? []).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")}${slotsOf(t).length ? `, ${slotsOf(t).map((sl) => `${sl.start}–${sl.end}`).join(", ")}` : ""}`;
   if (t.repeat === "weeklyGoal") return `${fmtMin(t.weeklyGoalMin ?? 0)} por semana`;
-  const short = (k: string) => fromKey(k).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
-  return `${fmtMin(t.estimateMin)}, ${t.date ? short(t.date) : "hoje"}${slotsOf(t).length ? `, ${slotsOf(t).map((sl) => `${sl.start}–${sl.end}`).join(", ")}` : ""}`;
+  return `${fmtMin(t.estimateMin)}${slotsOf(t).length ? `, ${slotsOf(t).map((sl) => `${sl.start}–${sl.end}`).join(", ")}` : ""}`;
 }
 
 export function TasksView() {
-  const { uid, tasks } = useStore();
+  const { tasks } = useStore();
   const { editTask } = useDialogs();
+  const hasPaused = tasks.some((t) => t.archived);
   const [show, setShow] = useState<"active" | "archived">("active");
-  const visible = tasks.filter((t) => (show === "archived" ? t.archived : !t.archived));
+  const showing = hasPaused ? show : "active";
+  const visible = tasks.filter((t) => (showing === "archived" ? t.archived : !t.archived));
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-muted">Todas as suas tarefas, por tipo. Clique numa para editar.</p>
-        <Segmented
-          value={show}
-          onChange={setShow}
-          options={[
-            { value: "active", label: "Ativas" },
-            { value: "archived", label: "Arquivadas" },
-          ]}
-        />
+        <p className="text-sm text-muted">Todas as suas tarefas, por tipo.</p>
+        {hasPaused && (
+          <Segmented
+            value={showing}
+            onChange={setShow}
+            options={[
+              { value: "active", label: "Ativas" },
+              { value: "archived", label: "Pausadas" },
+            ]}
+          />
+        )}
       </div>
 
       {GROUPS.map((g) => {
         const list = visible
           .filter((t) => t.repeat === g.kind && (g.kind !== "once" || !t.completedAt))
-          .sort((a, b) => a.title.localeCompare(b.title));
+          .sort((a, b) =>
+            g.kind === "once"
+              ? (a.date ?? todayKey()).localeCompare(b.date ?? todayKey()) || a.title.localeCompare(b.title)
+              : a.title.localeCompare(b.title),
+          );
         if (g.kind === "weeklyGoal" && list.length === 0) return null;
         return (
           <Panel key={g.kind}>
@@ -191,7 +210,7 @@ export function TasksView() {
               title={`${g.title} (${list.length})`}
               description={g.description}
               right={
-                show === "active" && g.kind !== "weeklyGoal" && (
+                showing === "active" && g.kind !== "weeklyGoal" && (
                   <Button size="sm" variant="ghost" onClick={() => editTask({ repeat: g.kind })}>
                     <Plus size={14} /> Adicionar
                   </Button>
@@ -202,22 +221,24 @@ export function TasksView() {
               <p className="px-5 pb-5 text-sm text-muted">Nenhuma ainda.</p>
             ) : (
               <ul className="divide-y divide-line border-t border-line">
-                {list.map((t) => (
+                {list.map((t) => {
+                  const day = g.kind === "once" ? dayLabel(t.date) : null;
+                  return (
                   <li key={t.id} className="flex items-center gap-3 px-5 py-3 hover:bg-sunken/50">
                     <g.icon size={16} className="shrink-0 text-muted" />
                     <button className="min-w-0 flex-1 text-left" onClick={() => editTask(t)}>
                       <p className="truncate text-sm font-medium">{t.title}</p>
                       <p className="text-xs text-muted">
+                        {day && <span className={cx("font-semibold", day.late ? "text-over" : "text-ink")}>{day.text} · </span>}
                         {describe(t)}
-                        {t.category && ` · ${t.category}`}
                       </p>
                     </button>
-                    <Button size="sm" variant="ghost" onClick={() => updateTask(uid, t.id, { archived: !t.archived })}>
-                      {t.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
-                      {t.archived ? "Reativar" : "Arquivar"}
+                    <Button size="sm" variant="ghost" onClick={() => editTask(t)}>
+                      <Pencil size={14} /> Editar
                     </Button>
                   </li>
-                ))}
+                  );
+                })}
               </ul>
             )}
           </Panel>
