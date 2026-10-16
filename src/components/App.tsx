@@ -1,7 +1,7 @@
 "use client";
 
 import { CalendarDays, ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
 import { DialogsProvider, useDialogs } from "./dialogs";
@@ -13,6 +13,28 @@ import { Button, IconButton, cx } from "./ui";
 import { DayView, SettingsView, TasksView, WeekView } from "./views";
 
 type Tab = "dia" | "semana" | "foco" | "tarefas" | "ajustes";
+const TAB_IDS: Tab[] = ["dia", "semana", "foco", "tarefas", "ajustes"];
+
+/** Aba atual guardada no endereço (#tarefas), para sobreviver ao recarregar e o "voltar" do celular funcionar. */
+function useTab(): [Tab, (t: Tab) => void] {
+  const [tab, setTabState] = useState<Tab>("dia");
+  useEffect(() => {
+    const read = () => {
+      const h = window.location.hash.slice(1) as Tab;
+      setTabState(TAB_IDS.includes(h) ? h : "dia");
+    };
+    read();
+    window.addEventListener("popstate", read);
+    return () => window.removeEventListener("popstate", read);
+  }, []);
+  const setTab = (t: Tab) => {
+    if (t === tab) return;
+    const url = t === "dia" ? window.location.pathname + window.location.search : `#${t}`;
+    window.history.pushState(null, "", url);
+    setTabState(t);
+  };
+  return [tab, setTab];
+}
 const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: "dia", label: "Dia", icon: Sun },
   { id: "semana", label: "Semana", icon: CalendarDays },
@@ -45,7 +67,7 @@ function Logo() {
 export function Shell() {
   const { ready, user, login, logout, date, setDate, settings, settingsReady } = useStore();
   const { editTask } = useDialogs();
-  const [tab, setTab] = useState<Tab>("dia");
+  const [tab, setTab] = useTab();
   const [help, setHelp] = useState(false);
   // Barra lateral recolhida (só ícones), lembrada neste navegador.
   const [collapsed, setCollapsed] = useState(() => {
