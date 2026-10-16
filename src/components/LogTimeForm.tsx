@@ -6,6 +6,7 @@ import { fmtMin, parseDuration } from "@/lib/dates";
 import { addSession, deleteSession, toggleDone } from "@/lib/db";
 import { isCompletedOn, isTimeTask } from "@/lib/metrics";
 import { useDialogs } from "./dialogs";
+import { EditableMinutes } from "./EditableMinutes";
 import type { Task } from "@/lib/types";
 import { useStore } from "./store";
 import { Button, IconButton, Modal, cx, inputCls } from "./ui";
@@ -76,12 +77,12 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
 
       {list.length > 0 && (
         <div className="mt-5 border-t border-line pt-3">
-          <p className="mb-1 text-[13px] font-medium">Registros</p>
+          <p className="mb-1 text-[13px] font-medium">Registros <span className="font-normal text-muted">(toque no tempo para editar)</span></p>
           <ul className="divide-y divide-line">
             {list.map((s) => (
               <li key={s.id} className="flex items-center justify-between py-1.5 text-sm">
                 <span>
-                  <span className="tabular font-medium">{fmtMin(s.minutes)}</span>{" "}
+                  <EditableMinutes session={s} />{" "}
                   <span className="text-muted">
                     {s.kind === "manual" ? "manual" : `foco às ${new Date(s.startedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`}
                   </span>

@@ -7,6 +7,7 @@ import { addSession, deleteSession, saveSettings, updateSession } from "@/lib/db
 import { dayItems, weeklyGoals } from "@/lib/metrics";
 import { isStopwatch, startTimer, stopTimer } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
+import { EditableMinutes } from "./EditableMinutes";
 import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
 import { Button, IconButton, Modal, Panel, PanelHeader, Segmented, cx, inputCls } from "./ui";
@@ -152,7 +153,7 @@ function History() {
 
   return (
     <Panel className="flex flex-col">
-      <PanelHeader title="Hoje" description="Tudo que foi registrado hoje. Troque a tarefa de uma sessão se precisar." right={<span className="tabular font-semibold">{fmtMin(total)}</span>} />
+      <PanelHeader title="Hoje" description="Tudo que foi registrado hoje. Toque no tempo para editar ou troque a tarefa." right={<span className="tabular font-semibold">{fmtMin(total)}</span>} />
       <ul className="space-y-1.5 px-4">
         {list.length === 0 && <li className="rounded-xl bg-sunken px-4 py-3 text-sm text-muted">Nada registrado ainda hoje.</li>}
         {list.map((s) => {
@@ -178,7 +179,7 @@ function History() {
                 </select>
                 <span className="block text-xs text-muted">{task || !s.taskId ? kindOf(s) : "Tarefa excluída"}</span>
               </div>
-              <span className="tabular text-sm font-semibold">{fmtMin(s.minutes)}</span>
+              <EditableMinutes session={s} className="text-sm" />
               <IconButton label="Apagar registro" onClick={() => deleteSession(uid, s.id)}>
                 <Trash2 size={15} />
               </IconButton>
