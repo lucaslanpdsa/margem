@@ -215,7 +215,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
 
         {error && <p className="rounded-lg bg-over/10 px-3 py-2 text-sm text-over">{error}</p>}
 
-        <div className="flex items-center justify-between border-t border-line pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
           {editing ? (
             <div className="flex gap-2">
               <Button type="button" variant="danger" onClick={remove}>
@@ -231,7 +231,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           ) : (
             <span />
           )}
-          <div className="flex gap-2">
+          <div className="ml-auto flex gap-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancelar
             </Button>
