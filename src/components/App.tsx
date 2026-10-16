@@ -6,6 +6,7 @@ import { fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
 import { DialogsProvider, useDialogs } from "./dialogs";
 import { AssignDialog, FocusView } from "./FocusView";
+import { NavCtx } from "./nav";
 import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
@@ -46,6 +47,7 @@ export function Shell() {
   const { ready, user, login, logout, date, setDate, settings, settingsReady } = useStore();
   const { editTask } = useDialogs();
   const [tab, setTab] = useState<Tab>("dia");
+  const [focusTask, setFocusTask] = useState({ id: "", n: 0 });
   const [help, setHelp] = useState(false);
   const [error, setError] = useState("");
 
@@ -98,7 +100,13 @@ export function Shell() {
   const showNav = tab === "dia" || tab === "semana";
   const backToNow = tab === "semana" ? !days.includes(todayKey()) : !isToday;
 
+  const goFocus = (taskId = "") => {
+    setFocusTask((f) => ({ id: taskId, n: f.n + 1 }));
+    setTab("foco");
+  };
+
   return (
+    <NavCtx.Provider value={{ goFocus }}>
     <div className="lg:flex">
       {/* Navegação lateral (desktop) */}
       <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-line bg-surface px-3 py-5 lg:flex">
@@ -189,7 +197,7 @@ export function Shell() {
                 }}
               />
             )}
-            {tab === "foco" && <FocusView />}
+            {tab === "foco" && <FocusView key={focusTask.n} initialTaskId={focusTask.id} />}
             {tab === "tarefas" && <TasksView />}
             {tab === "ajustes" && <SettingsView key={JSON.stringify([settings.windows, settings.breaks])} />}
           </main>
@@ -218,6 +226,7 @@ export function Shell() {
       {settingsReady && !settings.scheduleSet && <Onboarding />}
       {help && <HelpDialog onClose={() => setHelp(false)} />}
     </div>
+    </NavCtx.Provider>
   );
 }
 

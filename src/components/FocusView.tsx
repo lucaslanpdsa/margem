@@ -210,12 +210,12 @@ function History() {
   );
 }
 
-export function FocusView() {
+export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
   const { uid, settings, tasks } = useStore();
   const now = useNow();
   const t = settings.activeTimer;
   const [mode, setMode] = useState<"pomodoro" | "stopwatch">("pomodoro");
-  const [taskId, setTaskId] = useState("");
+  const [taskId, setTaskId] = useState(initialTaskId);
   const [menu, setMenu] = useState(false);
 
   const running = !!t;

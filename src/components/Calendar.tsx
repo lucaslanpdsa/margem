@@ -10,12 +10,12 @@ import { dayKey, fmtMin, fromKey, minutesBetween } from "@/lib/dates";
 import { addBlock, deleteBlock, toggleDone, updateBlock, updateTask } from "@/lib/db";
 import { blockOutside, dayMetrics, isCompletedOn } from "@/lib/metrics";
 import { toMin, windowFor } from "@/lib/schedule";
-import { startFocus } from "@/lib/pomodoro";
 import type { Block, Task } from "@/lib/types";
 import { CapacityBar } from "./CapacityPanel";
+import { useNav } from "./nav";
 import { useNow } from "./Timer";
 import { useStore } from "./store";
-import { Check, Play, Trash2 } from "lucide-react";
+import { Check, Timer, Trash2 } from "lucide-react";
 import { Button, Modal, Panel, PanelHeader, cx } from "./ui";
 
 interface Props {
@@ -154,7 +154,8 @@ export function Calendar({ view, onPickDay }: Props) {
 }
 
 function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onClose: () => void }) {
-  const { uid, settings } = useStore();
+  const { uid } = useStore();
+  const { goFocus } = useNav();
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const now = useNow(30000);
   const passed = Date.parse(block.end) <= now;
@@ -172,13 +173,13 @@ function BlockActions({ block, task, onClose }: { block: Block; task?: Task; onC
     >
       <div className="flex flex-col gap-2">
         {canComplete && (
-          <Button variant={passed ? "primary" : "secondary"} className="h-11" onClick={act(() => toggleDone(uid, task!, block.date, true))}>
+          <Button variant="primary" className="h-11" onClick={act(() => toggleDone(uid, task!, block.date, true))}>
             <Check size={16} /> Concluir
           </Button>
         )}
         {task && !passed && (
-          <Button variant="primary" className="h-11" onClick={act(() => startFocus(uid, settings, task.id))}>
-            <Play size={14} fill="currentColor" /> Começar foco
+          <Button variant="secondary" className="h-11" onClick={act(() => goFocus(task.id))}>
+            <Timer size={15} /> Focar nela
           </Button>
         )}
         <Button variant="danger" className="h-11" onClick={act(() => deleteBlock(uid, block.id))}>

@@ -1,14 +1,13 @@
 "use client";
 
-import { CalendarClock, Check, Clock, Flag, GripVertical, Play, Repeat, Target } from "lucide-react";
+import { CalendarClock, Check, Clock, Flag, GripVertical, Repeat, Target } from "lucide-react";
 import type { ReactNode } from "react";
 import { fmtMin, fromKey, todayKey } from "@/lib/dates";
 import { toggleDone } from "@/lib/db";
-import { startFocus } from "@/lib/pomodoro";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
-import { IconButton, PRIORITY_LABEL, cx } from "./ui";
+import { PRIORITY_LABEL, cx } from "./ui";
 
 interface Props {
   task: Task;
@@ -73,7 +72,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, 
         </span>
       )}
 
-      <button className="min-w-0 flex-1 text-left" onClick={() => editTask(task)} title="Editar tarefa">
+      <button className="min-w-0 flex-1 text-left" onClick={() => logTime(task)} title="Ver e reportar tempo">
         <span className={cx("block truncate text-sm font-medium", completed && "text-muted line-through")}>{task.title}</span>
         <span className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
           <span className="inline-flex items-center gap-1.5">
@@ -105,17 +104,12 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, 
       </button>
 
       {extra}
-      <IconButton label="Registrar tempo feito sem o timer" onClick={() => logTime(task)}>
-        <Clock size={16} />
-      </IconButton>
       <button
-        onClick={() => startFocus(uid, settings, task.id)}
-        disabled={running || completed}
-        className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-todo/10 text-todo transition-colors hover:bg-todo hover:text-white disabled:opacity-30"
-        aria-label="Iniciar pomodoro"
-        title={running ? "Em foco agora" : "Iniciar pomodoro"}
+        onClick={() => logTime(task)}
+        className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-todo/10 px-3 text-[13px] font-semibold text-todo transition-colors hover:bg-todo hover:text-white"
+        title="Registrar tempo feito nesta tarefa"
       >
-        <Play size={14} fill="currentColor" />
+        <Clock size={15} /> Registrar
       </button>
     </li>
   );

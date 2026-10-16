@@ -1,13 +1,13 @@
 "use client";
 
-import { CalendarPlus, ChevronDown, Inbox, Play, Plus, Repeat, Target, TriangleAlert } from "lucide-react";
+import { CalendarPlus, ChevronDown, Inbox, Plus, Repeat, Target, Timer, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, parseQuickAdd, todayKey } from "@/lib/dates";
 import { addTask, updateTask } from "@/lib/db";
 import { flexibleQueue, inbox, overdue, suggestNow, weeklyGoals, type DayMetrics } from "@/lib/metrics";
-import { startFocus } from "@/lib/pomodoro";
 import type { RepeatKind } from "@/lib/types";
 import { useDialogs } from "./dialogs";
+import { useNav } from "./nav";
 import { useStore } from "./store";
 import { TaskRow } from "./TaskRow";
 import { useNow } from "./Timer";
@@ -60,7 +60,8 @@ export function QuickAdd({ date }: { date: string }) {
 }
 
 function NowCard({ m }: { m: DayMetrics }) {
-  const { uid, settings, blocks } = useStore();
+  const { settings, blocks } = useStore();
+  const { goFocus } = useNav();
   const now = useNow(30000);
   const s = suggestNow(new Date(now), m, blocks, settings.breaks);
   if (settings.activeTimer?.phase === "focus") return null;
@@ -94,10 +95,10 @@ function NowCard({ m }: { m: DayMetrics }) {
         </p>
       </div>
       <button
-        onClick={() => startFocus(uid, settings, item.task.id)}
+        onClick={() => goFocus(item.task.id)}
         className="inline-flex h-10 items-center gap-2 rounded-full bg-white px-4 text-sm font-semibold text-todo transition-opacity hover:opacity-90"
       >
-        <Play size={14} fill="currentColor" /> Começar pomodoro
+        <Timer size={15} /> Focar nela
       </button>
     </div>
   );
