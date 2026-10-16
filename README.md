@@ -9,7 +9,7 @@ Responde duas perguntas: **quanto tempo eu ainda tenho hoje?** e **estou em dia 
 - **Como termina**: marcando como feita (o tempo é estimativa; terminou antes, o resto volta para o dia) ou cumprindo o tempo (ex: trabalhar 7h).
 - **Reportar tempo**: botão Registrar em cada tarefa (15m, 30m, 1h, 2h, outra duração ou um intervalo como 14:00-15:30; registros editáveis), ou a aba **Foco** (pomodoro ou cronômetro).
 - **Topo do dia**: "Em dia · sobram 2h10" ou "Atrasado · 1h50 a mais do que cabe".
-- **Tarefas**: uma tela para organizar, com duas vistas. **Agenda**: a semana dia a dia, com a barra e quanto sobra ou passa; toque numa tarefa para editar ou crie uma num dia. **Lista**: todas as tarefas, as que repetem e as que não repetem (por data).
+- **Tarefas**: a tela para organizar. As que repetem aparecem como uma grade da semana (toque nos dias para ligar ou desligar), com o total fixo e o livre de cada dia embaixo; as que não repetem ficam agrupadas por data (atrasadas, hoje, amanhã, esta semana, depois). Tempo e data mudam com um toque, o nome abre a edição completa, e cada grupo tem criação rápida ("Academia 1h").
 - Tarefa com horário fora do seu horário vira extra e não ocupa o tempo do dia. Tarefas de dias anteriores não concluídas aparecem para trazer para hoje.
 
 ### Como as contas funcionam
@@ -62,7 +62,8 @@ src/
   components/
     App.tsx            casca: login, abas, navegação de datas
     store.tsx          auth + dados em tempo real do Firestore
-    views.tsx          Dia, Tarefas (agenda e lista), Ajustes
+    views.tsx          Dia e Ajustes
+    TasksPage.tsx      Tarefas (grade da semana e avulsas por data)
     CapacityPanel.tsx  topo do dia (em dia / atrasado) e barra
     DaySidebar.tsx     lista de tarefas do dia
     FocusView.tsx      aba Foco (pomodoro / cronômetro)

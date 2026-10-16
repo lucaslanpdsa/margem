@@ -22,6 +22,21 @@ function availableBetween(from: number, to: number, breaks: BreakTime[]) {
   return to - from - inBreaks;
 }
 
+/** Horário padrão de um dia da semana (sem exceções) e o tempo dele para tarefas. */
+export function weekdayCapacity(settings: Settings, dow: number): { window: DayWindow | null; capacityMin: number } {
+  const window = settings.windows[dow] ?? null;
+  if (!window) return { window, capacityMin: 0 };
+  return { window, capacityMin: availableBetween(toMin(window.start), toMin(window.end), settings.breaks) };
+}
+
+/** A tarefa tem horários e todos ficam fora do horário do dia (ex: aula às 20h)? */
+export function allSlotsOutside(t: Task, window: DayWindow | null) {
+  const slots = slotsOf(t);
+  if (!slots.length) return false;
+  if (!window) return true;
+  return slots.every((sl) => toMin(sl.end) <= toMin(window.start) || toMin(sl.start) >= toMin(window.end));
+}
+
 export interface DayClock {
   window: DayWindow | null;
   /** Tempo do dia para tarefas (horário menos pausas). */

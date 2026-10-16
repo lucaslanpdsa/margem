@@ -2,25 +2,28 @@
 
 import { ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Settings, Sun, Timer as TimerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
+import { fromKey, shiftDay, todayKey } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
 import { DialogsProvider, useDialogs } from "./dialogs";
 import { AssignDialog, FocusView } from "./FocusView";
 import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
-import { Button, IconButton, Segmented, cx } from "./ui";
-import { DayView, SettingsView, TasksView, WeekView } from "./views";
+import { Button, IconButton, cx } from "./ui";
+import { TasksPage } from "./TasksPage";
+import { DayView, SettingsView } from "./views";
 
-type Tab = "dia" | "semana" | "foco" | "tarefas" | "ajustes";
-const TAB_IDS: Tab[] = ["dia", "semana", "foco", "tarefas", "ajustes"];
+type Tab = "dia" | "foco" | "tarefas" | "ajustes";
+const TAB_IDS: Tab[] = ["dia", "foco", "tarefas", "ajustes"];
 
 /** Aba atual guardada no endereço (#tarefas), para sobreviver ao recarregar e o "voltar" do celular funcionar. */
 function useTab(): [Tab, (t: Tab) => void] {
   const [tab, setTabState] = useState<Tab>("dia");
   useEffect(() => {
     const read = () => {
-      const h = window.location.hash.slice(1) as Tab;
+      const raw = window.location.hash.slice(1);
+      // "#semana" era a antiga aba da semana, que virou parte de Tarefas.
+      const h = (raw === "semana" ? "tarefas" : raw) as Tab;
       setTabState(TAB_IDS.includes(h) ? h : "dia");
     };
     read();
@@ -35,14 +38,13 @@ function useTab(): [Tab, (t: Tab) => void] {
   };
   return [tab, setTab];
 }
-// "Tarefas" é uma aba só, com duas vistas: agenda (semana, id "semana") e lista (id "tarefas").
 const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: "dia", label: "Dia", icon: Sun },
   { id: "tarefas", label: "Tarefas", icon: ListChecks },
   { id: "foco", label: "Foco", icon: TimerIcon },
   { id: "ajustes", label: "Ajustes", icon: Settings },
 ];
-const isTasksTab = (t: Tab) => t === "semana" || t === "tarefas";
+
 
 export default function App() {
   if (!firebaseConfigured) return <SetupNeeded />;
@@ -70,27 +72,8 @@ export function Shell() {
   const { editTask } = useDialogs();
   const [tab, setTab] = useTab();
   const [help, setHelp] = useState(false);
-  // Última vista usada em Tarefas (agenda ou lista), lembrada neste navegador.
-  const [tasksView, setTasksView] = useState<"semana" | "tarefas">(() => {
-    try {
-      return localStorage.getItem("margem.tarefas") === "lista" ? "tarefas" : "semana";
-    } catch {
-      return "semana";
-    }
-  });
-  const go = (t: Tab) => {
-    if (isTasksTab(t)) {
-      const v = t === "tarefas" && !isTasksTab(tab) ? tasksView : (t as "semana" | "tarefas");
-      setTasksView(v);
-      try {
-        localStorage.setItem("margem.tarefas", v === "tarefas" ? "lista" : "agenda");
-      } catch {
-        /* sem armazenamento: só não lembra */
-      }
-      setTab(v);
-    } else setTab(t);
-  };
-  const isActive = (id: Tab) => (id === "tarefas" ? isTasksTab(tab) : tab === id);
+  const go = setTab;
+  const isActive = (id: Tab) => tab === id;
   // Barra lateral recolhida (só ícones), lembrada neste navegador.
   const [collapsed, setCollapsed] = useState(() => {
     try {
@@ -136,11 +119,9 @@ export function Shell() {
   }
 
   const isToday = date === todayKey();
-  const days = weekDays(date);
   const fmt = (k: string, o: Intl.DateTimeFormatOptions) => fromKey(k).toLocaleDateString("pt-BR", o);
   const titles: Record<Tab, string> = {
     dia: isToday ? "Hoje" : fmt(date, { weekday: "long" }),
-    semana: "Tarefas",
     foco: "Foco",
     tarefas: "Tarefas",
     ajustes: "Ajustes",
@@ -148,16 +129,12 @@ export function Shell() {
   const subtitle =
     tab === "dia"
       ? fmt(date, { weekday: isToday ? "long" : undefined, day: "numeric", month: "long" })
-      : tab === "semana"
-        ? `${days.includes(todayKey()) ? "Esta semana, " : ""}${fmt(days[0], { day: "numeric", month: "short" })} a ${fmt(days[6], { day: "numeric", month: "short" })}`
-        : tab === "foco"
+      : tab === "foco"
           ? "Pomodoro ou cronômetro, com ou sem tarefa"
           : tab === "tarefas"
-            ? "Todas, por tipo"
+            ? "O que você faz e quando"
             : "Seu horário";
-  const step = tab === "semana" ? 7 : 1;
-  const showNav = tab === "dia" || tab === "semana";
-  const backToNow = tab === "semana" ? !days.includes(todayKey()) : !isToday;
+  const showNav = tab === "dia";
 
   return (
     <div className="lg:flex">
@@ -264,28 +241,18 @@ export function Shell() {
               <h1 className="text-2xl font-semibold tracking-tight first-letter:uppercase">{titles[tab]}</h1>
               <p className="text-sm text-muted first-letter:uppercase">{subtitle}</p>
             </div>
-            {isTasksTab(tab) && (
-              <Segmented
-                value={tab as "semana" | "tarefas"}
-                onChange={(v) => go(v)}
-                options={[
-                  { value: "semana", label: "Agenda" },
-                  { value: "tarefas", label: "Lista" },
-                ]}
-              />
-            )}
             {showNav && (
               <div className="flex items-center gap-1.5">
-                {backToNow && (
+                {!isToday && (
                   <Button variant="secondary" onClick={() => setDate(todayKey())}>
-                    {tab === "semana" ? "Esta semana" : "Hoje"}
+                    Hoje
                   </Button>
                 )}
                 <div className="flex rounded-lg border border-line bg-surface">
-                  <IconButton label={tab === "semana" ? "Semana anterior" : "Dia anterior"} onClick={() => setDate(shiftDay(date, -step))} className="h-9 w-9 rounded-r-none">
+                  <IconButton label="Dia anterior" onClick={() => setDate(shiftDay(date, -1))} className="h-9 w-9 rounded-r-none">
                     <ChevronLeft size={18} />
                   </IconButton>
-                  <IconButton label={tab === "semana" ? "Próxima semana" : "Próximo dia"} onClick={() => setDate(shiftDay(date, step))} className="h-9 w-9 rounded-l-none border-l border-line">
+                  <IconButton label="Próximo dia" onClick={() => setDate(shiftDay(date, 1))} className="h-9 w-9 rounded-l-none border-l border-line">
                     <ChevronRight size={18} />
                   </IconButton>
                 </div>
@@ -295,16 +262,8 @@ export function Shell() {
 
           <main>
             {tab === "dia" && <DayView />}
-            {tab === "semana" && (
-              <WeekView
-                onPickDay={(d) => {
-                  setDate(d);
-                  setTab("dia");
-                }}
-              />
-            )}
             {tab === "foco" && <FocusView />}
-            {tab === "tarefas" && <TasksView />}
+            {tab === "tarefas" && <TasksPage />}
             {tab === "ajustes" && <SettingsView key={JSON.stringify([settings.windows, settings.breaks])} />}
           </main>
         </div>
