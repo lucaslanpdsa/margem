@@ -62,16 +62,26 @@ export function QuickAdd({ date }: { date: string }) {
 function NowCard({ m }: { m: DayMetrics }) {
   const { uid, settings, blocks } = useStore();
   const now = useNow(30000);
-  const s = suggestNow(new Date(now), m, blocks);
+  const s = suggestNow(new Date(now), m, blocks, settings.breaks);
+  if (settings.activeTimer?.phase === "focus") return null;
+  if (s.kind === "pause") {
+    return (
+      <div className="flex items-center gap-3 rounded-2xl bg-break/15 px-5 py-4">
+        <p className="text-sm">
+          <b className="font-semibold">{s.pause.label}</b> até as {s.pause.end}. Esse tempo não conta no seu dia.
+        </p>
+      </div>
+    );
+  }
   const item = s.item;
-  if (settings.activeTimer?.phase === "focus" || !item) return null;
+  if (!item) return null;
 
   const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   const context =
     s.kind === "block" && s.block
       ? `Está na sua agenda até ${hhmm(s.block.end)}.`
       : s.untilNextMin !== null
-        ? `Você tem ${fmtMin(s.untilNextMin)} até o próximo compromisso da agenda.`
+        ? `Você tem ${fmtMin(s.untilNextMin)} até ${s.nextLabel}.`
         : "Nada marcado na agenda pelo resto do dia.";
 
   return (
@@ -119,12 +129,17 @@ function Starters({ date }: { date: string }) {
 }
 
 export function DayLists({ m }: { m: DayMetrics }) {
-  const { uid, tasks, sessions, date } = useStore();
+  const { uid, tasks, sessions, blocks, date } = useStore();
   const [showDone, setShowDone] = useState(false);
   const isToday = date === todayKey();
 
   const queue = flexibleQueue(m);
-  const scheduled = m.items.filter((i) => i.scheduled && !i.completed);
+  const scheduled = m.items.filter((i) => i.scheduled && !i.completed && !i.outside);
+  const extras = m.items.filter((i) => i.outside && !i.completed);
+  const blockTime = (taskId: string) => {
+    const b = blocks.filter((x) => x.taskId === taskId && x.date === date).sort((x, y) => x.start.localeCompare(y.start))[0];
+    return b ? new Date(b.start).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }) : "";
+  };
   const done = m.items.filter((i) => i.completed);
   const late = isToday ? overdue(date, tasks) : [];
   const goals = weeklyGoals(date, tasks, sessions);
@@ -182,6 +197,25 @@ export function DayLists({ m }: { m: DayMetrics }) {
                         doneMin={i.doneMin}
                         completed={i.completed}
                         checkable={i.task.repeat !== "weeklyGoal"}
+                      />
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {extras.length > 0 && (
+                <div>
+                  <p className="mb-1.5 text-[13px] font-medium text-muted">Fora do seu horário (extra, não ocupa o tempo do dia)</p>
+                  <ul className="space-y-1.5">
+                    {extras.map((i) => (
+                      <TaskRow
+                        key={i.task.id}
+                        task={i.task}
+                        date={date}
+                        estimateMin={i.estimateMin}
+                        doneMin={i.doneMin}
+                        checkable={i.task.repeat !== "weeklyGoal"}
+                        extra={<span className="tabular rounded-md bg-break/15 px-2 py-1 text-xs font-medium text-break">{blockTime(i.task.id)}</span>}
                       />
                     ))}
                   </ul>

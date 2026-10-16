@@ -1,48 +1,17 @@
 "use client";
 
-import { CalendarRange, ListChecks, Minus, Plus, Timer } from "lucide-react";
+import { CalendarRange, ListChecks, Timer } from "lucide-react";
 import { useState } from "react";
-import { WEEKDAY_SHORT, fmtMin } from "@/lib/dates";
 import { saveSettings } from "@/lib/db";
+import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
 import { useStore } from "./store";
-import { PomodoroPicker } from "./pickers";
-import { Button, Modal, cx } from "./ui";
-
-const ORDER = [1, 2, 3, 4, 5, 6, 0];
-
-
-/** Editor de tempo por dia da semana, de 30 em 30 minutos. */
-export function CapacityEditor({ value, onChange }: { value: number[]; onChange: (v: number[]) => void }) {
-  const set = (d: number, min: number) => onChange(value.map((v, i) => (i === d ? Math.max(0, Math.min(16 * 60, min)) : v)));
-  return (
-    <div className="grid grid-cols-7 gap-1.5">
-      {ORDER.map((d) => (
-        <div key={d} className="flex flex-col items-center rounded-xl border border-line bg-surface py-2">
-          <span className="text-xs font-medium text-muted">{WEEKDAY_SHORT[d]}</span>
-          <button type="button" aria-label={`Mais tempo ${WEEKDAY_SHORT[d]}`} onClick={() => set(d, value[d] + 30)} className="mt-1 rounded p-1 text-muted hover:bg-sunken hover:text-ink">
-            <Plus size={14} />
-          </button>
-          <span className={cx("tabular py-0.5 text-sm font-semibold", value[d] === 0 && "text-muted")}>{value[d] === 0 ? "—" : fmtMin(value[d])}</span>
-          <button type="button" aria-label={`Menos tempo ${WEEKDAY_SHORT[d]}`} onClick={() => set(d, value[d] - 30)} className="rounded p-1 text-muted hover:bg-sunken hover:text-ink">
-            <Minus size={14} />
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-const PRESETS: { label: string; caps: number[] }[] = [
-  { label: "Noites livres", caps: [240, 120, 120, 120, 120, 120, 240] },
-  { label: "Meio período", caps: [180, 240, 240, 240, 240, 240, 180] },
-  { label: "Dia todo livre", caps: [240, 480, 480, 480, 480, 480, 240] },
-];
+import { Button, Modal } from "./ui";
 
 const HOW = [
   {
     icon: CalendarRange,
-    title: "Você diz quanto tempo tem",
-    text: "Para cada dia da semana, quanto sobra para suas tarefas, fora trabalho, refeições e compromissos fixos.",
+    title: "Você diz o seu horário",
+    text: "Por exemplo, das 7h às 18h com uma hora de almoço. O app acompanha o relógio e sabe quanto do dia já passou.",
   },
   {
     icon: ListChecks,
@@ -72,8 +41,9 @@ export function HowItWorks() {
       ))}
       <div className="rounded-xl bg-sunken p-4">
         <div className="flex h-8 gap-[2px] overflow-hidden rounded-lg text-[11px] font-semibold">
-          <div className="flex w-[30%] items-center bg-done px-2 text-white">Feito</div>
-          <div className="flex w-[40%] items-center bg-todo px-2 text-white">Falta</div>
+          <div className="flex w-[22%] items-center bg-done px-2 text-white">Feito</div>
+          <div className="flex w-[12%] items-center bg-idle px-2 text-white">Passou</div>
+          <div className="flex w-[36%] items-center bg-todo px-2 text-white">Falta</div>
           <div className="hatch flex flex-1 items-center px-2 text-muted">Livre</div>
         </div>
         <p className="mt-2 text-xs text-muted">É essa régua que você vê no topo de cada dia.</p>
@@ -97,22 +67,16 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
 
 export function Onboarding() {
   const { uid, settings } = useStore();
-  const [step, setStep] = useState(0);
-  const [caps, setCaps] = useState(settings.capacityByWeekday);
-  const [focus, setFocus] = useState(settings.focusMin);
-  const [brk, setBrk] = useState(settings.breakMin);
+  // Quem já usava a versão antiga (por horas) vê só o passo do horário.
+  const returning = !!settings.onboarded;
+  const [step, setStep] = useState(returning ? 1 : 0);
+  const [schedule, setSchedule] = useState<Schedule>({ windows: settings.windows, breaks: settings.breaks });
 
-  const weekTotal = caps.reduce((a, b) => a + b, 0);
   const finish = (skip = false) =>
     saveSettings(uid, {
-      ...(skip
-        ? {}
-        : {
-            capacityByWeekday: caps,
-            focusMin: focus,
-            breakMin: brk,
-          }),
+      ...(skip ? {} : { windows: schedule.windows, breaks: schedule.breaks }),
       onboarded: true,
+      scheduleSet: true,
     });
 
   const steps = [
@@ -122,37 +86,11 @@ export function Onboarding() {
       body: <HowItWorks />,
     },
     {
-      title: "Quanto tempo você tem para tarefas?",
-      description: "Conte só o tempo livre para as tarefas daqui. Dá para mudar um dia específico depois.",
-      body: (
-        <div className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            {PRESETS.map((p) => (
-              <Button key={p.label} size="sm" variant={caps.join() === p.caps.join() ? "primary" : "secondary"} onClick={() => setCaps(p.caps)}>
-                {p.label}
-              </Button>
-            ))}
-          </div>
-          <CapacityEditor value={caps} onChange={setCaps} />
-          <p className="text-sm text-muted">
-            Total na semana: <span className="tabular font-semibold text-ink">{fmtMin(weekTotal)}</span>
-          </p>
-        </div>
-      ),
-    },
-    {
-      title: "Como você gosta de focar?",
-      description: "Duração do pomodoro. Dá para mudar depois em Ajustes.",
-      body: (
-        <PomodoroPicker
-          focus={focus}
-          brk={brk}
-          onChange={(f, b) => {
-            setFocus(f);
-            setBrk(b);
-          }}
-        />
-      ),
+      title: returning ? "Agora o Margem usa o seu horário" : "Qual é o seu horário?",
+      description: returning
+        ? "Em vez de um total de horas, diga de que horas a que horas você tem para tarefas. Assim o app sabe quanto do dia já passou."
+        : "De que horas a que horas você tem para tarefas em cada dia. Dá para mudar um dia específico depois.",
+      body: <ScheduleEditor value={schedule} onChange={setSchedule} />,
     },
   ];
 
@@ -163,17 +101,15 @@ export function Onboarding() {
     <Modal title={s.title} description={s.description} onClose={() => finish(true)} wide>
       {s.body}
       <div className="mt-6 flex items-center justify-between border-t border-line pt-4">
-        <span className="text-[13px] text-muted">
-          Passo {step + 1} de {steps.length}
-        </span>
+        <span className="text-[13px] text-muted">{returning ? "" : `Passo ${step + 1} de ${steps.length}`}</span>
         <div className="flex gap-2">
-          {step > 0 && (
+          {step > 0 && !returning && (
             <Button variant="ghost" onClick={() => setStep(step - 1)}>
               Voltar
             </Button>
           )}
           <Button variant="primary" onClick={() => (last ? finish() : setStep(step + 1))}>
-            {last ? "Começar a usar" : "Continuar"}
+            {last ? "Salvar e começar" : "Continuar"}
           </Button>
         </div>
       </div>

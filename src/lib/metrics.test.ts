@@ -19,10 +19,12 @@ const sessions: Session[] = [
   { id: "s1", taskId: "b", date: D, minutes: 30, kind: "pomodoro", startedAt: "", endedAt: "" },
   { id: "s2", taskId: "c", date: "2026-10-13", minutes: 100, kind: "manual", startedAt: "", endedAt: "" },
 ];
-const settings = { ...DEFAULT_SETTINGS, capacityByWeekday: [0, 0, 0, 0, 0, 240, 0] };
+// Sexta com 4h: 14:00–18:00, sem pausas. "Agora" = 06:00, antes do dia começar.
+const settings = { ...DEFAULT_SETTINGS, windows: [null, null, null, null, null, { start: "14:00", end: "18:00" }, null], breaks: [] };
+const early = new Date(`${D}T06:00:00`);
 
 describe("dayMetrics", () => {
-  const m = dayMetrics(D, settings, tasks, blocks, sessions);
+  const m = dayMetrics(D, settings, tasks, blocks, sessions, early);
 
   it("inclui avulsa do dia, recorrente do dia e meta com bloco", () => {
     expect(m.items.map((i) => i.task.id).sort()).toEqual(["a", "b", "c"]);
@@ -38,17 +40,63 @@ describe("dayMetrics", () => {
 
   it("tarefa concluída mais cedo libera tempo", () => {
     const done = tasks.map((t) => (t.id === "b" ? { ...t, completions: { [D]: true } } : t));
-    expect(dayMetrics(D, settings, done, blocks, sessions).freeMin).toBe(240 - 30 - 120);
+    expect(dayMetrics(D, settings, done, blocks, sessions, early).freeMin).toBe(240 - 30 - 120);
   });
 
   it("override de capacidade vale para o dia", () => {
-    const s = { ...settings, capacityOverrides: { [D]: 100 } };
-    expect(dayMetrics(D, s, tasks, blocks, sessions).capacityMin).toBe(100);
+    const s = { ...settings, windowOverrides: { [D]: { start: "16:00", end: "18:00" } } };
+    expect(dayMetrics(D, s, tasks, blocks, sessions, early).capacityMin).toBe(120);
+  });
+});
+
+describe("horário do dia", () => {
+  const work = {
+    ...DEFAULT_SETTINGS,
+    windows: [null, null, null, null, null, { start: "07:00", end: "18:00" }, null],
+    breaks: [{ label: "Almoço", start: "12:00", end: "13:00" }],
+  };
+
+  it("desconta o almoço do tempo do dia", () => {
+    expect(dayMetrics(D, work, [], [], [], early).capacityMin).toBe(600);
+  });
+
+  it("às 9h, 2h já passaram e o livre considera só o que resta", () => {
+    const m = dayMetrics(D, work, tasks, blocks, sessions, new Date(`${D}T09:00:00`));
+    expect(m.elapsedMin).toBe(120);
+    expect(m.leftMin).toBe(480);
+    expect(m.idleMin).toBe(120 - 30);
+    expect(m.freeMin).toBe(480 - m.remainingMin);
+  });
+
+  it("durante o almoço o relógio não conta", () => {
+    expect(dayMetrics(D, work, [], [], [], new Date(`${D}T12:30:00`)).elapsedMin).toBe(300);
+  });
+
+  it("tarefa marcada fora do horário não ocupa o horário", () => {
+    const evening: Block[] = [{ id: "z", taskId: "b", date: D, start: `${D}T20:00:00`, end: `${D}T21:30:00` }];
+    const m = dayMetrics(D, work, tasks, evening, sessions, early);
+    const item = m.items.find((i) => i.task.id === "b")!;
+    expect(item.outside).toBe(true);
+    expect(m.outsideMin).toBe(90);
+    expect(m.remainingMin).toBe(60); // só a avulsa "a" ocupa o horário
+    expect(m.doneMin).toBe(0); // os 30min feitos em "b" ficam fora do horário
+  });
+
+  it("a sugestão conta até o almoço, não até um compromisso à noite", () => {
+    const evening: Block[] = [{ id: "z", taskId: "b", date: D, start: `${D}T20:00:00`, end: `${D}T21:00:00` }];
+    const m = dayMetrics(D, work, tasks, evening, [], new Date(`${D}T09:20:00`));
+    const sug = suggestNow(new Date(`${D}T09:20:00`), m, evening, work.breaks);
+    expect(sug.untilNextMin).toBe(160);
+    expect(sug.nextLabel).toBe("almoço");
+  });
+
+  it("dia sem horário tem capacidade zero", () => {
+    expect(dayMetrics("2026-10-18", work, [], [], [], early).capacityMin).toBe(0);
   });
 });
 
 describe("fila flexível e sugestão", () => {
-  const m = dayMetrics(D, settings, tasks, blocks, sessions);
+  const m = dayMetrics(D, settings, tasks, blocks, sessions, early);
 
   it("ordena por prazo antes de prioridade e ignora agendadas", () => {
     expect(flexibleQueue(m).map((i) => i.task.id)).toEqual(["a", "b"]);

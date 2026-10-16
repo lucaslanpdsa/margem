@@ -2,30 +2,37 @@
 
 import { Pencil, RotateCcw } from "lucide-react";
 import { useState } from "react";
-import { fmtMin, fromKey, parseDuration, todayKey } from "@/lib/dates";
+import { fmtMin, fromKey, todayKey } from "@/lib/dates";
 import { saveSettings } from "@/lib/db";
 import type { DayMetrics } from "@/lib/metrics";
+import type { DayWindow } from "@/lib/types";
 import { useStore } from "./store";
-import { Button, Panel, cx, inputCls } from "./ui";
+import { Button, Panel, TimeSelect, cx } from "./ui";
 
-/** Separa o que falta em "cabe no dia" e "passou do limite". */
-function splitRemaining(m: DayMetrics) {
-  const excess = Math.max(0, m.doneMin + m.remainingMin - m.capacityMin);
-  const inLimit = Math.max(0, m.remainingMin - excess);
-  return { inLimit, excess: m.remainingMin - inLimit };
+/**
+ * Divide o dia em segmentos que somam o horário:
+ * feito | passou sem registro | falta (o que cabe) | não cabe | livre
+ */
+function segments(m: DayMetrics) {
+  const used = Math.max(m.doneMin, m.elapsedMin);
+  const room = Math.max(0, m.capacityMin - used);
+  const fits = Math.min(m.remainingMin, room);
+  const excess = m.remainingMin - fits;
+  return { done: m.doneMin, idle: m.idleMin, fits, excess, free: Math.max(0, m.freeMin) };
 }
 
 /** Barra compacta (cabeçalho da semana). */
 export function CapacityBar({ m, thin }: { m: DayMetrics; thin?: boolean }) {
-  const total = Math.max(m.capacityMin, m.doneMin + m.remainingMin, 1);
-  const pct = (v: number) => `${(Math.max(0, v) / total) * 100}%`;
-  const { inLimit, excess } = splitRemaining(m);
+  const s = segments(m);
+  const total = Math.max(1, s.done + s.idle + s.fits + s.excess + s.free);
+  const pct = (v: number) => `${(v / total) * 100}%`;
   return (
     <div className={cx("flex w-full gap-px overflow-hidden rounded-full bg-sunken", thin ? "h-1.5" : "h-2.5")}>
-      <div className="bg-done" style={{ width: pct(m.doneMin) }} />
-      <div className="bg-todo" style={{ width: pct(inLimit) }} />
-      <div className="bg-over" style={{ width: pct(excess) }} />
-      <div className="hatch" style={{ width: pct(m.freeMin) }} />
+      <div className="bg-done" style={{ width: pct(s.done) }} />
+      <div className="bg-idle" style={{ width: pct(s.idle) }} />
+      <div className="bg-todo" style={{ width: pct(s.fits) }} />
+      <div className="bg-over" style={{ width: pct(s.excess) }} />
+      <div className="hatch" style={{ width: pct(s.free) }} />
     </div>
   );
 }
@@ -34,66 +41,86 @@ function Segment({ width, className, label }: { width: number; className: string
   if (width <= 0) return null;
   return (
     <div className={cx("relative flex h-full items-center overflow-hidden px-3", className)} style={{ width: `${width}%` }}>
-      {width > 14 && <span className="truncate text-[13px] font-semibold">{label}</span>}
+      {width > 13 && <span className="truncate text-[13px] font-semibold">{label}</span>}
     </div>
   );
 }
 
-/** A régua do dia: mostra o que já foi feito, o que falta e o que ainda cabe. */
-export function DayBudget({ m }: { m: DayMetrics }) {
+const hhmm = (d: Date) => d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+/** A régua do dia: o que já foi feito, o tempo que passou, o que falta e o que ainda cabe. */
+export function DayBudget({ m, now }: { m: DayMetrics; now: Date }) {
   const { uid, settings } = useStore();
   const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState("");
+  const [draft, setDraft] = useState<DayWindow>({ start: "08:00", end: "18:00" });
 
-  const over = m.freeMin < 0;
-  const total = Math.max(m.capacityMin, m.doneMin + m.remainingMin, 1);
-  const p = (v: number) => (Math.max(0, v) / total) * 100;
-  const { inLimit, excess } = splitRemaining(m);
+  const s = segments(m);
+  const total = Math.max(1, s.done + s.idle + s.fits + s.excess + s.free);
+  const p = (v: number) => (v / total) * 100;
   const isToday = m.date === todayKey();
-  const custom = settings.capacityOverrides[m.date] !== undefined;
+  const custom = m.date in settings.windowOverrides;
   const weekday = fromKey(m.date).toLocaleDateString("pt-BR", { weekday: "long" });
+  const over = s.excess > 0;
 
-  async function saveOverride() {
-    const min = parseDuration(value);
-    const next = { ...settings.capacityOverrides };
-    if (min === null) delete next[m.date];
-    else next[m.date] = min;
-    await saveSettings(uid, { capacityOverrides: next });
+  async function saveOverride(w: DayWindow | null) {
+    await saveSettings(uid, { windowOverrides: { ...settings.windowOverrides, [m.date]: w } });
     setEditing(false);
   }
-
   async function resetOverride() {
-    const next = { ...settings.capacityOverrides };
+    const next = { ...settings.windowOverrides };
     delete next[m.date];
-    await saveSettings(uid, { capacityOverrides: next });
+    await saveSettings(uid, { windowOverrides: next });
   }
 
-  const headline = m.capacityMin === 0 ? "Dia sem tempo para tarefas" : over ? `${fmtMin(-m.freeMin)} além do limite` : `${fmtMin(m.freeMin)} livres`;
+  let headline: string;
+  let sub: string;
+  if (!m.window) {
+    headline = isToday ? "Hoje sem horário para tarefas" : "Dia sem horário para tarefas";
+    sub = "Defina um horário para este dia se quiser planejar algo.";
+  } else if (m.leftMin === 0 && !isToday) {
+    headline = `${fmtMin(m.doneMin)} feitos`;
+    sub = `Dia encerrado. De ${fmtMin(m.capacityMin)} de horário, ${fmtMin(m.doneMin)} ficaram registrados em tarefas.`;
+  } else if (m.leftMin === 0) {
+    headline = "Seu horário de hoje acabou";
+    sub = `Você registrou ${fmtMin(m.doneMin)} em tarefas hoje.`;
+  } else if (over) {
+    headline = `${fmtMin(s.excess)} não cabem`;
+    sub = isToday
+      ? `São ${hhmm(now)}. Restam ${fmtMin(m.leftMin)} do seu horário, mas faltam ${fmtMin(m.remainingMin)} de tarefas. Mova algo para outro dia.`
+      : `Faltam ${fmtMin(m.remainingMin)} de tarefas para ${fmtMin(m.leftMin)} de horário. Mova algo para outro dia.`;
+  } else {
+    headline = `${fmtMin(m.freeMin)} livres`;
+    sub = isToday
+      ? `São ${hhmm(now)}. Restam ${fmtMin(m.leftMin)} do seu horário até as ${m.window.end}, e ${fmtMin(m.remainingMin)} disso já são das tarefas de hoje.`
+      : `De ${fmtMin(m.capacityMin)} de horário, ${fmtMin(m.remainingMin)} já são das tarefas deste dia.`;
+  }
+
+  const breaksText = settings.breaks.length ? `, menos ${settings.breaks.map((b) => `${b.label.toLowerCase()} ${b.start}–${b.end}`).join(" e ")}` : "";
 
   return (
     <Panel className="p-5">
-      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-2">
-        <div>
+      <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-3">
+        <div className="min-w-0">
           <p className={cx("tabular text-[32px] leading-none font-semibold tracking-tight", over && "text-over")}>{headline}</p>
-          <p className="mt-2 text-sm text-muted">
-            {over
-              ? "O que falta não cabe no tempo que você tem. Mova algo para outro dia ou reduza uma estimativa."
-              : `${isToday ? "Ainda cabe no seu dia de hoje" : "Ainda cabe neste dia"}, depois de contar o que já fez e o que falta.`}
-          </p>
+          <p className="mt-2 max-w-2xl text-sm text-muted">{sub}</p>
         </div>
 
         {editing ? (
           <form
-            className="flex items-center gap-2"
+            className="flex flex-wrap items-center gap-2"
             onSubmit={(e) => {
               e.preventDefault();
-              saveOverride();
+              saveOverride(draft);
             }}
           >
-            <span className="text-sm text-muted">{isToday ? "Hoje" : "Neste dia"} tenho</span>
-            <input autoFocus className={cx(inputCls, "h-9 w-20")} value={value} onChange={(e) => setValue(e.target.value)} placeholder="3h" />
+            <TimeSelect label="Início" value={draft.start} onChange={(v) => setDraft({ ...draft, start: v })} />
+            <span className="text-muted">até</span>
+            <TimeSelect label="Fim" value={draft.end} onChange={(v) => setDraft({ ...draft, end: v })} />
             <Button type="submit" variant="primary">
               Salvar
+            </Button>
+            <Button type="button" variant="ghost" onClick={() => saveOverride(null)}>
+              Sem horário
             </Button>
             <Button type="button" variant="ghost" onClick={() => setEditing(false)}>
               Cancelar
@@ -103,37 +130,52 @@ export function DayBudget({ m }: { m: DayMetrics }) {
           <Button
             variant="secondary"
             onClick={() => {
-              setValue(fmtMin(m.capacityMin));
+              setDraft(m.window ?? { start: "08:00", end: "18:00" });
               setEditing(true);
             }}
           >
-            <Pencil size={14} /> Mudar o tempo {isToday ? "de hoje" : "deste dia"}
+            <Pencil size={14} /> Mudar horário {isToday ? "de hoje" : "deste dia"}
           </Button>
         )}
       </div>
 
-      {/* Régua */}
-      <div className="relative mt-5">
-        <div className="flex h-11 w-full gap-[2px] overflow-hidden rounded-xl bg-sunken">
-          <Segment width={p(m.doneMin)} className="bg-done text-white" label={`Feito ${fmtMin(m.doneMin)}`} />
-          <Segment width={p(inLimit)} className="bg-todo text-white" label={`Falta ${fmtMin(over ? inLimit : m.remainingMin)}`} />
-          <Segment width={p(excess)} className="bg-over text-white" label={`Não cabe ${fmtMin(excess)}`} />
-          <Segment width={p(m.freeMin)} className="hatch text-muted" label={`Livre ${fmtMin(m.freeMin)}`} />
-        </div>
-      </div>
+      {m.window && (
+        <>
+          <div className="mt-5 flex h-11 w-full gap-[2px] overflow-hidden rounded-xl bg-sunken">
+            <Segment width={p(s.done)} className="bg-done text-white" label={`Feito ${fmtMin(s.done)}`} />
+            <Segment width={p(s.idle)} className="bg-idle text-white" label={`Passou ${fmtMin(s.idle)}`} />
+            <Segment width={p(s.fits)} className="bg-todo text-white" label={`Falta ${fmtMin(s.fits)}`} />
+            <Segment width={p(s.excess)} className="bg-over text-white" label={`Não cabe ${fmtMin(s.excess)}`} />
+            <Segment width={p(s.free)} className="hatch text-muted" label={`Livre ${fmtMin(s.free)}`} />
+          </div>
 
-      {/* Legenda explicada */}
-      <dl className="mt-4 grid gap-4 sm:grid-cols-3">
-        <Legend swatch="bg-done" label="Feito" value={m.doneMin} text="Tempo registrado no dia, por pomodoro ou manualmente." />
-        <Legend swatch="bg-todo" label="Falta" value={m.remainingMin} text={over ? `O que ainda resta das tarefas deste dia. ${fmtMin(excess)} disso não cabe (em vermelho).` : "O que ainda resta das tarefas deste dia."} />
-        <Legend swatch="hatch" label="Livre" value={Math.max(0, m.freeMin)} text="Tempo que sobra para encaixar mais coisas." />
-      </dl>
+          <dl className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <Legend swatch="bg-done" label="Feito" value={s.done} text="Tempo registrado em tarefas, por pomodoro ou manualmente." />
+            <Legend swatch="bg-idle" label="Passou" value={s.idle} text="Horário que já passou sem nenhuma tarefa registrada." />
+            <Legend
+              swatch="bg-todo"
+              label="Falta"
+              value={m.remainingMin}
+              text={over ? `O que resta das tarefas do dia. ${fmtMin(s.excess)} disso não cabe no horário.` : "O que ainda resta das tarefas do dia."}
+            />
+            <Legend swatch="hatch" label="Livre" value={s.free} text="Horário que sobra para encaixar mais coisas." />
+          </dl>
+        </>
+      )}
 
       <div className="mt-4 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-line pt-3 text-[13px] text-muted">
         <span>
-          <span className="tabular font-medium text-ink">{fmtMin(m.capacityMin)}</span> para tarefas neste dia
+          {m.window ? (
+            <>
+              Horário {m.window.start}–{m.window.end}
+              {breaksText} = <span className="tabular font-medium text-ink">{fmtMin(m.capacityMin)}</span> para tarefas
+            </>
+          ) : (
+            "Sem horário para tarefas"
+          )}
           {custom ? " (ajustado só para este dia)." : ` (padrão de ${weekday}, definido em Ajustes).`}
         </span>
+        {m.outsideMin > 0 && <span className="w-full text-break">Mais {fmtMin(m.outsideMin)} de tarefas marcadas fora do horário, como extra.</span>}
         {custom && (
           <button onClick={resetOverride} className="inline-flex items-center gap-1 font-medium text-brand hover:underline">
             <RotateCcw size={12} /> Voltar ao padrão

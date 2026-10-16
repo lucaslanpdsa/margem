@@ -11,7 +11,8 @@ Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem
 - **Prioridade** (alta, média, baixa) e **categoria**.
 - **Adição rápida**: digite `Revisar PR 45` ou `Estudar React 1h30` e a estimativa é lida do final.
 - **Agenda do dia e da semana**: arraste tarefas da lista para a agenda para criar blocos; mova e redimensione blocos.
-- **Capacidade do dia**: tempo disponível por dia da semana e ajuste pontual (“hoje só tenho 2h”).
+- **Seu horário**: de que horas a que horas você tem para tarefas em cada dia, com pausas fixas (almoço). O app acompanha o relógio e sabe quanto do dia já passou. Dá para mudar o horário de um dia específico.
+- **Extras fora do horário**: tarefa marcada na agenda fora do seu horário (ex: aula às 20h) não ocupa o tempo do dia e aparece separada.
 - **Painel do dia**: feito / falta / planejado / livre, com alerta quando o dia passa do limite.
 - **Semana**: cada dia mostra sua barra de capacidade e o tempo livre no cabeçalho.
 - **Pomodoro**: conta **minutos reais** (parar no meio registra o parcial), sobrevive a recarregar a página e funciona entre dispositivos. Notificação + som ao fim.
@@ -24,11 +25,11 @@ Gerenciador de rotina flexível. Mostra, para cada dia, **quanto tempo você tem
 
 | Termo | Cálculo |
 |---|---|
-| Tempo do dia | padrão do dia da semana, ou o ajuste daquele dia |
-| Planejado | soma das estimativas das tarefas do dia (metas semanais entram pelo tempo dos blocos) |
-| Feito | tudo registrado no dia (pomodoro + manual) |
-| Falta | para cada tarefa não concluída: estimativa − feito |
-| Livre | tempo do dia − feito − falta (negativo = dia sobrecarregado) |
+| Tempo do dia | horário do dia (ex: 07:00–18:00) menos pausas (ex: almoço) |
+| Feito | tempo registrado no dia (pomodoro + manual), sem contar os extras |
+| Passou | horário que já passou no relógio sem nada registrado |
+| Falta | para cada tarefa não concluída do horário: estimativa − feito |
+| Livre | o que resta do horário − falta (negativo = não cabe) |
 
 Concluir uma tarefa antes da estimativa libera o tempo restante dela.
 
@@ -88,7 +89,7 @@ src/
 users/{uid}/tasks/{id}       tarefas
 users/{uid}/blocks/{id}      blocos na agenda
 users/{uid}/sessions/{id}    tempo trabalhado (pomodoro e manual)
-users/{uid}/meta/settings    capacidade, pomodoro e timer ativo
+users/{uid}/meta/settings    horário, pausas, pomodoro e timer ativo
 ```
 
 ## Próximos passos (v2)

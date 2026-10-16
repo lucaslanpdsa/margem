@@ -150,3 +150,24 @@ export function Segmented<T extends string | number>({
 
 export const PRIORITY_LABEL = { 1: "Alta", 2: "Média", 3: "Baixa" } as const;
 export const PRIORITY_COLOR = { 1: "text-over", 2: "text-break", 3: "text-muted" } as const;
+
+const TIMES = Array.from({ length: 96 }, (_, i) => `${String(Math.floor(i / 4)).padStart(2, "0")}:${String((i % 4) * 15).padStart(2, "0")}`);
+
+/** Escolha de horário em 24h, de 15 em 15 minutos (igual em todo navegador). */
+export function TimeSelect({ value, onChange, label }: { value: string; onChange: (v: string) => void; label: string }) {
+  const options = TIMES.includes(value) ? TIMES : [...TIMES, value].sort();
+  return (
+    <select
+      aria-label={label}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      className="tabular h-9 rounded-lg border border-line bg-surface px-2 text-sm outline-none focus:border-brand"
+    >
+      {options.map((t) => (
+        <option key={t} value={t}>
+          {t}
+        </option>
+      ))}
+    </select>
+  );
+}

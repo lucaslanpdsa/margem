@@ -59,21 +59,41 @@ export interface ActiveTimer {
   durationMin: number;
 }
 
+/** Horário de um dia, "HH:mm". */
+export interface DayWindow {
+  start: string;
+  end: string;
+}
+
+/** Pausa fixa dentro do dia (ex: almoço), vale para todos os dias com horário. */
+export interface BreakTime {
+  label: string;
+  start: string;
+  end: string;
+}
+
 export interface Settings {
-  /** Minutos disponíveis por dia da semana (0 = domingo). */
-  capacityByWeekday: number[];
-  /** Exceções para dias específicos { "2026-10-18": 120 }. */
-  capacityOverrides: Record<string, number>;
+  /** Horário por dia da semana (0 = domingo); null = dia sem tarefas. */
+  windows: (DayWindow | null)[];
+  /** Pausas fixas, como almoço. */
+  breaks: BreakTime[];
+  /** Exceções para dias específicos { "2026-10-18": { start, end } | null }. */
+  windowOverrides: Record<string, DayWindow | null>;
   focusMin: number;
   breakMin: number;
   activeTimer?: ActiveTimer | null;
   /** Já passou pela configuração inicial. */
   onboarded?: boolean;
+  /** Já definiu o horário do dia (configuração nova, por horário). */
+  scheduleSet?: boolean;
 }
 
+const WORKDAY: DayWindow = { start: "08:00", end: "18:00" };
+
 export const DEFAULT_SETTINGS: Settings = {
-  capacityByWeekday: [180, 240, 240, 240, 240, 240, 180],
-  capacityOverrides: {},
+  windows: [null, WORKDAY, WORKDAY, WORKDAY, WORKDAY, WORKDAY, null],
+  breaks: [{ label: "Almoço", start: "12:00", end: "13:00" }],
+  windowOverrides: {},
   focusMin: 25,
   breakMin: 5,
   activeTimer: null,

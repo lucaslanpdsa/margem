@@ -11,7 +11,8 @@ import { Calendar } from "./Calendar";
 import { CapacityBar, DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
 import { useDialogs } from "./dialogs";
-import { CapacityEditor } from "./Onboarding";
+import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
+import { useNow } from "./Timer";
 import { PomodoroPicker } from "./pickers";
 import { useStore } from "./store";
 import { Button, Panel, PanelHeader, Segmented, cx } from "./ui";
@@ -20,7 +21,8 @@ import { Button, Panel, PanelHeader, Segmented, cx } from "./ui";
 
 export function DayView() {
   const { date, settings, tasks, blocks, sessions } = useStore();
-  const m = dayMetrics(date, settings, tasks, blocks, sessions);
+  const now = new Date(useNow(60000));
+  const m = dayMetrics(date, settings, tasks, blocks, sessions, now);
   const listRef = useRef<HTMLDivElement>(null);
 
   // Itens com a classe .fc-drag podem ser arrastados para a agenda.
@@ -41,7 +43,7 @@ export function DayView() {
 
   return (
     <div className="space-y-4">
-      <DayBudget m={m} />
+      <DayBudget m={m} now={now} />
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div ref={listRef} className="min-w-0">
           <DayLists m={m} />
@@ -59,16 +61,29 @@ export function DayView() {
 export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
   const { date, settings, tasks, blocks, sessions } = useStore();
   const days = weekDays(date);
-  const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions));
-  const usable = ms.reduce((a, m) => a + m.capacityMin, 0);
-  const done = ms.reduce((a, m) => a + m.doneMin, 0);
+  const now = new Date(useNow(60000));
+  const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now));
+  const sum = (k: "capacityMin" | "doneMin" | "elapsedMin" | "idleMin" | "leftMin" | "remainingMin" | "freeMin" | "outsideMin") =>
+    ms.reduce((a, m) => a + m[k], 0);
   // Dias que já passaram não têm mais "por fazer": o que ficou para trás não conta como pendente.
   const today = todayKey();
-  const remaining = ms.filter((m) => m.date >= today).reduce((a, m) => a + m.remainingMin, 0);
-  const free = usable - done - remaining;
+  const ahead = ms.filter((m) => m.date >= today);
+  const remaining = ahead.reduce((a, m) => a + m.remainingMin, 0);
+  const free = ahead.reduce((a, m) => a + m.freeMin, 0);
+  const done = sum("doneMin");
+  const left = sum("leftMin");
   const goals = weeklyGoals(date, tasks, sessions);
-  const overDays = ms.filter((m) => m.freeMin < 0).length;
-  const weekMetrics = { date, capacityMin: usable, plannedMin: 0, doneMin: done, remainingMin: remaining, freeMin: free, items: [] };
+  const overDays = ahead.filter((m) => m.freeMin < 0).length;
+  const weekMetrics = {
+    ...ms[0],
+    capacityMin: sum("capacityMin"),
+    elapsedMin: sum("elapsedMin"),
+    doneMin: done,
+    idleMin: sum("idleMin"),
+    remainingMin: remaining,
+    freeMin: free,
+    items: [],
+  };
 
   return (
     <div className="space-y-4">
@@ -79,7 +94,7 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
               {free < 0 ? `${fmtMin(-free)} além do limite` : `${fmtMin(free)} livres na semana`}
             </p>
             <p className="mt-2 text-sm text-muted">
-              {fmtMin(done)} feitos e {fmtMin(remaining)} por fazer daqui em diante, de {fmtMin(usable)} para tarefas.
+              Restam {fmtMin(left)} do seu horário nesta semana. {fmtMin(done)} feitos até agora e {fmtMin(remaining)} de tarefas por fazer.
               {overDays > 0 && ` ${overDays === 1 ? "Um dia passou" : `${overDays} dias passaram`} do limite.`}
             </p>
           </div>
@@ -202,14 +217,14 @@ export function TasksView() {
 
 export function SettingsView() {
   const { uid, settings, user, logout } = useStore();
-  const [caps, setCaps] = useState(settings.capacityByWeekday);
+  const [schedule, setSchedule] = useState<Schedule>({ windows: settings.windows, breaks: settings.breaks });
   const [focus, setFocus] = useState(settings.focusMin);
   const [brk, setBrk] = useState(settings.breakMin);
   const [saved, setSaved] = useState(false);
   const [perm, setPerm] = useState(typeof Notification !== "undefined" ? Notification.permission : "unsupported");
 
   async function save() {
-    await saveSettings(uid, { capacityByWeekday: caps, focusMin: focus, breakMin: brk });
+    await saveSettings(uid, { windows: schedule.windows, breaks: schedule.breaks, scheduleSet: true, focusMin: focus, breakMin: brk });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   }
@@ -219,14 +234,11 @@ export function SettingsView() {
     <div className="mx-auto max-w-3xl space-y-4">
       <Panel>
         <PanelHeader
-          title="Tempo para tarefas em cada dia"
-          description="Quanto do dia sobra para as tarefas daqui, fora trabalho e compromissos fixos. Para mudar só um dia, use o botão “Mudar o tempo” na tela do dia."
+          title="Seu horário"
+          description="De que horas a que horas você tem para tarefas. Para mudar só um dia, use “Mudar horário” na tela do dia. Tarefas marcadas na agenda fora desse horário contam como extra."
         />
         <div className="px-5 pb-5">
-          <CapacityEditor value={caps} onChange={setCaps} />
-          <p className="mt-3 text-sm text-muted">
-            Total na semana: <span className="tabular font-semibold text-ink">{fmtMin(caps.reduce((a, b) => a + b, 0))}</span>
-          </p>
+          <ScheduleEditor value={schedule} onChange={setSchedule} />
         </div>
       </Panel>
 

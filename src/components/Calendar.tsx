@@ -8,7 +8,8 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { dayKey, fmtMin, fromKey, minutesBetween } from "@/lib/dates";
 import { addBlock, deleteBlock, updateBlock, updateTask } from "@/lib/db";
-import { dayMetrics, isCompletedOn } from "@/lib/metrics";
+import { blockOutside, dayMetrics, isCompletedOn } from "@/lib/metrics";
+import { toMin, windowFor } from "@/lib/schedule";
 import { startFocus } from "@/lib/pomodoro";
 import type { Block, Task } from "@/lib/types";
 import { CapacityBar } from "./CapacityPanel";
@@ -32,7 +33,7 @@ export function Calendar({ view, onPickDay }: Props) {
     ref.current?.getApi().gotoDate(fromKey(date));
   }, [date]);
 
-  const events: EventInput[] = blocks.map((b) => {
+  const blockEvents: EventInput[] = blocks.map((b) => {
     const t = taskById.get(b.taskId);
     const done = t ? (t.repeat === "weeklyGoal" ? false : isCompletedOn(t, b.date)) : false;
     const active = settings.activeTimer?.taskId === b.taskId && settings.activeTimer.phase === "focus";
@@ -41,9 +42,27 @@ export function Calendar({ view, onPickDay }: Props) {
       title: t?.title ?? "(tarefa excluída)",
       start: b.start,
       end: b.end,
-      classNames: cx(done && "is-done", active && "is-active").split(" ").filter(Boolean),
+      classNames: cx(done && "is-done", active && "is-active", blockOutside(b, windowFor(settings, b.date)) && "is-extra")
+        .split(" ")
+        .filter(Boolean),
     };
   });
+
+  // Seu horário fica em destaque; o resto do dia fica cinza. Pausas (almoço) aparecem marcadas.
+  const workDays = settings.windows.map((w, d) => (w ? d : -1)).filter((d) => d >= 0);
+  const businessHours = settings.windows.flatMap((w, d) => (w ? [{ daysOfWeek: [d], startTime: w.start, endTime: w.end }] : []));
+  const breakEvents: EventInput[] = settings.breaks.map((b, i) => ({
+    id: `break-${i}`,
+    title: b.label,
+    daysOfWeek: workDays,
+    startTime: b.start,
+    endTime: b.end,
+    display: "background",
+    classNames: ["is-break"],
+  }));
+  const events = [...blockEvents, ...breakEvents];
+  const earliest = Math.min(...settings.windows.filter(Boolean).map((w) => toMin(w!.start)), 8 * 60);
+  const slotMin = `${String(Math.max(0, Math.floor(earliest / 60) - 1)).padStart(2, "0")}:00:00`;
 
   // Quando a tarefa avulsa vai para a agenda de outro dia, ela passa a pertencer a esse dia.
   async function syncTaskDate(task: Task | undefined, day: string) {
@@ -94,9 +113,10 @@ export function Calendar({ view, onPickDay }: Props) {
         eventDurationEditable
         snapDuration="00:15:00"
         slotDuration="00:30:00"
-        slotMinTime="06:00:00"
+        slotMinTime={slotMin}
+        businessHours={businessHours}
         slotMaxTime="24:00:00"
-        scrollTime={`${String(Math.max(6, new Date().getHours() - 1)).padStart(2, "0")}:00:00`}
+        scrollTime={`${String(Math.max(Math.floor(earliest / 60) - 1, new Date().getHours() - 1)).padStart(2, "0")}:00:00`}
         firstDay={1}
         height={view === "timeGridDay" ? "70vh" : "74vh"}
         events={events}
@@ -107,14 +127,21 @@ export function Calendar({ view, onPickDay }: Props) {
           if (view === "timeGridDay") return null;
           const key = dayKey(arg.date);
           const m = dayMetrics(key, settings, tasks, blocks, sessions);
+          const label = !m.window
+            ? "sem horário"
+            : m.leftMin === 0
+              ? `${fmtMin(m.doneMin)} feitos`
+              : m.freeMin < 0
+                ? `${fmtMin(-m.freeMin)} não cabem`
+                : `${fmtMin(m.freeMin)} livres`;
           return (
             <button className="block w-full rounded-lg px-1.5 py-1.5 text-left hover:bg-sunken" onClick={() => onPickDay?.(key)} title="Abrir este dia">
               <span className={cx("block text-[13px] capitalize", arg.isToday ? "font-semibold text-todo" : "text-ink")}>{arg.text}</span>
               <span className="mt-1.5 block">
                 <CapacityBar m={m} thin />
               </span>
-              <span className={cx("tabular mt-1 block text-[11px] font-normal", m.freeMin < 0 ? "text-over" : "text-muted")}>
-                {m.capacityMin === 0 ? "sem tempo" : m.freeMin < 0 ? `${fmtMin(-m.freeMin)} além` : `${fmtMin(m.freeMin)} livres`}
+              <span className={cx("tabular mt-1 block text-[11px] font-normal", m.freeMin < 0 && m.leftMin > 0 ? "text-over" : "text-muted")}>
+                {label}
               </span>
             </button>
           );
