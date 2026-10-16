@@ -3,7 +3,7 @@ import { addDays, format, parseISO, startOfWeek } from "date-fns";
 /** Chave local "yyyy-MM-dd" (fuso do navegador). */
 export const dayKey = (d: Date) => format(d, "yyyy-MM-dd");
 
-export const todayKey = () => dayKey(new Date());
+export const todayKey = (now: Date = new Date()) => dayKey(now);
 
 /** Converte a chave em Date ao meio-dia local (evita problemas de fuso). */
 export const fromKey = (key: string) => parseISO(`${key}T12:00:00`);

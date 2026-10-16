@@ -4,7 +4,8 @@ import { Check, Pencil, SkipForward, Undo2 } from "lucide-react";
 import { useState } from "react";
 import { entryTimes, fmtMin, parseTimeEntry, type TimeEntry } from "@/lib/dates";
 import { addSession, setSkipped, toggleDone } from "@/lib/db";
-import { isCompletedOn, isSkippedOn, isTimeTask } from "@/lib/metrics";
+import { isCompletedOn, isSkippedOn, isTimeTask, slotMinutesPassed } from "@/lib/metrics";
+import { windowFor } from "@/lib/schedule";
 import { useDialogs } from "./dialogs";
 import { RecordTime } from "./EditableMinutes";
 import type { Session, Task } from "@/lib/types";
@@ -20,7 +21,7 @@ const recordLabel = (s: Session) =>
 
 /** A "página" da tarefa: quanto já foi reportado hoje, atalhos para reportar, concluir e editar. */
 export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { uid, date, sessions } = useStore();
+  const { uid, date, sessions, settings } = useStore();
   const { editTask } = useDialogs();
   const timeTask = isTimeTask(task);
   const skipped = isSkippedOn(task, date);
@@ -29,7 +30,10 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   const [error, setError] = useState("");
 
   const list = sessions.filter((s) => s.taskId === task.id && s.date === date).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-  const total = list.reduce((a, s) => a + s.minutes, 0);
+  const logged = list.reduce((a, s) => a + s.minutes, 0);
+  // Sem registro, tarefa com horário conta sozinha o horário que já passou.
+  const auto = logged > 0 || skipped ? 0 : slotMinutesPassed(task, date, windowFor(settings, date), settings.breaks, new Date());
+  const total = logged || auto;
 
   async function register(entry: TimeEntry) {
     await addSession(uid, { taskId: task.id, date, minutes: entry.minutes, kind: "manual", ...entryTimes(entry, date) });
@@ -39,7 +43,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   return (
     <Modal title={task.title} onClose={onClose}>
       <div className="mb-5 rounded-xl bg-sunken p-4">
-        <p className="text-[13px] text-muted">Reportado neste dia</p>
+        <p className="text-[13px] text-muted">{auto > 0 ? "Contado pelo horário" : "Feito neste dia"}</p>
         <p className="tabular mt-0.5 text-2xl font-semibold">
           {fmtMin(total)}
           {task.estimateMin > 0 && <span className="text-base font-normal text-muted"> de {fmtMin(task.estimateMin)}</span>}
@@ -49,6 +53,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
             <div className="h-full rounded-full bg-done" style={{ width: `${Math.min(100, (total / task.estimateMin) * 100)}%` }} />
           </div>
         )}
+        {auto > 0 && <p className="mt-2 text-xs text-muted">O horário da tarefa conta sozinho. Se registrar tempo, vale o registrado.</p>}
       </div>
 
       <p className="mb-2 text-[13px] font-medium">Reportar tempo</p>

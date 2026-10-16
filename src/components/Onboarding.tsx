@@ -20,8 +20,8 @@ const HOW = [
   },
   {
     icon: Timer,
-    title: "Você reporta o que fez",
-    text: "Toque na tarefa e registre 30m, 1h… (ou use o pomodoro). A qualquer hora você vê se está em dia ou atrasado.",
+    title: "O tempo feito entra quase sozinho",
+    text: "Tarefas com horário contam sozinhas enquanto o horário passa. Nas outras, registre 30m, 1h… ou use o pomodoro. A qualquer hora você vê se está em dia ou atrasado.",
   },
 ];
 

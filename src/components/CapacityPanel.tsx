@@ -1,9 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { fmtMin, todayKey } from "@/lib/dates";
-import { saveSettings } from "@/lib/db";
-import type { DayMetrics } from "@/lib/metrics";
+import { fmtMin, shiftDay, todayKey } from "@/lib/dates";
+import { saveSettings, setSkipped, updateTask } from "@/lib/db";
+import type { DayItem, DayMetrics } from "@/lib/metrics";
+import { slotsOf } from "@/lib/schedule";
 import type { DayWindow } from "@/lib/types";
 import { useStore } from "./store";
 import { Button, Panel, TimeSelect, cx } from "./ui";
@@ -143,6 +144,44 @@ export function DayBudget({ m }: { m: DayMetrics }) {
         )}
       </div>
       {m.outsideMin > 0 && <p className="mt-2 text-[13px] text-break">+ {fmtMin(m.outsideMin)} fora do horário (extra)</p>}
+      {late && !ended && <WhatToDrop m={m} excess={s.excess} />}
     </Panel>
+  );
+}
+
+/**
+ * Quando não cabe: as tarefas que dá para tirar de hoje, com um toque.
+ * Primeiro as sem horário (as com horário já têm hora marcada), as maiores antes.
+ */
+function WhatToDrop({ m, excess }: { m: DayMetrics; excess: number }) {
+  const { uid } = useStore();
+  const tomorrow = shiftDay(m.date, 1);
+  const candidates = m.items
+    .filter((i) => !i.completed && !i.skipped && !i.outside && i.remainingMin > 0)
+    .sort((a, b) => Number(slotsOf(a.task).length > 0) - Number(slotsOf(b.task).length > 0) || b.remainingMin - a.remainingMin)
+    .slice(0, 4);
+  if (!candidates.length) return null;
+
+  const drop = (i: DayItem) =>
+    i.task.repeat === "weekdays" ? setSkipped(uid, i.task, m.date, true) : updateTask(uid, i.task.id, { date: tomorrow });
+
+  return (
+    <div className="mt-4 rounded-xl bg-over/[0.06] p-3">
+      <p className="text-[13px] font-medium text-ink">Para caber, tire {fmtMin(excess)} de hoje:</p>
+      <ul className="mt-2 space-y-1">
+        {candidates.map((i) => (
+          <li key={i.task.id} className="flex items-center gap-3 text-sm">
+            <span className="min-w-0 flex-1 truncate">{i.task.title}</span>
+            <span className="tabular shrink-0 text-xs text-muted">{fmtMin(i.remainingMin)}</span>
+            <button
+              onClick={() => drop(i)}
+              className="h-8 shrink-0 rounded-full border border-line bg-surface px-3 text-[13px] font-medium hover:bg-sunken"
+            >
+              {i.task.repeat === "weekdays" ? "Pular hoje" : "Amanhã"}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }
