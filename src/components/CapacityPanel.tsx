@@ -64,31 +64,24 @@ export function DayBudget({ m }: { m: DayMetrics }) {
     setEditing(false);
   }
 
-  let status: string;
+  // Uma linha que responde a pergunta do app; o resto é detalhe.
   let headline: string;
+  let detail = "";
   if (!m.window) {
-    status = "Sem horário";
-    headline = isToday ? "Hoje não tem horário para tarefas" : "Dia sem horário para tarefas";
+    headline = isToday ? "Hoje sem horário" : "Dia sem horário";
+    detail = "Sem horário para tarefas neste dia.";
   } else if (ended) {
-    status = "Dia encerrado";
     headline = `${fmtMin(m.doneMin)} feitos`;
-  } else if (late) {
-    status = "Atrasado";
-    headline = `${fmtMin(s.excess)} a mais do que cabe`;
+    detail = "Dia encerrado.";
   } else {
-    status = "Em dia";
-    headline = `Sobram ${fmtMin(m.freeMin)}`;
+    headline = late ? `Atrasado ${fmtMin(s.excess)}` : `Sobram ${fmtMin(m.freeMin)}`;
+    detail = `${isToday ? `Restam ${fmtMin(m.leftMin)} até as ${m.window.end}` : `${fmtMin(m.capacityMin)} de horário`} e faltam ${fmtMin(m.remainingMin)} de tarefas.`;
   }
 
   return (
     <Panel className="p-5">
-      <p className={cx("text-sm font-semibold", late ? "text-over" : m.window && !ended ? "text-done" : "text-muted")}>{status}</p>
-      <p className={cx("tabular mt-1 text-[32px] leading-none font-semibold tracking-tight", late && "text-over")}>{headline}</p>
-      {m.window && !ended && (
-        <p className="mt-2 text-sm text-muted">
-          {isToday ? `Restam ${fmtMin(m.leftMin)} até as ${m.window.end}` : `${fmtMin(m.capacityMin)} de horário`} e faltam {fmtMin(m.remainingMin)} de tarefas.
-        </p>
-      )}
+      <p className={cx("tabular text-[32px] leading-tight font-semibold tracking-tight", late ? "text-over" : m.window && !ended ? "text-done" : "text-ink")}>{headline}</p>
+      <p className="mt-1 text-sm text-muted">{detail}</p>
 
       {m.window && (
         <>

@@ -222,17 +222,7 @@ export function Shell() {
 
       <div className={cx("min-w-0 flex-1 px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:pt-7 lg:pb-10", settings.activeTimer && tab !== "foco" && "pb-48 lg:pb-32")}>
         <div className="mx-auto max-w-[1400px]">
-          {/* Topo */}
-          <div className="mb-4 flex items-center justify-between lg:hidden">
-            <Logo />
-            <div className="flex gap-1">
-              <IconButton label="Como funciona" onClick={() => setHelp(true)}>
-                <CircleHelp size={18} />
-              </IconButton>
-
-            </div>
-          </div>
-          <header className={cx("mb-5 flex flex-wrap items-center gap-x-4 gap-y-3", tab === "foco" && "sr-only")}>
+          <header className={cx("mx-auto mb-5 flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-3", tab === "foco" && "sr-only")}>
             <div className="mr-auto">
               <h1 className="text-2xl font-semibold tracking-tight first-letter:uppercase">{titles[tab]}</h1>
               <p className="text-sm text-muted first-letter:uppercase">{subtitle}</p>
@@ -254,6 +244,9 @@ export function Shell() {
                 </div>
               </div>
             )}
+            <IconButton label="Como funciona" onClick={() => setHelp(true)} className="lg:hidden">
+              <CircleHelp size={18} />
+            </IconButton>
           </header>
 
           <main>
@@ -271,7 +264,7 @@ export function Shell() {
         ))}
         <button
           onClick={() => editTask({ repeat: "once", date })}
-          className="flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium text-todo"
+          className="flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium text-muted"
           aria-label="Nova tarefa"
         >
           <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-white">

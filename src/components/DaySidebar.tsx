@@ -5,6 +5,7 @@ import { useState } from "react";
 import { fmtMin, parseQuickAdd, todayKey } from "@/lib/dates";
 import { addTask, updateTask } from "@/lib/db";
 import { isTimeTask, overdue, type DayItem, type DayMetrics } from "@/lib/metrics";
+import type { Task } from "@/lib/types";
 import { findConflicts } from "@/lib/schedule";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
@@ -53,7 +54,7 @@ export function QuickAdd({ date }: { date: string }) {
 }
 
 export function DayLists({ m }: { m: DayMetrics }) {
-  const { uid, tasks, sessions, blocks, date } = useStore();
+  const { tasks, blocks, date } = useStore();
   const [showDone, setShowDone] = useState(false);
   const isToday = date === todayKey();
 
@@ -76,35 +77,13 @@ export function DayLists({ m }: { m: DayMetrics }) {
     return names.length ? `conflita com ${names.join(", ")}` : undefined;
   };
   const late = isToday ? overdue(date, tasks) : [];
-  const doneFor = (id: string) => sessions.filter((s) => s.taskId === id && s.date === date).reduce((a, s) => a + s.minutes, 0);
 
   return (
     <Panel className="p-5">
       <h2 className="mb-3 text-[15px] font-semibold">{isToday ? "Tarefas de hoje" : "Tarefas do dia"}</h2>
       <QuickAdd date={date} />
 
-      {late.length > 0 && (
-        <div className="mt-4">
-          <p className="mb-1.5 text-[13px] font-medium text-over">Ficaram de dias anteriores</p>
-          <ul className="space-y-1.5">
-            {late.map((t) => (
-              <TaskRow
-                key={t.id}
-                task={t}
-                date={date}
-                estimateMin={t.estimateMin}
-                doneMin={doneFor(t.id)}
-                checkable={!isTimeTask(t)}
-                extra={
-                  <Button size="sm" variant="ghost" className="text-todo" onClick={() => updateTask(uid, t.id, { date })}>
-                    Fazer hoje
-                  </Button>
-                }
-              />
-            ))}
-          </ul>
-        </div>
-      )}
+      {late.length > 0 && <LateBanner tasks={late} date={date} />}
 
       <ul className="mt-4 space-y-1.5">
         {open.map((i) => (
@@ -116,7 +95,7 @@ export function DayLists({ m }: { m: DayMetrics }) {
             doneMin={i.doneMin}
             checkable={!isTimeTask(i.task)}
             warning={conflictText(i.task.id)}
-            extra={i.outside ? <span className="rounded-md bg-break/15 px-2 py-1 text-xs font-medium text-break">extra</span> : undefined}
+            outside={i.outside}
           />
         ))}
       </ul>
@@ -151,5 +130,40 @@ export function DayLists({ m }: { m: DayMetrics }) {
         </div>
       )}
     </Panel>
+  );
+}
+
+/** Tarefas de dias anteriores que não foram feitas: um aviso compacto, não mais linhas na lista de hoje. */
+function LateBanner({ tasks, date }: { tasks: Task[]; date: string }) {
+  const { uid } = useStore();
+  const [open, setOpen] = useState(false);
+  const total = tasks.reduce((a, t) => a + t.estimateMin, 0);
+  const bring = (list: Task[]) => Promise.all(list.map((t) => updateTask(uid, t.id, { date })));
+
+  return (
+    <div className="mt-4 rounded-xl border border-over/25 bg-over/[0.05] px-3 py-2.5">
+      <div className="flex items-center gap-2">
+        <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-1 text-left text-[13px] font-medium text-over">
+          <ChevronDown size={14} className={cx("shrink-0 transition-transform", !open && "-rotate-90")} />
+          {tasks.length === 1 ? "1 tarefa ficou" : `${tasks.length} tarefas ficaram`} de dias anteriores · {fmtMin(total)}
+        </button>
+        <Button size="sm" variant="secondary" onClick={() => bring(tasks)}>
+          Trazer para hoje
+        </Button>
+      </div>
+      {open && (
+        <ul className="mt-2 space-y-1 border-t border-over/15 pt-2">
+          {tasks.map((t) => (
+            <li key={t.id} className="flex items-center gap-3 text-sm">
+              <span className="min-w-0 flex-1 truncate">{t.title}</span>
+              <span className="tabular shrink-0 text-xs text-muted">{fmtMin(t.estimateMin)}</span>
+              <button onClick={() => bring([t])} className="shrink-0 text-[13px] font-medium text-brand hover:underline">
+                Hoje
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
