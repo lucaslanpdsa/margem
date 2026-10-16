@@ -5,7 +5,7 @@ import { Archive, ArchiveRestore, CalendarPlus, Plus, Repeat, Target } from "luc
 import { useEffect, useRef, useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, todayKey, weekDays } from "@/lib/dates";
 import { saveSettings, updateTask } from "@/lib/db";
-import { dayMetrics, weeklyGoals } from "@/lib/metrics";
+import { dayMetrics } from "@/lib/metrics";
 import type { RepeatKind, Task } from "@/lib/types";
 import { Calendar } from "./Calendar";
 import { CapacityBar, DayBudget } from "./CapacityPanel";
@@ -42,7 +42,7 @@ export function DayView() {
 
   return (
     <div className="space-y-4">
-      <DayBudget m={m} now={now} />
+      <DayBudget m={m} />
       <div className="grid grid-cols-1 items-start gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         <div ref={listRef} className="min-w-0">
           <DayLists m={m} />
@@ -71,7 +71,6 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
   const free = ahead.reduce((a, m) => a + m.freeMin, 0);
   const done = sum("doneMin");
   const left = sum("leftMin");
-  const goals = weeklyGoals(date, tasks, sessions);
   const overDays = ahead.filter((m) => m.freeMin < 0).length;
   const weekMetrics = {
     ...ms[0],
@@ -104,27 +103,6 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
         </div>
       </Panel>
 
-      {goals.length > 0 && (
-        <Panel>
-          <PanelHeader title="Metas da semana" description="Quanto já foi feito de cada meta, somando todos os dias." />
-          <ul className="grid gap-4 px-5 pb-5 sm:grid-cols-2">
-            {goals.map((g) => (
-              <li key={g.task.id}>
-                <div className="flex justify-between text-sm">
-                  <span className="font-medium">{g.task.title}</span>
-                  <span className="tabular text-muted">
-                    {fmtMin(g.doneMin)} de {fmtMin(g.goalMin)}
-                  </span>
-                </div>
-                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-sunken">
-                  <div className="h-full rounded-full bg-done" style={{ width: `${Math.min(100, (g.doneMin / Math.max(1, g.goalMin)) * 100)}%` }} />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Panel>
-      )}
-
       <Calendar view="timeGridWeek" onPickDay={onPickDay} />
     </div>
   );
@@ -134,16 +112,16 @@ export function WeekView({ onPickDay }: { onPickDay: (d: string) => void }) {
 
 const GROUPS: { kind: RepeatKind; title: string; description: string; icon: typeof Repeat }[] = [
   { kind: "weekdays", title: "Repetem", description: "Aparecem sozinhas nos dias marcados.", icon: Repeat },
-  { kind: "weeklyGoal", title: "Metas semanais", description: "Horas por semana, no dia que der.", icon: Target },
-  { kind: "once", title: "De uma vez, pendentes", description: "Avulsas ainda não concluídas.", icon: CalendarPlus },
+  { kind: "once", title: "Uma vez, pendentes", description: "Ainda não concluídas.", icon: CalendarPlus },
+  { kind: "weeklyGoal", title: "Metas semanais (antigas)", description: "Tipo que saiu do app. Edite para virar uma tarefa que repete.", icon: Target },
 ];
 
 function describe(t: Task) {
-  if (t.repeat === "weekdays") return `${fmtMin(t.estimateMin)} por dia, ${(t.weekdays ?? []).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")}`;
+  if (t.repeat === "weekdays")
+    return `${fmtMin(t.estimateMin)} por dia, ${(t.weekdays ?? []).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")}${t.time ? ` às ${t.time}` : ""}`;
   if (t.repeat === "weeklyGoal") return `${fmtMin(t.weeklyGoalMin ?? 0)} por semana`;
   const short = (k: string) => fromKey(k).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
-  const day = t.date ? `para ${short(t.date)}` : "sem dia (caixa de entrada)";
-  return `${fmtMin(t.estimateMin)}, ${day}${t.deadline ? `, prazo ${short(t.deadline)}` : ""}`;
+  return `${fmtMin(t.estimateMin)}, ${t.date ? short(t.date) : "hoje"}${t.time ? ` às ${t.time}` : ""}`;
 }
 
 export function TasksView() {
@@ -170,13 +148,14 @@ export function TasksView() {
         const list = visible
           .filter((t) => t.repeat === g.kind && (g.kind !== "once" || !t.completedAt))
           .sort((a, b) => a.title.localeCompare(b.title));
+        if (g.kind === "weeklyGoal" && list.length === 0) return null;
         return (
           <Panel key={g.kind}>
             <PanelHeader
               title={`${g.title} (${list.length})`}
               description={g.description}
               right={
-                show === "active" && (
+                show === "active" && g.kind !== "weeklyGoal" && (
                   <Button size="sm" variant="ghost" onClick={() => editTask({ repeat: g.kind })}>
                     <Plus size={14} /> Adicionar
                   </Button>

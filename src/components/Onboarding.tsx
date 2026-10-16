@@ -16,12 +16,12 @@ const HOW = [
   {
     icon: ListChecks,
     title: "Cada tarefa tem uma estimativa",
-    text: "Pode ser de uma vez, repetir em dias fixos ou ser uma meta semanal. O app soma tudo e mostra se cabe no dia.",
+    text: "Uma vez ou repetindo em dias fixos. O app soma tudo e mostra se ainda cabe no seu dia.",
   },
   {
     icon: Timer,
-    title: "O pomodoro mede o que foi feito",
-    text: "Cada minuto focado conta como feito. Assim você vê, a qualquer hora, o que já fez, o que falta e o que ainda está livre.",
+    title: "Você reporta o que fez",
+    text: "Toque na tarefa e registre 30m, 1h… (ou use o pomodoro). A qualquer hora você vê se está em dia ou atrasado.",
   },
 ];
 

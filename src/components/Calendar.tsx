@@ -104,7 +104,7 @@ export function Calendar({ view, onPickDay }: Props) {
   return (
     <Panel className="overflow-hidden">
       {view === "timeGridDay" && (
-        <PanelHeader title="Agenda" description="Arraste tarefas da lista para cá. Puxe a borda de um bloco para mudar a duração." />
+        <PanelHeader title="Agenda" />
       )}
       <div className={view === "timeGridDay" ? "border-t border-line" : ""}>
       <FullCalendar

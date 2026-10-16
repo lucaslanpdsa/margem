@@ -1,4 +1,4 @@
-import { minutesBetween, weekDays, weekdayOf } from "./dates";
+import { minutesBetween, todayKey, weekDays, weekdayOf } from "./dates";
 import { dayClock, toMin } from "./schedule";
 import type { Block, BreakTime, DayWindow, Session, Settings, Task } from "./types";
 
@@ -66,7 +66,8 @@ export function dayItems(date: string, tasks: Task[], blocks: Block[], sessions:
     if (task.archived) continue;
     let estimate: number | null = null;
 
-    if (task.repeat === "once" && task.date === date) {
+    // Avulsa sem dia (versões antigas tinham "caixa de entrada") conta como de hoje.
+    if (task.repeat === "once" && (task.date ?? todayKey()) === date) {
       estimate = task.estimateMin;
     } else if (task.repeat === "weekdays" && task.weekdays?.includes(dow) && createdKey(task) <= date) {
       estimate = task.estimateMin;

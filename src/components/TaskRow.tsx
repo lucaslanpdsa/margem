@@ -1,13 +1,14 @@
 "use client";
 
-import { CalendarClock, Check, Clock, Flag, GripVertical, Repeat, Target } from "lucide-react";
+import { Check, Clock, GripVertical, Target } from "lucide-react";
 import type { ReactNode } from "react";
-import { fmtMin, fromKey, todayKey } from "@/lib/dates";
+import { fmtMin } from "@/lib/dates";
+import { isTimeTask } from "@/lib/metrics";
 import { toggleDone } from "@/lib/db";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
-import { PRIORITY_LABEL, cx } from "./ui";
+import { cx } from "./ui";
 
 interface Props {
   task: Task;
@@ -22,20 +23,11 @@ interface Props {
   checkable?: boolean;
 }
 
-export function deadlineLabel(deadline: string) {
-  const today = todayKey();
-  if (deadline < today) return { text: "Prazo vencido", tone: "text-over" };
-  if (deadline === today) return { text: "Vence hoje", tone: "text-over" };
-  const d = fromKey(deadline).toLocaleDateString("pt-BR", { day: "numeric", month: "short" });
-  return { text: `Prazo ${d}`, tone: "text-muted" };
-}
-
 export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, extra, checkable = true }: Props) {
   const { uid, settings } = useStore();
   const { logTime } = useDialogs();
   const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus";
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
-  const dl = task.deadline ? deadlineLabel(task.deadline) : null;
   const draggable = dragMin !== undefined;
   const dragDuration = Math.min(240, Math.max(15, Math.round((dragMin ?? estimateMin) / 15) * 15 || 30));
 
@@ -92,22 +84,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, dragMin, 
               <Clock size={11} /> {task.time}
             </span>
           )}
-          {task.repeat === "weekdays" && (
-            <span className="inline-flex items-center gap-1">
-              <Repeat size={11} /> Repete
-            </span>
-          )}
-          {dl && (
-            <span className={cx("inline-flex items-center gap-1", dl.tone)}>
-              <CalendarClock size={11} /> {dl.text}
-            </span>
-          )}
-          {task.priority === 1 && (
-            <span className="inline-flex items-center gap-1 text-over">
-              <Flag size={11} /> {PRIORITY_LABEL[1]}
-            </span>
-          )}
-          {task.category && <span className="rounded bg-sunken px-1.5 py-px">{task.category}</span>}
+          {isTimeTask(task) && task.repeat !== "weeklyGoal" && <span>meta de tempo</span>}
         </span>
       </button>
 
