@@ -5,6 +5,7 @@ import { useState } from "react";
 import { fmtMin, parseQuickAdd, todayKey } from "@/lib/dates";
 import { addTask, updateTask } from "@/lib/db";
 import { isTimeTask, overdue, type DayItem, type DayMetrics } from "@/lib/metrics";
+import { findConflicts } from "@/lib/schedule";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
 import { TaskRow } from "./TaskRow";
@@ -68,6 +69,11 @@ export function DayLists({ m }: { m: DayMetrics }) {
       return a.task.createdAt.localeCompare(b.task.createdAt);
     });
   const done = m.items.filter((i) => i.completed);
+  const conflicts = findConflicts(blocks.filter((b) => b.date === date));
+  const conflictText = (id: string) => {
+    const names = [...new Set(conflicts.filter((c) => c.taskId === id).map((c) => tasks.find((t) => t.id === c.otherId)?.title))].filter(Boolean);
+    return names.length ? `conflita com ${names.join(", ")}` : undefined;
+  };
   const late = isToday ? overdue(date, tasks) : [];
   const doneFor = (id: string) => sessions.filter((s) => s.taskId === id && s.date === date).reduce((a, s) => a + s.minutes, 0);
 
@@ -108,6 +114,7 @@ export function DayLists({ m }: { m: DayMetrics }) {
             estimateMin={i.estimateMin}
             doneMin={i.doneMin}
             checkable={!isTimeTask(i.task)}
+            warning={conflictText(i.task.id)}
             extra={i.outside ? <span className="rounded-md bg-break/15 px-2 py-1 text-xs font-medium text-break">extra</span> : undefined}
           />
         ))}

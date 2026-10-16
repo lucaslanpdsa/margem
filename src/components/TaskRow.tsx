@@ -20,9 +20,11 @@ interface Props {
   completed?: boolean;
   extra?: ReactNode;
   checkable?: boolean;
+  /** Aviso curto na linha (ex: conflito de horário). */
+  warning?: string;
 }
 
-export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, checkable = true }: Props) {
+export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, checkable = true, warning }: Props) {
   const { uid, settings } = useStore();
   const { editTask, logTime } = useDialogs();
   const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus";
@@ -75,6 +77,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, extra, ch
             </span>
           )}
           {isTimeTask(task) && task.repeat !== "weeklyGoal" && <span>meta de tempo</span>}
+          {warning && <span className="font-medium text-break">⚠ {warning}</span>}
         </span>
       </button>
 

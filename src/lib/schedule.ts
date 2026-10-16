@@ -88,3 +88,34 @@ export function taskTimeBlocks(tasks: Task[], realBlocks: Block[], dates: string
   }
   return out;
 }
+
+export interface Conflict {
+  taskId: string;
+  otherId: string;
+  date: string;
+  start: string; // ISO do trecho em comum
+  end: string;
+}
+
+/** Pares de tarefas diferentes cujos blocos se sobrepõem no mesmo dia. */
+export function findConflicts(blocks: Block[]): Conflict[] {
+  const out: Conflict[] = [];
+  const byDay = new Map<string, Block[]>();
+  blocks.forEach((b) => byDay.set(b.date, [...(byDay.get(b.date) ?? []), b]));
+  for (const [date, list] of byDay) {
+    for (let i = 0; i < list.length; i++) {
+      for (let j = i + 1; j < list.length; j++) {
+        const a = list[i];
+        const b = list[j];
+        if (a.taskId === b.taskId) continue;
+        const start = a.start > b.start ? a.start : b.start;
+        const end = a.end < b.end ? a.end : b.end;
+        if (start < end) {
+          out.push({ taskId: a.taskId, otherId: b.taskId, date, start, end });
+          out.push({ taskId: b.taskId, otherId: a.taskId, date, start, end });
+        }
+      }
+    }
+  }
+  return out;
+}

@@ -2,9 +2,9 @@
 
 import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { WEEKDAY_SHORT, fmtMin, parseDuration, todayKey } from "@/lib/dates";
+import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, shiftDay, todayKey } from "@/lib/dates";
 import { addTask, deleteTask, replaceTask } from "@/lib/db";
-import { slotsMinutes, slotsOf, toMin } from "@/lib/schedule";
+import { findConflicts, slotsMinutes, slotsOf, taskTimeBlocks, toMin } from "@/lib/schedule";
 import type { Task, TimeSlot } from "@/lib/types";
 import { useStore } from "./store";
 import { Button, Field, IconButton, Modal, Segmented, TimeSelect, cx, inputCls } from "./ui";
@@ -13,7 +13,7 @@ export type TaskDraft = Partial<Task>;
 
 /** Nome, quando, quanto tempo e (opcional) horário. Só o que entra na conta do dia. */
 export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: () => void }) {
-  const { uid } = useStore();
+  const { uid, tasks } = useStore();
   const editing = !!initial.id;
   // Metas semanais saíram do app: ao editar uma antiga, ela vira tarefa que repete, por tempo.
   const legacyGoal = initial.repeat === "weeklyGoal";
@@ -26,6 +26,38 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
   const [weekdays, setWeekdays] = useState<number[]>(initial.weekdays ?? [1, 2, 3, 4, 5]);
   const [error, setError] = useState("");
   const parsed = parseDuration(estimate);
+
+  // Conflitos de horário nas próximas 2 semanas (só avisa; não impede salvar).
+  const conflicts = (() => {
+    if (!slots.length) return [];
+    const draft: Task = {
+      id: initial.id ?? "__nova",
+      title,
+      repeat,
+      date: repeat === "once" ? date || todayKey() : undefined,
+      weekdays: repeat === "weekdays" ? weekdays : undefined,
+      slots,
+      estimateMin: parsed ?? 0,
+      priority: 2,
+      createdAt: "2000-01-01T00:00:00.000Z",
+    };
+    const days = Array.from({ length: 14 }, (_, i) => shiftDay(todayKey(), i));
+    const others = tasks.filter((t) => t.id !== draft.id && !t.archived);
+    const found = findConflicts(taskTimeBlocks([draft, ...others], [], days)).filter((c) => c.taskId === draft.id);
+    const byTask = new Map<string, { title: string; days: Set<number>; when: string }>();
+    for (const c of found) {
+      const other = others.find((t) => t.id === c.otherId);
+      if (!other) continue;
+      const hh = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+      const cur = byTask.get(other.id) ?? { title: other.title, days: new Set<number>(), when: `${hh(c.start)}–${hh(c.end)}` };
+      cur.days.add(fromKey(c.date).getDay());
+      byTask.set(other.id, cur);
+    }
+    return [...byTask.values()].map((v) => ({
+      ...v,
+      dayText: repeat === "once" ? "" : ` (${[...v.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")})`,
+    }));
+  })();
 
   // Ao mexer nos horários, o tempo da tarefa vira a soma deles (dá para mudar depois).
   const setSlots = (next: TimeSlot[]) => {
@@ -70,7 +102,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
   }
 
   return (
-    <Modal title={editing ? "Editar tarefa" : "Nova tarefa"} onClose={onClose}>
+    <Modal title={editing ? initial.title || "Tarefa" : "Nova tarefa"} description={editing ? "Editar tarefa" : undefined} onClose={onClose}>
       <form
         className="space-y-5"
         onSubmit={(e) => {
@@ -78,8 +110,8 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           save();
         }}
       >
-        <Field label="Tarefa">
-          <input autoFocus className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Estudar Next.js" />
+        <Field label="Nome">
+          <input autoFocus={!editing} className={inputCls} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Ex: Estudar Next.js" />
         </Field>
 
         <div className="space-y-3">
@@ -152,6 +184,18 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
             {doneBy === "check" ? "Terminou antes? Marque como feita e o tempo que sobrou volta para o dia." : "Ex: trabalhar 6h. Conclui sozinha quando o tempo reportado chegar na meta."}
           </p>
         </div>
+
+        {conflicts.length > 0 && (
+          <div className="rounded-lg bg-break/12 px-3 py-2 text-sm text-ink">
+            {conflicts.map((c) => (
+              <p key={c.title}>
+                ⚠ Conflita com <b className="font-semibold">{c.title}</b> das {c.when}
+                {c.dayText}.
+              </p>
+            ))}
+            <p className="mt-0.5 text-xs text-muted">Dá para salvar assim mesmo, se for de propósito.</p>
+          </div>
+        )}
 
         {error && <p className="rounded-lg bg-over/10 px-3 py-2 text-sm text-over">{error}</p>}
 

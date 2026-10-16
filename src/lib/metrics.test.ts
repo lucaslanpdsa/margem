@@ -1,4 +1,4 @@
-import { taskTimeBlocks } from "./schedule";
+import { findConflicts, taskTimeBlocks } from "./schedule";
 import { parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics, flexibleQueue, suggestNow, weeklyGoals } from "./metrics";
@@ -207,4 +207,19 @@ it("entende intervalos de horário e durações", () => {
   expect(parseTimeEntry("45m")).toEqual({ minutes: 45 });
   expect(parseTimeEntry("15:00-14:00")).toBeNull();
   expect(parseTimeEntry("abc")).toBeNull();
+});
+
+describe("conflito de horário", () => {
+  const work: Task = { id: "w", title: "Trabalho", repeat: "weekdays", weekdays: [5], slots: [{ start: "08:00", end: "11:00" }, { start: "14:00", end: "18:00" }], estimateMin: 420, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
+  const atoa: Task = { id: "t", title: "atoa", repeat: "once", date: D, slots: [{ start: "15:30", end: "16:15" }], estimateMin: 45, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
+  const gym: Task = { id: "g", title: "Academia", repeat: "once", date: D, slots: [{ start: "11:00", end: "13:00" }], estimateMin: 120, priority: 2, createdAt: "2026-10-01T10:00:00.000Z" };
+
+  it("acha a sobreposição entre tarefas diferentes no mesmo dia", () => {
+    const c = findConflicts(taskTimeBlocks([work, atoa], [], [D]));
+    expect(c.map((x) => `${x.taskId}>${x.otherId}`).sort()).toEqual(["t>w", "w>t"]);
+  });
+
+  it("horários encostados (11:00 termina, 11:00 começa) não são conflito", () => {
+    expect(findConflicts(taskTimeBlocks([work, gym], [], [D]))).toEqual([]);
+  });
 });
