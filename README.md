@@ -2,6 +2,8 @@
 
 Responde duas perguntas: **quanto tempo eu ainda tenho hoje?** e **estou em dia ou atrasado?**
 
+Documentação completa (conceitos, navegação, fluxos, telas e análise de UI/UX): [`docs/`](docs/README.md).
+
 ## O que o app faz
 
 - **Seu horário**: de que horas a que horas você tem para tarefas em cada dia, com pausas fixas (almoço). O app acompanha o relógio.
