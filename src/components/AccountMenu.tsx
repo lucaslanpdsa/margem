@@ -80,7 +80,7 @@ export function AccountMenu({ onHelp, variant }: { onHelp: () => void; variant: 
                 </span>
               </span>
               {perm === "default" && (
-                <button onClick={() => Notification.requestPermission().then(setPerm)} className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-[13px] font-semibold text-white">
+                <button onClick={() => Notification.requestPermission().then(setPerm)} className="shrink-0 rounded-full bg-brand px-3 py-1.5 text-[13px] font-semibold text-brand-ink">
                   Ativar
                 </button>
               )}

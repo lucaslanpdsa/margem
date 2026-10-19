@@ -76,7 +76,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         {task.estimateFor?.[date] !== undefined && (
           <p className="mt-2 text-xs text-muted">
             Encurtada só neste dia (normal {fmtMin(task.estimateMin)}).{" "}
-            <button onClick={() => setDayEstimate(uid, task, date, null)} className="font-medium text-brand hover:underline">
+            <button onClick={() => setDayEstimate(uid, task, date, null)} className="font-medium text-accent hover:underline">
               Voltar ao normal
             </button>
           </p>
@@ -156,13 +156,13 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
             <div className="mb-5 grid grid-cols-2 gap-2">
               <button
                 onClick={() => start("stopwatch")}
-                className="flex h-14 items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-white hover:bg-brand/90"
+                className="flex h-14 items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-brand-ink hover:bg-brand/90"
               >
                 <Play size={15} fill="currentColor" /> Cronômetro
               </button>
               <button
                 onClick={() => start("pomodoro")}
-                className="flex h-14 items-center justify-center gap-2 rounded-xl border border-todo/40 font-semibold text-todo hover:bg-todo/[0.06]"
+                className="flex h-14 items-center justify-center gap-2 rounded-xl border border-line font-semibold text-ink hover:bg-sunken"
               >
                 <TimerIcon size={16} /> Pomodoro {settings.focusMin}min
               </button>

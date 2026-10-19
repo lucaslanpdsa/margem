@@ -136,7 +136,7 @@ function ScheduleCard() {
             {breaks && <span className="block">{breaks}</span>}
           </span>
         </span>
-        <span className="shrink-0 text-[13px] font-medium text-brand">Editar</span>
+        <span className="shrink-0 text-[13px] font-medium text-accent">Editar</span>
       </button>
       {editing && (
         <Modal
@@ -553,7 +553,7 @@ function QuickAdd({ placeholder, onAdd }: { placeholder: string; onAdd: (text: s
       <Plus size={16} className="shrink-0 text-todo" />
       <input value={text} onChange={(e) => setText(e.target.value)} placeholder={placeholder} aria-label={placeholder} className="h-9 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-muted" />
       {text.trim() && (
-        <button type="submit" className="h-8 shrink-0 rounded-full bg-brand px-3 text-[13px] font-semibold text-white">
+        <button type="submit" className="h-8 shrink-0 rounded-full bg-brand px-3 text-[13px] font-semibold text-brand-ink">
           Criar
         </button>
       )}

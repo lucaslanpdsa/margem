@@ -10,6 +10,7 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 - **Azul forte só para ação.** ▶ da linha em contorno (azul só rodando); dias ligados em azul claro (Tarefas e formulário). Seta › da linha da tarefa saiu (a linha toda abre).
 - **Registros: tocar na linha edita** (lápis e lixeira saíram da lista; apagar fica na edição).
 - Barra do timer compacta; escolha de tarefa do Foco em lista própria; dia da tarefa com Hoje · Amanhã · Outro dia.
+- **Identidade "Grafite"** (escolhida entre 3 opções; "Papel", com fundo creme, pareceu pouco profissional): botões de ação em preto (`brand`), cor só para informação (verde feito, azul a fazer, vermelho não cabe); links em `accent` (azul). Ícone preto com o primeiro trecho verde.
 - **Adiado:** grade semanal de horas e semana em colunas com arrastar (Sunsama). Avaliado como pouco útil agora porque a maior parte da rotina repete; rever se mudar tarefas de dia virar rotina.
 
 ### 19/10 — Os 18 pontos da análise

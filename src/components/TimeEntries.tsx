@@ -321,7 +321,7 @@ function EntryRow({ s, showTask }: { s: Session; showTask?: boolean }) {
           <span className="block text-xs text-muted">
             {showTask && <span className="tabular">{when} · </span>}
             {sessionSource(s)}
-            {showTask && !s.taskId && <span className="ml-2 font-medium text-brand">Escolher tarefa</span>}
+            {showTask && !s.taskId && <span className="ml-2 font-medium text-accent">Escolher tarefa</span>}
           </span>
         </span>
         <span className="tabular shrink-0 self-start font-semibold">{fmtMin(s.minutes)}</span>

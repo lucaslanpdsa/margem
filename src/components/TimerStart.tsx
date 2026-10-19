@@ -46,7 +46,7 @@ export function TimerStart({ className }: { className?: string }) {
           className="tabular h-8 rounded-md border border-brand bg-surface px-2 font-semibold text-ink outline-none"
           aria-label="Hora em que começou"
         />
-        <button type="submit" className="font-semibold text-brand hover:underline">
+        <button type="submit" className="font-semibold text-accent hover:underline">
           Salvar
         </button>
         <button type="button" onClick={() => setEditing(false)} className="text-muted hover:text-ink">
@@ -67,7 +67,7 @@ export function TimerStart({ className }: { className?: string }) {
           setValue(started);
           setEditing(true);
         }}
-        className="font-medium text-brand hover:underline"
+        className="font-medium text-accent hover:underline"
       >
         Mudar
       </button>

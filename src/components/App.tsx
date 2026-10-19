@@ -157,7 +157,7 @@ export function Shell() {
         {collapsed ? (
           <button
             onClick={() => editTask({ repeat: "once", date })}
-            className="mt-6 grid h-10 w-10 place-items-center rounded-lg bg-brand text-white hover:bg-brand/90"
+            className="mt-6 grid h-10 w-10 place-items-center rounded-lg bg-brand text-brand-ink hover:bg-brand/90"
             aria-label="Nova tarefa"
             title="Nova tarefa"
           >
@@ -178,7 +178,7 @@ export function Shell() {
               className={cx(
                 "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
                 collapsed ? "h-10 w-10 justify-center" : "w-full px-3 py-2",
-                isActive(t.id) ? "bg-todo/10 text-todo" : "text-muted hover:bg-sunken hover:text-ink",
+                isActive(t.id) ? "bg-sunken text-ink" : "text-muted hover:bg-sunken hover:text-ink",
               )}
             >
               <t.icon size={18} /> {!collapsed && t.label}
@@ -277,7 +277,7 @@ export function Shell() {
           className="flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium text-muted"
           aria-label="Nova tarefa"
         >
-          <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-white">
+          <span className="grid h-6 w-6 place-items-center rounded-full bg-brand text-brand-ink">
             <Plus size={16} strokeWidth={2.5} />
           </span>
           Nova
@@ -311,7 +311,7 @@ function LoadingSkeleton() {
 
 function MobileTab({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof Sun; label: string }) {
   return (
-    <button onClick={onClick} className={cx("flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium", active ? "text-todo" : "text-muted")}>
+    <button onClick={onClick} className={cx("flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium", active ? "text-ink" : "text-muted")}>
       <Icon size={20} />
       {label}
     </button>

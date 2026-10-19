@@ -100,7 +100,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
           onClick={() => (running ? timer.stop() : timer.start(task.id, settings.lastTimerMode ?? "stopwatch"))}
           className={cx(
             "mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors",
-            running ? "bg-todo text-white hover:bg-todo/85" : "border border-line text-muted hover:border-todo hover:bg-todo hover:text-white",
+            running ? "bg-todo text-white hover:bg-todo/85" : "border border-line text-muted hover:border-brand hover:bg-brand hover:text-brand-ink",
           )}
           aria-label={running ? "Parar e registrar" : "Começar timer nesta tarefa"}
           title={running ? "Parar e registrar" : settings.lastTimerMode === "pomodoro" ? "Começar pomodoro" : "Começar cronômetro"}

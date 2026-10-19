@@ -260,7 +260,7 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
         {!t ? (
           <button
             onClick={() => timer.start(taskId, mode)}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-white hover:bg-brand/90"
+            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-brand-ink hover:bg-brand/90"
           >
             <Play size={15} fill="currentColor" /> Começar
           </button>
@@ -268,7 +268,7 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
           <div className="space-y-2">
             <button
               onClick={() => startWaiting(uid, settings)}
-              className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-white hover:bg-brand/90"
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-brand-ink hover:bg-brand/90"
             >
               <Play size={15} fill="currentColor" /> {t.phase === "break" ? "Começar pausa" : "Começar foco"}
             </button>
@@ -295,7 +295,7 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
             <button onClick={() => timer.stop()} className="h-14 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
               Encerrar
             </button>
-            <button onClick={() => skipBreak(uid, settings)} className="h-14 rounded-full bg-brand font-semibold text-white hover:bg-brand/90">
+            <button onClick={() => skipBreak(uid, settings)} className="h-14 rounded-full bg-brand font-semibold text-brand-ink hover:bg-brand/90">
               Próximo foco
             </button>
           </div>

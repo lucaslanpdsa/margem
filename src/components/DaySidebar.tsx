@@ -181,7 +181,7 @@ function LateBanner({ tasks, date }: { tasks: Task[]; date: string }) {
             <li key={t.id} className="flex items-center gap-3 text-sm">
               <span className="min-w-0 flex-1 truncate">{t.title}</span>
               <span className="tabular shrink-0 text-xs text-muted">{fmtMin(t.estimateMin)}</span>
-              <button onClick={() => bring([t])} className="shrink-0 text-[13px] font-medium text-brand hover:underline">
+              <button onClick={() => bring([t])} className="shrink-0 text-[13px] font-medium text-accent hover:underline">
                 Hoje
               </button>
             </li>

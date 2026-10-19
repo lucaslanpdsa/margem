@@ -225,7 +225,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
               {custom && ` · alterado só ${where}`}
               {" · "}
               <button
-                className="font-medium text-brand hover:underline"
+                className="font-medium text-accent hover:underline"
                 onClick={() => {
                   setDraft(m.window ?? { start: "08:00", end: "18:00" });
                   setEditing(true);
@@ -372,7 +372,7 @@ function FillGapDialog({ m, onClose }: { m: DayMetrics; onClose: () => void }) {
                   </span>
                 </span>
                 {left > 0 && v === 0 && (
-                  <button onClick={() => set(i.task.id, left)} className="shrink-0 text-xs font-medium text-brand hover:underline">
+                  <button onClick={() => set(i.task.id, left)} className="shrink-0 text-xs font-medium text-accent hover:underline">
                     Tudo aqui
                   </button>
                 )}
