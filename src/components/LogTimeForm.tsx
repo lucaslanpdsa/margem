@@ -7,6 +7,7 @@ import { isCompletedOn, isSkippedOn, isTimeTask } from "@/lib/metrics";
 import { timerDisplay, useNow } from "./Timer";
 import { useTimerActions } from "./toast";
 import { AddTime, TaskEntries } from "./TimeEntries";
+import { TimerStart } from "./TimerStart";
 import { useDialogs } from "./dialogs";
 import type { Task } from "@/lib/types";
 import { useStore } from "./store";
@@ -67,6 +68,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
           <span className="min-w-0 flex-1">
             <span className="block text-[13px] text-muted">{t?.mode === "stopwatch" ? "Cronômetro rodando" : "Pomodoro rodando"}</span>
             <LiveClock />
+            <TimerStart className="mt-0.5 block" />
           </span>
           <Button variant="primary" onClick={() => timer.stop()}>
             <Square size={12} fill="currentColor" /> Parar

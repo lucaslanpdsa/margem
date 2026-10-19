@@ -12,6 +12,7 @@ import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
 import { Button, IconButton, Modal, Segmented, Switch, cx, inputCls } from "./ui";
 import { useTimerActions } from "./toast";
+import { TimerStart } from "./TimerStart";
 
 const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
@@ -247,7 +248,10 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
 
       <div className="w-full space-y-3">
         {running ? (
-          <p className={cx("text-center text-base font-medium", !runningTask && "text-muted")}>{runningTask?.title ?? "Sem tarefa"}</p>
+          <div className="text-center">
+            <p className={cx("text-base font-medium", !runningTask && "text-muted")}>{runningTask?.title ?? "Sem tarefa"}</p>
+            <TimerStart className="mt-1 block" />
+          </div>
         ) : (
           <TaskSelect value={taskId} onChange={setTaskId} />
         )}

@@ -7,6 +7,7 @@ import type { ActiveTimer } from "@/lib/types";
 import { useStore } from "./store";
 import { Button, cx } from "./ui";
 import { useTimerActions } from "./toast";
+import { TimerStart } from "./TimerStart";
 
 export function useNow(intervalMs = 1000) {
   const [now, setNow] = useState(() => Date.now());
@@ -116,6 +117,7 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
             </div>
           )}
         </div>
+        {focus && !t.waiting && <TimerStart className="-mt-2 block px-4 pb-3 pl-[76px]" />}
       </div>
     </div>
   );

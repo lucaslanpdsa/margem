@@ -3,7 +3,7 @@ import { entryTimes, parseDuration, parseQuickAdd, parseTimeEntry } from "./date
 import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
 import { migrateTask } from "./migrate";
-import { isLive, liveSession } from "./pomodoro";
+import { isLive, liveSession, setTimerStart } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -296,4 +296,20 @@ it("duração com espaço e registro em outro dia sem horário", () => {
   const t = entryTimes({ minutes: 60 }, "2026-10-01");
   expect(t.startedAt).toBe(t.endedAt);
   expect(new Date(t.startedAt).getDate()).toBe(1);
+});
+
+describe("mudar a hora em que o timer começou", () => {
+  const now = new Date(`${D}T10:33:00`);
+  const sw = { mode: "stopwatch" as const, taskId: "b", phase: "focus" as const, startedAt: now.toISOString(), durationMin: 0 };
+  const base = { ...DEFAULT_SETTINGS, activeTimer: sw };
+
+  it("não aceita horário no futuro nem sem timer", async () => {
+    expect(await setTimerStart("u", base, "11:00", now)).toMatch(/futuro/);
+    expect(await setTimerStart("u", { ...base, activeTimer: null }, "10:00", now)).toMatch(/Nenhum/);
+  });
+
+  it("começando às 10:00, às 10:33 o timer já conta 33min", () => {
+    const at10 = { ...sw, startedAt: new Date(`${D}T10:00:00`).toISOString() };
+    expect(liveSession(at10, now.getTime())!.minutes).toBe(33);
+  });
 });

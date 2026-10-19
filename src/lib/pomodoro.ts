@@ -139,6 +139,22 @@ export async function startWaiting(uid: string, settings: Settings) {
   await saveSettings(uid, { activeTimer: phase(t, settings, t.phase, true) });
 }
 
+/**
+ * Muda a hora em que o foco rodando começou (ex: começou o timer às 10:33, mas estava fazendo desde as 10:00).
+ * Só hoje, não no futuro, e não antes de 00:00. Devolve um erro curto ou null.
+ */
+export async function setTimerStart(uid: string, settings: Settings, hhmm: string, now = new Date()): Promise<string | null> {
+  const t = settings.activeTimer;
+  if (!t || t.waiting || t.phase !== "focus") return "Nenhum timer rodando.";
+  const [h, m] = hhmm.split(":").map(Number);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "Horário inválido.";
+  const start = new Date(now);
+  start.setHours(h, m, 0, 0);
+  if (start.getTime() > now.getTime()) return "Não dá para começar no futuro.";
+  await saveSettings(uid, { activeTimer: { ...t, startedAt: start.toISOString() } });
+  return null;
+}
+
 /** Pula a pausa (rodando ou esperando) e começa o próximo foco. */
 export async function skipBreak(uid: string, settings: Settings) {
   const t = settings.activeTimer;
