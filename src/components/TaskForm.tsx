@@ -7,6 +7,7 @@ import { addTask, deleteTask, replaceTask, updateTask } from "@/lib/db";
 import { findConflicts, slotsMinutes, slotsOf, taskTimeBlocks, toMin } from "@/lib/schedule";
 import type { Task, TimeSlot } from "@/lib/types";
 import { useStore } from "./store";
+import { useToast } from "./toast";
 import { Button, Field, IconButton, Modal, Segmented, TimeSelect, cx, inputCls } from "./ui";
 
 export type TaskDraft = Partial<Task>;
@@ -15,6 +16,7 @@ export type TaskDraft = Partial<Task>;
 export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: () => void }) {
   const { uid, tasks } = useStore();
   const editing = !!initial.id;
+  const toast = useToast();
   const [title, setTitle] = useState(initial.title ?? "");
   const [repeat, setRepeat] = useState<"once" | "weekdays">(initial.repeat === "once" || !initial.repeat ? "once" : "weekdays");
   const [estimate, setEstimate] = useState(initial.estimateMin ? fmtMin(initial.estimateMin) : "");
@@ -98,13 +100,17 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
 
   // Desativar só vale para o que repete: para de aparecer nos dias, sem perder o histórico.
   async function toggleArchived() {
-    await updateTask(uid, initial.id!, { archived: !initial.archived });
+    const was = !!initial.archived;
+    updateTask(uid, initial.id!, { archived: !was });
+    toast(was ? `${initial.title} reativada` : `${initial.title} desativada`, { tone: "info", undo: () => updateTask(uid, initial.id!, { archived: was }) });
     onClose();
   }
 
+  // Excluir sem confirmação, mas com "Desfazer": a tarefa é regravada igual (os registros nunca são apagados).
   async function remove() {
-    if (!confirm("Excluir esta tarefa? O tempo já registrado continua no histórico.")) return;
-    await deleteTask(uid, initial.id!);
+    const original = initial as Task;
+    deleteTask(uid, original.id);
+    toast(`${original.title} excluída`, { tone: "info", undo: () => replaceTask(uid, original) });
     onClose();
   }
 

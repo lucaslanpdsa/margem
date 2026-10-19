@@ -10,6 +10,7 @@ import { findConflicts } from "@/lib/schedule";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
 import { TaskRow } from "./TaskRow";
+import { useToast } from "./toast";
 import { Button, Panel, cx, inputCls } from "./ui";
 
 /** "Revisar PR 45m" + Enter cria direto; sem tempo no fim, abre o formulário. */
@@ -138,7 +139,15 @@ function LateBanner({ tasks, date }: { tasks: Task[]; date: string }) {
   const { uid } = useStore();
   const [open, setOpen] = useState(false);
   const total = tasks.reduce((a, t) => a + t.estimateMin, 0);
-  const bring = (list: Task[]) => Promise.all(list.map((t) => updateTask(uid, t.id, { date })));
+  const toast = useToast();
+  const bring = (list: Task[]) => {
+    const before = list.map((t) => [t.id, t.date] as const);
+    Promise.all(list.map((t) => updateTask(uid, t.id, { date })));
+    toast(list.length === 1 ? `${list[0].title} veio para hoje` : `${list.length} tarefas vieram para hoje`, {
+      tone: "info",
+      undo: () => Promise.all(before.map(([id, d]) => updateTask(uid, id, { date: d }))),
+    });
+  };
 
   return (
     <div className="mt-4 rounded-xl border border-over/25 bg-over/[0.05] px-3 py-2.5">

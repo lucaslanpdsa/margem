@@ -9,7 +9,7 @@ import { AssignDialog, FocusView } from "./FocusView";
 import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
-import { ToastProvider } from "./toast";
+import { OfflineNotice, ToastProvider } from "./toast";
 import { SlotAlerts } from "./SlotAlerts";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
@@ -283,6 +283,7 @@ export function Shell() {
 
       <Timer hidden={tab === "foco"} onOpen={() => setTab("foco")} />
       <SlotAlerts />
+      <OfflineNotice />
       <AssignDialog />
       {settingsReady && !settings.scheduleSet && <Onboarding />}
       {help && <HelpDialog onClose={() => setHelp(false)} />}

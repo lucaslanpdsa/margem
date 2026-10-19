@@ -2,7 +2,7 @@
 
 import { doc, setDoc } from "firebase/firestore";
 import { dayKey } from "./dates";
-import { saveSettings } from "./db";
+import { saveSettings, write } from "./db";
 import { db } from "./firebase";
 import type { ActiveTimer, Session, Settings } from "./types";
 
@@ -55,14 +55,14 @@ async function record(uid: string, t: ActiveTimer, minutes: number, endedAt: Dat
   if (minutes < 1) return 0;
   const startedAt = new Date(t.startedAt);
   const id = `${prefix}-${startedAt.getTime()}`;
-  await setDoc(doc(db(), "users", uid, "sessions", id), {
+  await write(uid, () => setDoc(doc(db(), "users", uid, "sessions", id), {
     taskId: t.taskId,
     date: dayKey(startedAt),
     minutes,
     kind: "pomodoro",
     startedAt: t.startedAt,
     endedAt: endedAt.toISOString(),
-  });
+  }));
   // Foco sem tarefa: pergunta depois em que a pessoa trabalhou.
   if (!t.taskId && t.phase === "focus") await saveSettings(uid, { pendingAssign: id });
   return minutes;
@@ -85,9 +85,6 @@ async function closeCurrent(uid: string, settings: Settings, endedAt = new Date(
 
 export async function startTimer(uid: string, settings: Settings, taskId: string, mode: "pomodoro" | "stopwatch" = "pomodoro") {
   const closed = await closeCurrent(uid, settings);
-  if (typeof Notification !== "undefined" && Notification.permission === "default") {
-    Notification.requestPermission().catch(() => {});
-  }
   await saveSettings(uid, {
     lastTimerMode: mode,
     activeTimer: {

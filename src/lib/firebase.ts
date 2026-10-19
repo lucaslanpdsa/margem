@@ -2,7 +2,7 @@
 
 import { getApps, initializeApp, type FirebaseApp } from "firebase/app";
 import { getAuth, type Auth } from "firebase/auth";
-import { getFirestore, type Firestore } from "firebase/firestore";
+import { getFirestore, initializeFirestore, persistentLocalCache, persistentMultipleTabManager, type Firestore } from "firebase/firestore";
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -24,4 +24,19 @@ function getApp() {
 }
 
 export const auth = (): Auth => getAuth(getApp());
-export const db = (): Firestore => getFirestore(getApp());
+let store: Firestore | undefined;
+
+/**
+ * Firestore com cache no aparelho: funciona sem internet (lê o que já tinha e guarda as mudanças
+ * para enviar quando voltar), em várias abas ao mesmo tempo.
+ */
+export function db(): Firestore {
+  if (store) return store;
+  try {
+    store = initializeFirestore(getApp(), { localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() }) });
+  } catch {
+    // Já inicializado (ex: recarga do módulo em desenvolvimento) ou navegador sem IndexedDB.
+    store = getFirestore(getApp());
+  }
+  return store;
+}

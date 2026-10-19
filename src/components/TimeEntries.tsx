@@ -3,7 +3,7 @@
 import { Check, ChevronDown, Pencil, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { dayName, entryTimes, fmtMin, parseTimeEntry, shiftDay, todayKey } from "@/lib/dates";
-import { addSession, deleteSession, updateSession, watchTaskSessions } from "@/lib/db";
+import { addSession, deleteSession, restoreSession, updateSession, watchTaskSessions } from "@/lib/db";
 import { isLive, sessionSource } from "@/lib/pomodoro";
 import { PREVIEW_UID } from "@/lib/preview";
 import type { Session, Task } from "@/lib/types";
@@ -58,7 +58,7 @@ export function AddTime({ task, defaultDate, onDone }: { task: Task; defaultDate
   const [error, setError] = useState("");
 
   async function add(minutes: number, start?: string, end?: string) {
-    await addSession(uid, {
+    const id = await addSession(uid, {
       taskId: task.id,
       date,
       minutes,
@@ -66,7 +66,7 @@ export function AddTime({ task, defaultDate, onDone }: { task: Task; defaultDate
       ...entryTimes({ minutes, start, end }, date),
       ...(note.trim() ? { note: note.trim() } : {}),
     });
-    toast(`${fmtMin(minutes)} adicionados em ${task.title} · ${dayName(date).toLowerCase()}`);
+    toast(`${fmtMin(minutes)} adicionados em ${task.title} · ${dayName(date).toLowerCase()}`, { undo: () => deleteSession(uid, id) });
     onDone();
   }
 
@@ -186,6 +186,7 @@ function LiveRow({ s }: { s: Session }) {
 /** Um registro: horário, de onde veio, nota e tempo; lápis edita (tempo, dia, nota), lixeira apaga. */
 function EntryRow({ s }: { s: Session }) {
   const { uid } = useStore();
+  const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
   const [date, setDate] = useState(s.date);
@@ -261,7 +262,13 @@ function EntryRow({ s }: { s: Session }) {
         <IconButton label="Editar registro" onClick={open}>
           <Pencil size={14} />
         </IconButton>
-        <IconButton label="Apagar registro" onClick={() => deleteSession(uid, s.id)}>
+        <IconButton
+          label="Apagar registro"
+          onClick={() => {
+            deleteSession(uid, s.id);
+            toast(`Registro de ${fmtMin(s.minutes)} apagado`, { tone: "info", undo: () => restoreSession(uid, s) });
+          }}
+        >
           <Trash2 size={14} />
         </IconButton>
       </span>

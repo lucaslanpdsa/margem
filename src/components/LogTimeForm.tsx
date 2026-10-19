@@ -129,7 +129,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
             variant="ghost"
             onClick={() => {
               setSkipped(uid, task, date, !skipped);
-              toast(skipped ? `${task.title}: pulo desfeito` : `${task.title} pulada ${dayLabel}`, "info");
+              toast(skipped ? `${task.title}: pulo desfeito` : `${task.title} pulada ${dayLabel}`, { tone: "info", undo: () => setSkipped(uid, task, date, skipped) });
               onClose();
             }}
           >
@@ -150,8 +150,9 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
                 onPick={async (d) => {
                   setMoving(false);
                   if (d === (task.date ?? todayKey())) return;
+                  const before = task.date ?? todayKey();
                   await updateTask(uid, task.id, { date: d });
-                  toast(`${task.title} foi para ${dayName(d).toLowerCase()}`, "info");
+                  toast(`${task.title} foi para ${dayName(d).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before }) });
                   onClose();
                 }}
               />
@@ -164,6 +165,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
             variant={completed ? "ghost" : "secondary"}
             onClick={() => {
               toggleDone(uid, task, date, !completed);
+              if (!completed) toast(`${task.title} concluída`, { undo: () => toggleDone(uid, task, date, false) });
               onClose();
             }}
           >

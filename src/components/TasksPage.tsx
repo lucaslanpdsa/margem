@@ -2,11 +2,12 @@
 
 import { Archive, ArchiveRestore, ChevronDown, Clock, Plus, Search } from "lucide-react";
 import { useState } from "react";
-import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
+import { WEEKDAY_SHORT, dayName, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addTask, saveSettings, updateTask } from "@/lib/db";
 import { allSlotsOutside, slotsOf, toMin, weekdayCapacity } from "@/lib/schedule";
 import type { DayWindow, Task } from "@/lib/types";
 import { DayMenu } from "./DayMenu";
+import { useToast } from "./toast";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
 import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
@@ -440,9 +441,13 @@ function DateChip({ task }: { task: Task }) {
   const late = key < today;
   const label = key === today ? "Hoje" : key === shiftDay(today, 1) ? "Amanhã" : `${WEEKDAY_SHORT[d.getDay()]}, ${short}`;
 
+  const toast = useToast();
   const set = async (date: string) => {
     setOpen(false);
-    if (date && date !== task.date) await updateTask(uid, task.id, { date });
+    if (!date || date === task.date) return;
+    const before = task.date ?? today;
+    await updateTask(uid, task.id, { date });
+    toast(`${task.title} foi para ${dayName(date).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before }) });
   };
 
   return (

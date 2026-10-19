@@ -3,7 +3,7 @@
 import { ChevronDown, Minus, Plus } from "lucide-react";
 import { useState } from "react";
 import { entryTimes, fmtMin, shiftDay, todayKey } from "@/lib/dates";
-import { addSession, saveSettings, setDayEstimate, setSkipped, updateTask } from "@/lib/db";
+import { addSession, deleteSession, saveSettings, setDayEstimate, setSkipped, updateTask } from "@/lib/db";
 import { isTimeTask, type DayItem, type DayMetrics } from "@/lib/metrics";
 import { slotsOf } from "@/lib/schedule";
 import type { DayWindow } from "@/lib/types";
@@ -225,6 +225,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
  */
 function WhatToDrop({ m, excess }: { m: DayMetrics; excess: number }) {
   const { uid, settings } = useStore();
+  const toast = useToast();
   const tomorrow = shiftDay(m.date, 1);
   const t = settings.activeTimer;
   const runningId = t && t.phase === "focus" && !t.waiting ? t.taskId : null;
@@ -235,13 +236,35 @@ function WhatToDrop({ m, excess }: { m: DayMetrics; excess: number }) {
     .slice(0, 4);
   if (!candidates.length) return null;
 
+  // Cada ação avisa e pode ser desfeita.
   const action = (i: DayItem) => {
     if (isTimeTask(i.task)) {
       const to = i.estimateMin - Math.min(i.remainingMin, excess);
-      return { label: `Encurtar para ${fmtMin(to)}`, run: () => setDayEstimate(uid, i.task, m.date, to) };
+      const before = i.task.estimateFor?.[m.date] ?? null;
+      return {
+        label: `Encurtar para ${fmtMin(to)}`,
+        run: () => {
+          setDayEstimate(uid, i.task, m.date, to);
+          toast(`${i.task.title}: ${fmtMin(to)} só hoje`, { tone: "info", undo: () => setDayEstimate(uid, i.task, m.date, before) });
+        },
+      };
     }
-    if (i.task.repeat === "weekdays") return { label: "Pular hoje", run: () => setSkipped(uid, i.task, m.date, true) };
-    return { label: "Amanhã", run: () => updateTask(uid, i.task.id, { date: tomorrow }) };
+    if (i.task.repeat === "weekdays")
+      return {
+        label: "Pular hoje",
+        run: () => {
+          setSkipped(uid, i.task, m.date, true);
+          toast(`${i.task.title} pulada hoje`, { tone: "info", undo: () => setSkipped(uid, i.task, m.date, false) });
+        },
+      };
+    const before = i.task.date ?? m.date;
+    return {
+      label: "Amanhã",
+      run: () => {
+        updateTask(uid, i.task.id, { date: tomorrow });
+        toast(`${i.task.title} foi para amanhã`, { tone: "info", undo: () => updateTask(uid, i.task.id, { date: before }) });
+      },
+    };
   };
 
   return (
@@ -278,8 +301,11 @@ function FillGapDialog({ m, onClose }: { m: DayMetrics; onClose: () => void }) {
 
   async function save() {
     const entries = Object.entries(mins).filter(([, v]) => v > 0);
-    await Promise.all(entries.map(([taskId, minutes]) => addSession(uid, { taskId, date: m.date, minutes, kind: "manual", ...entryTimes({ minutes }, m.date) })));
-    if (entries.length) toast(`${fmtMin(given)} registrados em ${entries.length === 1 ? "1 tarefa" : `${entries.length} tarefas`}`);
+    const ids = await Promise.all(entries.map(([taskId, minutes]) => addSession(uid, { taskId, date: m.date, minutes, kind: "manual", ...entryTimes({ minutes }, m.date) })));
+    if (entries.length)
+      toast(`${fmtMin(given)} registrados em ${entries.length === 1 ? "1 tarefa" : `${entries.length} tarefas`}`, {
+        undo: () => Promise.all(ids.map((id) => deleteSession(uid, id))),
+      });
     onClose();
   }
 

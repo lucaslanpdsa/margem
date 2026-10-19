@@ -5,7 +5,7 @@ import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
 import { toggleDone } from "@/lib/db";
 import { timerDisplay, useNow } from "./Timer";
-import { useTimerActions } from "./toast";
+import { useTimerActions, useToast } from "./toast";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
@@ -31,6 +31,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
   const { uid, settings } = useStore();
   const { logTime } = useDialogs();
   const timer = useTimerActions();
+  const toast = useToast();
   const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus" && !settings.activeTimer.waiting;
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
   const slots = slotsOf(task);
@@ -48,7 +49,10 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
         </span>
       ) : checkable ? (
         <button
-          onClick={() => toggleDone(uid, task, date, !completed)}
+          onClick={() => {
+            toggleDone(uid, task, date, !completed);
+            if (!completed) toast(`${task.title} concluída`, { undo: () => toggleDone(uid, task, date, false) });
+          }}
           className={cx(
             "grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 transition-colors",
             completed ? "border-done bg-done text-white" : "border-line hover:border-done",
