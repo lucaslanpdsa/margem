@@ -124,4 +124,4 @@ Toda mudança de conta ganha teste em `metrics.test.ts`.
 
 ## Pendências
 
-O backlog de UX está em [`docs/05-analise-ux.md`](docs/05-analise-ux.md), com prioridade e status.
+O backlog de UX está em [`docs/05-analise-ux.md`](docs/05-analise-ux.md), com prioridade e status. O rumo do produto (público e assinatura) está em [`docs/06-publico-alvo.md`](docs/06-publico-alvo.md) e [`docs/07-plano-assinatura.md`](docs/07-plano-assinatura.md).

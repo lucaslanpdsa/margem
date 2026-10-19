@@ -12,6 +12,7 @@ Esta pasta descreve o app como ele está (outubro de 2026): o que cada tela faz,
 | [4. Telas e opções](04-telas.md) | Referência de cada tela e janela, com todas as opções |
 | [5. Análise de UI/UX](05-analise-ux.md) | Problemas encontrados, com evidência, proposta, prioridade e status |
 | [6. Público-alvo](06-publico-alvo.md) | Pesquisa dos 3 públicos possíveis, recomendação e perguntas para validar |
+| [7. Plano da assinatura](07-plano-assinatura.md) | Fases para virar produto pago: validar, valor, vender, crescer |
 | [Decisões](decisoes.md) | O que foi decidido e o que foi descartado, com o porquê |
 
 As imagens em [`img/`](img) são geradas pela prévia com dados de exemplo (`/dev`, só em desenvolvimento) com `python3 scripts/capturar-telas.py`, no celular (390px) e no computador (1280px).
