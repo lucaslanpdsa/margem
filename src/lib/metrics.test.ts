@@ -1,5 +1,5 @@
 import { findConflicts, slotEventText, slotEvents, taskTimeBlocks } from "./schedule";
-import { parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
+import { entryTimes, parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
 import { migrateTask } from "./migrate";
@@ -288,4 +288,12 @@ it("horário da tarefa não conta como feito sozinho", () => {
   const [i] = dayMetrics(D, { ...settings, windows: Array(7).fill({ start: "07:00", end: "18:00" }) }, [sim], [], [], new Date(`${D}T10:00:00`)).items;
   expect(i.doneMin).toBe(0);
   expect(i.completed).toBe(false);
+});
+
+it("duração com espaço e registro em outro dia sem horário", () => {
+  expect(parseDuration("3h 20m")).toBe(200);
+  expect(parseTimeEntry("1h 30")).toEqual({ minutes: 90 });
+  const t = entryTimes({ minutes: 60 }, "2026-10-01");
+  expect(t.startedAt).toBe(t.endedAt);
+  expect(new Date(t.startedAt).getDate()).toBe(1);
 });

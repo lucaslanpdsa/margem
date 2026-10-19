@@ -46,6 +46,10 @@ export function liveSession(t: ActiveTimer | null | undefined, now = Date.now())
 
 export const isLive = (s: Session) => s.id === LIVE_SESSION_ID;
 
+const SOURCE: Record<string, string> = { sw: "cronômetro", pomo: "pomodoro", pausa: "pausa do pomodoro" };
+/** De onde veio o registro: cronômetro, pomodoro ou manual. */
+export const sessionSource = (s: Session) => (s.kind === "manual" ? "manual" : (SOURCE[s.id.split("-")[0]] ?? "pomodoro"));
+
 /** Grava o tempo. O id vem do início, então gravar duas vezes não duplica. Menos de 1 minuto não grava. */
 async function record(uid: string, t: ActiveTimer, minutes: number, endedAt: Date, prefix: string) {
   if (minutes < 1) return 0;

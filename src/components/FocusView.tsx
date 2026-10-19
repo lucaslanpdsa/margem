@@ -5,7 +5,7 @@ import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
 import { dayItems } from "@/lib/metrics";
-import { isLive, isStopwatch, skipBreak, startWaiting } from "@/lib/pomodoro";
+import { isLive, isStopwatch, sessionSource, skipBreak, startWaiting } from "@/lib/pomodoro";
 import type { Session, Task } from "@/lib/types";
 import { RecordTime } from "./EditableMinutes";
 import { useStore } from "./store";
@@ -135,8 +135,10 @@ function PomodoroMenu({ onClose }: { onClose: () => void }) {
   );
 }
 
-const KIND_LABEL: Record<string, string> = { sw: "Cronômetro", pomo: "Pomodoro", pausa: "Pausa do pomodoro" };
-const kindOf = (s: Session) => (s.kind === "manual" ? "Manual" : (KIND_LABEL[s.id.split("-")[0]] ?? "Pomodoro"));
+const kindOf = (s: Session) => {
+  const src = sessionSource(s);
+  return src[0].toUpperCase() + src.slice(1);
+};
 
 function History() {
   const { uid, sessions, tasks } = useStore();

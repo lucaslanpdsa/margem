@@ -38,6 +38,13 @@ export function watchSessions(uid: string, fromDate: string, cb: (s: Session[]) 
   );
 }
 
+/** Todos os registros de uma tarefa (histórico completo, para a janela da tarefa). */
+export function watchTaskSessions(uid: string, taskId: string, cb: (s: Session[]) => void): Unsubscribe {
+  return onSnapshot(query(col(uid, "sessions"), where("taskId", "==", taskId)), (snap) =>
+    cb(snap.docs.map((d) => ({ ...(d.data() as Omit<Session, "id">), id: d.id }))),
+  );
+}
+
 export function watchSettings(uid: string, cb: (s: Settings) => void): Unsubscribe {
   return onSnapshot(settingsRef(uid), (snap) => cb({ ...DEFAULT_SETTINGS, ...(snap.data() as Partial<Settings>) }));
 }

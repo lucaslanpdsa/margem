@@ -60,6 +60,8 @@ export interface Session {
   kind: "pomodoro" | "manual";
   startedAt: string;
   endedAt: string;
+  /** O que foi feito (opcional), ex: "revisão do PR 45". */
+  note?: string;
 }
 
 export interface ActiveTimer {

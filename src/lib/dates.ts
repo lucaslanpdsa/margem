@@ -33,7 +33,8 @@ export const WEEKDAY_SHORT = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 /** "45" | "45m" | "1h" | "1h30" | "1:30" | "1,5h" -> minutos (ou null). */
 export function parseDuration(input: string): number | null {
-  const s = input.trim().toLowerCase().replace(",", ".");
+  // "3h 20m" = "3h20m"
+  const s = input.trim().toLowerCase().replace(",", ".").replace(/\s+/g, "");
   if (!s) return null;
   let m = s.match(/^(\d+):(\d{1,2})$/);
   if (m) return +m[1] * 60 + +m[2];
@@ -81,11 +82,23 @@ export function parseTimeEntry(input: string): TimeEntry | null {
   return minutes ? { minutes } : null;
 }
 
-/** startedAt/endedAt (ISO) para um registro: o intervalo informado ou "agora". */
+/**
+ * startedAt/endedAt (ISO) para um registro: o intervalo informado ou, sem horário,
+ * "agora" (se for hoje) ou meio-dia daquele dia (início = fim marca "sem horário").
+ */
 export function entryTimes(entry: TimeEntry, day: string) {
   if (entry.start && entry.end) {
     return { startedAt: new Date(`${day}T${entry.start}:00`).toISOString(), endedAt: new Date(`${day}T${entry.end === "24:00" ? "23:59" : entry.end}:00`).toISOString() };
   }
-  const now = new Date().toISOString();
-  return { startedAt: now, endedAt: now };
+  const at = (day === todayKey() ? new Date() : new Date(`${day}T12:00:00`)).toISOString();
+  return { startedAt: at, endedAt: at };
+}
+
+/** "Hoje", "Ontem", "Amanhã" ou "sex, 16/10". */
+export function dayName(key: string, today = todayKey()) {
+  if (key === today) return "Hoje";
+  if (key === shiftDay(today, -1)) return "Ontem";
+  if (key === shiftDay(today, 1)) return "Amanhã";
+  const d = fromKey(key);
+  return `${WEEKDAY_SHORT[d.getDay()]}, ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
 }

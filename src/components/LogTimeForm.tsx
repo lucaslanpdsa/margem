@@ -1,42 +1,29 @@
 "use client";
 
 import { Check, Pencil, Play, SkipForward, Square, Timer as TimerIcon, Undo2 } from "lucide-react";
-import { useState } from "react";
-import { entryTimes, fmtMin, fromKey, parseTimeEntry, todayKey, type TimeEntry } from "@/lib/dates";
-import { addSession, setDayEstimate, setSkipped, toggleDone } from "@/lib/db";
+import { fmtMin, fromKey, todayKey } from "@/lib/dates";
+import { setDayEstimate, setSkipped, toggleDone } from "@/lib/db";
 import { isCompletedOn, isSkippedOn, isTimeTask } from "@/lib/metrics";
-import { isLive } from "@/lib/pomodoro";
 import { timerDisplay, useNow } from "./Timer";
-import { useTimerActions, useToast } from "./toast";
+import { useTimerActions } from "./toast";
+import { AddTime, TaskEntries } from "./TimeEntries";
 import { useDialogs } from "./dialogs";
-import { RecordTime } from "./EditableMinutes";
-import type { Session, Task } from "@/lib/types";
+import type { Task } from "@/lib/types";
 import { useStore } from "./store";
-import { Button, Modal, cx, inputCls } from "./ui";
+import { Button, Modal } from "./ui";
 
-const QUICK = [15, 30, 60, 120];
-
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-/** "14:00–15:30" quando o registro tem horário; senão, de onde veio. */
-const recordLabel = (s: Session) =>
-  s.endedAt > s.startedAt ? `${hhmm(s.startedAt)}–${hhmm(s.endedAt)}${s.kind === "manual" ? "" : " · foco"}` : "Sem horário";
 
 /** A "página" da tarefa: quanto já foi reportado hoje, atalhos para reportar, concluir e editar. */
 export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void }) {
   const { uid, date, sessions, settings } = useStore();
   const { editTask } = useDialogs();
   const timer = useTimerActions();
-  const toast = useToast();
   const timeTask = isTimeTask(task);
   const skipped = isSkippedOn(task, date);
   const completed = !timeTask && !skipped && isCompletedOn(task, date);
-  const [other, setOther] = useState("");
-  const [error, setError] = useState("");
 
-  const mine = sessions.filter((s) => s.taskId === task.id && s.date === date);
-  // O timer rodando entra no total, mas não na lista de registros (ainda não é um registro).
-  const list = mine.filter((s) => !isLive(s)).sort((a, b) => a.startedAt.localeCompare(b.startedAt));
-  const logged = mine.reduce((a, s) => a + s.minutes, 0);
+  // Feito neste dia, com o timer rodando incluído.
+  const logged = sessions.filter((s) => s.taskId === task.id && s.date === date).reduce((a, s) => a + s.minutes, 0);
   const t = settings.activeTimer;
   const running = !!t && t.taskId === task.id && t.phase === "focus" && !t.waiting;
   const canStart = !completed && !skipped;
@@ -50,11 +37,6 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   // Tempo deste dia (pode ter sido encurtado só hoje).
   const est = task.estimateFor?.[date] ?? task.estimateMin;
 
-  async function register(entry: TimeEntry) {
-    await addSession(uid, { taskId: task.id, date, minutes: entry.minutes, kind: "manual", ...entryTimes(entry, date) });
-    toast(`${fmtMin(entry.minutes)} adicionados em ${task.title}`);
-    onClose();
-  }
 
   return (
     <Modal title={task.title} onClose={onClose}>
@@ -113,49 +95,12 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
       )}
 
       <p className="mb-2 text-[13px] font-medium">Adicionar tempo já feito</p>
-      <div className="grid grid-cols-4 gap-2">
-        {QUICK.map((m) => (
-          <button
-            key={m}
-            onClick={() => register({ minutes: m })}
-            className="h-14 rounded-xl border border-line text-base font-semibold transition-colors hover:border-todo hover:bg-todo/[0.06] hover:text-todo"
-          >
-            {m < 60 ? `${m}m` : `${m / 60}h`}
-          </button>
-        ))}
+      <AddTime task={task} defaultDate={date} onDone={onClose} />
+
+      <div className="mt-5 border-t border-line pt-3">
+        <p className="mb-1 text-[13px] font-medium">Registros</p>
+        <TaskEntries task={task} />
       </div>
-
-      <form
-        className="mt-3 flex gap-2"
-        onSubmit={(e) => {
-          e.preventDefault();
-          const entry = parseTimeEntry(other);
-          if (!entry) return setError("Escreva a duração (45m, 1h30) ou o horário (14:00-15:30).");
-          register(entry);
-        }}
-      >
-        <input className={cx(inputCls, "h-11")} value={other} onChange={(e) => setOther(e.target.value)} placeholder="45m, 1h30 ou 14:00-15:30" aria-label="Outro valor" />
-        <Button type="submit" variant="primary" className="h-11">
-          Adicionar
-        </Button>
-      </form>
-      {error && <p className="mt-2 text-sm text-over">{error}</p>}
-
-      {list.length > 0 && (
-        <div className="mt-5 border-t border-line pt-3">
-          <p className="mb-1 text-[13px] font-medium">Registros</p>
-          <ul className="divide-y divide-line">
-            {list.map((s) => (
-              <li key={s.id} className="flex items-center justify-between py-1.5 text-sm">
-                <span className="text-muted">
-                  {recordLabel(s)}
-                </span>
-                <RecordTime session={s} />
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
         <Button
