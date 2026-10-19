@@ -178,7 +178,7 @@ export function Shell() {
               className={cx(
                 "flex items-center gap-3 rounded-lg text-sm font-medium transition-colors",
                 collapsed ? "h-10 w-10 justify-center" : "w-full px-3 py-2",
-                isActive(t.id) ? "bg-sunken text-ink" : "text-muted hover:bg-sunken hover:text-ink",
+                isActive(t.id) ? "bg-todo/10 text-todo" : "text-muted hover:bg-sunken hover:text-ink",
               )}
             >
               <t.icon size={18} /> {!collapsed && t.label}
@@ -311,7 +311,7 @@ function LoadingSkeleton() {
 
 function MobileTab({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: typeof Sun; label: string }) {
   return (
-    <button onClick={onClick} className={cx("flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium", active ? "text-ink" : "text-muted")}>
+    <button onClick={onClick} className={cx("flex flex-1 flex-col items-center gap-0.5 py-1 text-[11px] font-medium", active ? "text-todo" : "text-muted")}>
       <Icon size={20} />
       {label}
     </button>

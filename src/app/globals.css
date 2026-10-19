@@ -1,42 +1,42 @@
 @import "tailwindcss";
 
 /*
-  Identidade "Grafite": ação em preto (brand), cor só para informação.
   Cores com significado fixo em todo o app:
-  feito = verde · falta = azul · livre = hachurado · excesso = vermelho · accent = links
+  feito = verde · falta = azul (também a cor de ação: brand) · livre = hachurado · excesso = vermelho
+  (Grafite, com ação em preto, foi testado em 19/10 e descartado: ficou sem vida.)
 */
 :root {
-  --bg: #f5f5f4;
+  --bg: #f6f7f9;
   --surface: #ffffff;
-  --sunken: #f0f0ef;
-  --ink: #0c0c0d;
-  --muted: #6b6b70;
-  --line: #e7e7e5;
-  --brand: #18181b;
+  --sunken: #eef0f4;
+  --ink: #12141a;
+  --muted: #667085;
+  --line: #e4e7ec;
+  --brand: #2b59ff;
   --brand-ink: #ffffff;
-  --accent: #2f5fe8;
-  --done: #10b981;
-  --todo: #3b6cf6;
-  --free: #d4d4d8;
+  --accent: #2b59ff;
+  --done: #12b76a;
+  --todo: #2b59ff;
+  --free: #d0d5dd;
   --over: #f04438;
   --break: #f79009;
-  --idle: #a1a1aa;
+  --idle: #98a2b3;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0e0e10;
-    --surface: #18181b;
-    --sunken: #222226;
-    --ink: #ededee;
-    --muted: #9a9aa2;
-    --line: #2c2c31;
-    --brand: #f4f4f5;
-    --brand-ink: #0c0c0d;
-    --accent: #7c9cff;
-    --done: #34d399;
-    --todo: #6b8cff;
-    --free: #3f3f46;
+    --bg: #0d0f14;
+    --surface: #161a22;
+    --sunken: #1d222c;
+    --ink: #eceef2;
+    --muted: #8b93a5;
+    --line: #262c38;
+    --brand: #5b7fff;
+    --brand-ink: #ffffff;
+    --accent: #5b7fff;
+    --done: #32d583;
+    --todo: #5b7fff;
+    --free: #3a4150;
     --over: #f97066;
     --break: #fdb022;
     --idle: #5d6679;

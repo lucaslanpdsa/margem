@@ -116,7 +116,7 @@ Toda mudança de conta ganha teste em `metrics.test.ts`.
 
 - **Next 16**: confira a doc em `node_modules/next/dist/docs/` antes de usar APIs de rota/servidor. `AGENTS.md` é mantido pelo `next dev`; se ele aparecer modificado, commite junto (o próprio arquivo pede isso).
 - **React Compiler lint** (`react-hooks/purity`, `set-state-in-effect`): nada de `Date.now()` no render; use `useNow()` (`Timer.tsx`) ou estado iniciado em efeito.
-- **Cores** (`globals.css`): `brand` = ação (preto no claro, quase branco no escuro; texto em cima é `text-brand-ink`, nunca `text-white`); `accent` = links; `done`/`todo`/`over`/`idle` = significado nos dados. Não use `todo` para botão.
+- **Cores** (`globals.css`): `brand` = ação (azul; texto em cima é `text-brand-ink`); `accent` = links; `done`/`todo`/`over`/`idle` = significado nos dados. O dono preferiu o azul ao visual preto e branco (ver decisões).
 - **Não rode prettier no arquivo inteiro**: o projeto usa linhas longas (~160) e não tem config; o diff vira ruído.
 - **Fuso**: datas de dia são chaves locais `yyyy-MM-dd` (`dates.ts`); não use `toISOString().slice(0,10)` para dia.
 - **Prévia** (`/dev`): uid `preview` (`src/lib/preview.ts`), nada é salvo; `TimeEntries` lê o histórico da prévia em vez do Firestore. Código de produção não importa `src/dev/` (só a página `/dev`), para os dados de exemplo não irem para o pacote. Em produção `/dev` devolve 404.

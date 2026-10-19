@@ -162,7 +162,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
               </button>
               <button
                 onClick={() => start("pomodoro")}
-                className="flex h-14 items-center justify-center gap-2 rounded-xl border border-line font-semibold text-ink hover:bg-sunken"
+                className="flex h-14 items-center justify-center gap-2 rounded-xl border border-brand/40 font-semibold text-brand hover:bg-brand/[0.06]"
               >
                 <TimerIcon size={16} /> Pomodoro {settings.focusMin}min
               </button>
