@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, ChevronDown, Minus, MoreHorizontal, Play, Plus, Square } from "lucide-react";
+import { Bell, Check, ChevronDown, Minus, MoreHorizontal, Play, Plus, Square } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
@@ -23,19 +23,53 @@ export function useTaskOptions() {
     .map((i) => ({ task: i.task, hint: `falta ${fmtMin(i.remainingMin)}` }));
 }
 
+/** Escolha da tarefa do foco: lista própria (com quanto falta) em vez da caixa do navegador. */
 function TaskSelect({ value, onChange, disabled, extra }: { value: string; onChange: (id: string) => void; disabled?: boolean; extra?: Task }) {
   const options = useTaskOptions();
+  const [open, setOpen] = useState(false);
   const list = extra && !options.some((o) => o.task.id === extra.id) ? [...options, { task: extra, hint: "" }] : options;
+  const current = list.find((o) => o.task.id === value);
+  const pick = (id: string) => {
+    onChange(id);
+    setOpen(false);
+  };
+  const row = (id: string, title: string, hint: string) => (
+    <li key={id || "none"}>
+      <button
+        type="button"
+        onClick={() => pick(id)}
+        className={cx("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-sunken", id === value && "bg-todo/[0.08]")}
+      >
+        <span className={cx("min-w-0 flex-1 truncate font-medium", !id && "text-muted")}>{title}</span>
+        {hint && <span className="tabular shrink-0 text-xs text-muted">{hint}</span>}
+        {id === value && <Check size={15} className="shrink-0 text-todo" />}
+      </button>
+    </li>
+  );
   return (
-    <select value={value} onChange={(e) => onChange(e.target.value)} disabled={disabled} className={cx(inputCls, "h-11 font-medium disabled:opacity-100")} aria-label="Tarefa">
-      <option value="">Sem tarefa</option>
-      {list.map((o) => (
-        <option key={o.task.id} value={o.task.id}>
-          {o.task.title}
-          {o.hint ? ` · ${o.hint}` : ""}
-        </option>
-      ))}
-    </select>
+    <div className="relative">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        aria-label="Tarefa"
+        className={cx(inputCls, "flex h-11 items-center gap-2 text-left font-medium")}
+      >
+        <span className={cx("min-w-0 flex-1 truncate", !current && "text-muted")}>{current?.task.title ?? "Sem tarefa"}</span>
+        {current?.hint && <span className="tabular shrink-0 text-xs font-normal text-muted">{current.hint}</span>}
+        <ChevronDown size={16} className={cx("shrink-0 text-muted transition-transform", open && "rotate-180")} />
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <ul className="absolute inset-x-0 bottom-full z-50 mb-1 max-h-72 overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-xl">
+            {list.map((o) => row(o.task.id, o.task.title, o.hint))}
+            {row("", "Sem tarefa", "")}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 

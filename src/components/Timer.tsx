@@ -75,18 +75,24 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
             <div className={cx("h-full transition-[width] duration-1000", focus ? "bg-todo" : "bg-break")} style={{ width: `${d.pct}%` }} />
           </div>
         )}
-        <div className="flex items-center gap-4 p-4">
-          <button onClick={onOpen} className="flex min-w-0 flex-1 items-center gap-4 text-left" title="Abrir a tela de foco">
-            <span className={cx("grid h-11 w-11 shrink-0 place-items-center rounded-full", focus ? "bg-todo/10 text-todo" : "bg-break/15 text-break")}>
-              {focus ? <TimerIcon size={20} /> : <Coffee size={20} />}
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="tabular block text-2xl leading-none font-semibold">{d.text}</span>
-              <span className="mt-1 block truncate text-[13px] text-muted">
+        {/* Compacta (2 linhas) para não cobrir a lista do dia no celular. */}
+        <div className="flex items-center gap-3 px-3 py-2.5">
+          <button
+            onClick={onOpen}
+            title="Abrir a tela de foco"
+            className={cx("grid h-9 w-9 shrink-0 place-items-center rounded-full", focus ? "bg-todo/10 text-todo" : "bg-break/15 text-break")}
+          >
+            {focus ? <TimerIcon size={17} /> : <Coffee size={17} />}
+          </button>
+          <div className="min-w-0 flex-1">
+            <button onClick={onOpen} className="flex w-full min-w-0 items-baseline gap-2 text-left" title="Abrir a tela de foco">
+              <span className="tabular shrink-0 text-xl leading-tight font-semibold">{d.text}</span>
+              <span className="truncate text-[13px] text-muted">
                 {t.waiting ? (focus ? "Próximo foco" : "Pausa pronta") : focus ? (task?.title ?? "Sem tarefa") : "Pausa"}
               </span>
-            </span>
-          </button>
+            </button>
+            {focus && !t.waiting && <TimerStart className="block text-xs" />}
+          </div>
           {t.waiting ? (
             <div className="flex gap-1.5">
               {focus ? (
@@ -103,7 +109,7 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
               </Button>
             </div>
           ) : focus ? (
-            <Button variant="secondary" onClick={() => timer.stop()} title="Para agora e conta o tempo já feito">
+            <Button size="sm" variant="secondary" onClick={() => timer.stop()} title="Para agora e conta o tempo já feito">
               <Square size={12} fill="currentColor" /> Parar
             </Button>
           ) : (
@@ -117,7 +123,6 @@ export function Timer({ hidden, onOpen }: { hidden?: boolean; onOpen?: () => voi
             </div>
           )}
         </div>
-        {focus && !t.waiting && <TimerStart className="-mt-2 block px-4 pb-3 pl-[76px]" />}
       </div>
     </div>
   );

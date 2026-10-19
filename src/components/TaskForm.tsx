@@ -1,8 +1,8 @@
 "use client";
 
-import { Archive, ArchiveRestore, Plus, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, CalendarDays, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
-import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, shiftDay, todayKey } from "@/lib/dates";
+import { WEEKDAY_SHORT, dayName, fmtMin, fromKey, parseDuration, shiftDay, todayKey } from "@/lib/dates";
 import { addTask, deleteTask, replaceTask, updateTask } from "@/lib/db";
 import { findConflicts, slotsMinutes, slotsOf, taskTimeBlocks, toMin } from "@/lib/schedule";
 import type { Task, TimeSlot } from "@/lib/types";
@@ -137,7 +137,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
             ]}
           />
           {repeat === "once" ? (
-            <input type="date" aria-label="Dia" className={cx(inputCls, "sm:w-56")} value={date} onChange={(e) => setDate(e.target.value)} />
+            <DayChoice value={date} onChange={setDate} />
           ) : (
             <div className="flex gap-1.5">
               {[1, 2, 3, 4, 5, 6, 0].map((d) => (
@@ -148,7 +148,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
                   onClick={() => setWeekdays((w) => (w.includes(d) ? w.filter((x) => x !== d) : [...w, d]))}
                   className={cx(
                     "h-10 flex-1 rounded-lg border text-[13px] font-medium transition-colors",
-                    weekdays.includes(d) ? "border-todo bg-todo text-white" : "border-line text-muted hover:text-ink",
+                    weekdays.includes(d) ? "border-todo/30 bg-todo/15 text-todo" : "border-line text-muted hover:text-ink",
                   )}
                 >
                   {WEEKDAY_SHORT[d]}
@@ -263,5 +263,42 @@ function NotifyPermission() {
     <button type="button" onClick={() => Notification.requestPermission().then(setPerm)} className="mb-2 text-xs font-medium text-todo hover:underline">
       Permitir notificações para os avisos
     </button>
+  );
+}
+
+/** Dia da tarefa de uma vez: Hoje e Amanhã com um toque; outro dia pelo calendário. */
+function DayChoice({ value, onChange }: { value: string; onChange: (d: string) => void }) {
+  const today = todayKey();
+  const tomorrow = shiftDay(today, 1);
+  const other = value !== today && value !== tomorrow;
+  const chip = (on: boolean) =>
+    cx("h-10 rounded-lg border px-3.5 text-[13px] font-medium transition-colors", on ? "border-todo/30 bg-todo/15 text-todo" : "border-line text-muted hover:text-ink");
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      <button type="button" className={chip(value === today)} onClick={() => onChange(today)} aria-pressed={value === today}>
+        Hoje
+      </button>
+      <button type="button" className={chip(value === tomorrow)} onClick={() => onChange(tomorrow)} aria-pressed={value === tomorrow}>
+        Amanhã
+      </button>
+      <label className={cx(chip(other), "relative inline-flex cursor-pointer items-center gap-1.5")}>
+        <CalendarDays size={14} />
+        {other && value ? dayName(value) : "Outro dia"}
+        <input
+          type="date"
+          value={value}
+          onChange={(e) => e.target.value && onChange(e.target.value)}
+          onClick={(e) => {
+            try {
+              e.currentTarget.showPicker();
+            } catch {
+              /* sem showPicker: o campo abre normalmente */
+            }
+          }}
+          className="absolute inset-0 cursor-pointer opacity-0"
+          aria-label="Outro dia"
+        />
+      </label>
+    </div>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronDown, Pencil, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { dayName, entryTimes, fmtMin, parseTimeEntry, shiftDay, todayKey } from "@/lib/dates";
 import { addSession, deleteSession, restoreSession, updateSession, watchTaskSessions } from "@/lib/db";
@@ -214,7 +214,7 @@ function LiveRow({ s, showTask }: { s: Session; showTask?: boolean }) {
   );
 }
 
-/** Um registro: horário, de onde veio, nota e tempo; lápis edita (tempo, dia, nota), lixeira apaga. */
+/** Um registro: horário, de onde veio, nota e tempo; tocar edita (tempo, dia, nota) e dá para apagar. */
 function EntryRow({ s, showTask }: { s: Session; showTask?: boolean }) {
   const { uid, tasks } = useStore();
   const [taskId, setTaskId] = useState(s.taskId);
@@ -279,6 +279,17 @@ function EntryRow({ s, showTask }: { s: Session; showTask?: boolean }) {
           <IconButton label="Cancelar" type="button" onClick={() => setEditing(false)}>
             <X size={16} />
           </IconButton>
+          <IconButton
+            label="Apagar registro"
+            type="button"
+            className="text-over"
+            onClick={() => {
+              deleteSession(uid, s.id);
+              toast(`Registro de ${fmtMin(s.minutes)} apagado`, { tone: "info", undo: () => restoreSession(uid, s) });
+            }}
+          >
+            <Trash2 size={16} />
+          </IconButton>
         </form>
         {showTask && (
           <select value={taskId} onChange={(e) => setTaskId(e.target.value)} aria-label="Tarefa" className={cx(inputCls, "h-9 text-sm")}>
@@ -298,38 +309,23 @@ function EntryRow({ s, showTask }: { s: Session; showTask?: boolean }) {
     );
   }
 
+  // A linha inteira abre a edição (tempo, dia, nota e apagar): menos ícones, mais espaço para a nota.
   return (
-    <li className="group flex items-center gap-3 py-2 text-sm">
-      {/* Na lista do dia, o horário vai para a linha de baixo, para o nome da tarefa caber. */}
-      {!showTask && <span className="tabular w-24 shrink-0 text-muted">{when}</span>}
-      <span className="min-w-0 flex-1">
-        {showTask && <TaskLabel s={s} />}
-        {s.note && <span className={cx("block truncate", showTask && "text-[13px] text-muted")}>{s.note}</span>}
-        <span className="block text-xs text-muted">
-          {showTask && <span className="tabular">{when} · </span>}
-          {sessionSource(s)}
-          {showTask && !s.taskId && (
-            <button onClick={open} className="ml-2 font-medium text-brand hover:underline">
-              Escolher tarefa
-            </button>
-          )}
+    <li>
+      <button onClick={open} className="-mx-2 flex w-[calc(100%+1rem)] items-center gap-3 rounded-lg px-2 py-2 text-left text-sm hover:bg-sunken" title="Editar registro">
+        {/* Na lista do dia, o horário vai para a linha de baixo, para o nome da tarefa caber. */}
+        {!showTask && <span className="tabular w-24 shrink-0 self-start text-muted">{when}</span>}
+        <span className="min-w-0 flex-1">
+          {showTask && <TaskLabel s={s} />}
+          {s.note && <span className={cx("line-clamp-2 block", showTask && "text-[13px] text-muted")}>{s.note}</span>}
+          <span className="block text-xs text-muted">
+            {showTask && <span className="tabular">{when} · </span>}
+            {sessionSource(s)}
+            {showTask && !s.taskId && <span className="ml-2 font-medium text-brand">Escolher tarefa</span>}
+          </span>
         </span>
-      </span>
-      <span className="tabular font-semibold">{fmtMin(s.minutes)}</span>
-      <span className="flex">
-        <IconButton label="Editar registro" onClick={open}>
-          <Pencil size={14} />
-        </IconButton>
-        <IconButton
-          label="Apagar registro"
-          onClick={() => {
-            deleteSession(uid, s.id);
-            toast(`Registro de ${fmtMin(s.minutes)} apagado`, { tone: "info", undo: () => restoreSession(uid, s) });
-          }}
-        >
-          <Trash2 size={14} />
-        </IconButton>
-      </span>
+        <span className="tabular shrink-0 self-start font-semibold">{fmtMin(s.minutes)}</span>
+      </button>
     </li>
   );
 }

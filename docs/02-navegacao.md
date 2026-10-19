@@ -39,7 +39,7 @@ flowchart TD
     Dia -- toque na tarefa --> JT[Janela da tarefa]
     Dia -- ▶ na tarefa --> Timer((Timer rodando))
     Dia -- O que você fez? --> Gap[Distribuir tempo sem registro]
-    Dia -- Mudar --> HorDia[Horário só deste dia<br/>inline]
+    Dia -- Detalhes › Mudar --> HorDia[Horário só deste dia<br/>inline]
     Dia -- Detalhes --> Leg[Legenda da barra<br/>inline]
     Dia -- Registros de hoje --> Reg[Lista de registros<br/>inline]
     Dia -- toque na data --> Cal[Calendário]
@@ -69,7 +69,7 @@ flowchart TD
 | Criar tarefa | **Nova** · campo "Nova tarefa" no Dia · campos de criação rápida em Tarefas (Repetem / Não repetem) |
 | Editar tarefa | toque na tarefa (Dia ou Tarefas) › **Editar** no cabeçalho da janela |
 | Mudar só o tempo | Tarefas › toque no tempo (ex: "1h") |
-| Mudar só a data | janela da tarefa › **Mudar dia** · Tarefas › toque na data · Dia › aviso de atrasadas › Trazer para hoje · Dia › "Para dar tempo" › Amanhã |
+| Mudar só a data | janela da tarefa › **Mudar dia** · Tarefas › toque na data · Dia › aviso de atrasadas › Trazer para hoje · Dia › "Como dar tempo" › Amanhã |
 | Mudar os dias de uma que repete | Tarefas › botões Seg…Dom da linha · formulário |
 | Começar timer | ▶ na linha (último modo usado) · janela da tarefa (Cronômetro ou Pomodoro) · Foco › Começar |
 | Parar timer | ■ na linha · barra flutuante · janela da tarefa · Foco |
@@ -79,11 +79,11 @@ flowchart TD
 | Dar tarefa a um registro sem tarefa | Registros de hoje › **Escolher tarefa** |
 | Desfazer | **Desfazer** no aviso do rodapé, logo depois da ação |
 | Concluir | círculo na linha · janela da tarefa › Concluir |
-| Pular hoje | janela da tarefa · Dia › "Para dar tempo" |
+| Pular hoje | janela da tarefa · Dia › "Como dar tempo" |
 | Desativar / reativar tarefa que repete | formulário › Desativar · Tarefas › Desativadas › Reativar |
 | Excluir tarefa | formulário › Excluir |
 | Mudar seu horário | Tarefas › Seu horário |
-| Mudar horário só de hoje | Dia › Mudar |
+| Mudar horário só de hoje | Dia › Detalhes (ou toque na legenda) › Mudar |
 | Configurar pomodoro | Foco › ··· |
 | Permitir notificações | **Menu da conta › Notificações › Ativar** · Foco › ··· · formulário › com horário |
 | Ver outro dia | Dia › setas ‹ › · **toque na data** (calendário) · Tarefas › Esta semana › toque no dia · "Hoje" para voltar |

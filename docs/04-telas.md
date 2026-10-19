@@ -59,12 +59,12 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 | Elemento | Detalhe |
 |---|---|
 | Título | Dá tempo: sobram X · Não dá tempo: X a mais · X feitos (dia encerrado) · Hoje sem horário |
-| Frase | "Você tem 2h30 de tarefas e só 44min até as 18:00." |
-| Horário | "Seu horário hoje: 08:00–18:00 (9h) · alterado só hoje · **Mudar**". Mudar abre, ali mesmo: início, fim, Salvar, Sem horário, Voltar ao padrão, Cancelar |
+| Frase | "Você tem 2h30 de tarefas e só 44min até as 18:00." (+ "Horário só hoje." se o horário do dia foi alterado) |
 | Barra (linha do tempo) | início, **agora** e fim do horário marcados; verde = feito, cinza = sem registro, azul = a fazer, hachurado = sobra, vermelho depois do fim = não cabe |
-| Sem registro | com 5min ou mais e alguma tarefa no dia: "43min já passaram sem nada registrado · **O que você fez?**" |
-| Para dar tempo | quando não dá tempo: até 4 tarefas com **Pular hoje** / **Amanhã** / **Encurtar para X**, cada uma com Desfazer |
-| Detalhes | recolhido; legenda com o valor e a explicação de cada cor, e o total "extra" |
+| Legenda | sempre visível embaixo da barra, só com as partes que existem: "Feito 1h55 · Sem registro 1h16 · A fazer 5h · Não cabe 1h · Sobra 30min" · **Detalhes ›**. Tocar abre os detalhes |
+| Botões | **O que você fez?** (com 5min ou mais sem registro e alguma tarefa no dia) · **Como dar tempo** (quando não dá tempo) |
+| Como dar tempo | recolhido; abre "Tire X de hoje com um destes:" e até 4 tarefas com **Pular hoje** / **Amanhã** / **Encurtar para X**, cada uma com Desfazer |
+| Detalhes | recolhido; "Seu horário hoje: 08:00–18:00 (9h) · **Mudar**" (início, fim, Salvar, Sem horário, Voltar ao padrão, Cancelar) e a explicação de cada cor, com o total "extra". Em dia sem horário o botão é "Mudar horário deste dia" |
 
 **Tarefas de hoje**
 
@@ -72,7 +72,7 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 |---|---|
 | Campo "Nova tarefa, ex: Revisar PR 45m" | Enter cria no dia aberto; sem tempo, abre o formulário. Prévia "Enter cria … com 45min" |
 | Aviso de atrasadas | só hoje: "N tarefas ficaram de dias anteriores · Xh" · **Trazer para hoje** (com Desfazer); abrindo, **Hoje** em cada uma |
-| Linha da tarefa | círculo (concluir, com Desfazer) ou alvo (tarefa "cumpro o tempo") · nome (até 2 linhas) · progresso · horário · "● 12:03" se o timer está nela · "extra" · conflito · › · **▶ / ■** |
+| Linha da tarefa | círculo (concluir, com Desfazer) ou alvo (tarefa "cumpro o tempo") · nome (até 2 linhas) · progresso · horário · "● 12:03" se o timer está nela · "extra" · conflito · **▶ / ■** (contorno cinza; azul só com o timer rodando) |
 | Toque na linha | abre a **Janela da tarefa** |
 | Ordem | primeiro as com horário (pela hora), depois as outras (pela criação) |
 | Concluídas / Puladas | recolhido no fim |
@@ -84,7 +84,7 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 
 ![Registros de hoje](img/22-registros-de-hoje.png)
 
-Todos os registros do dia, de todas as tarefas. Cada linha: tarefa, nota, horário · origem, tempo, ✎, 🗑. Registro sem tarefa aparece com **Escolher tarefa**. Editar troca tarefa, tempo/intervalo, dia e nota. Apagar tem Desfazer. O timer rodando aparece como "● rodando".
+Todos os registros do dia, de todas as tarefas. Cada linha: tarefa, nota, horário · origem, tempo. **Tocar na linha edita**: tarefa, tempo/intervalo, dia, nota e 🗑 apagar (com Desfazer). Registro sem tarefa aparece com **Escolher tarefa**. O timer rodando aparece como "● rodando".
 
 ## Janela "O que você fez?" (`CapacityPanel.tsx`)
 
@@ -104,11 +104,11 @@ Abre ao tocar numa tarefa no Dia ou em Tarefas.
 |---|---|
 | Cabeçalho | nome · **Editar** (abre o formulário) · fechar |
 | Feito hoje / Feito em 18/10 | total do dia aberto, "de X", barra; "Encurtada só neste dia · Voltar ao normal" quando for o caso |
-| Ações | **Pular hoje** / Desfazer pulo (as que repetem) · **Mudar dia** (as de uma vez: Hoje, Amanhã, Próxima segunda, Outro dia) · **Concluir** / Reabrir (só "marco como feita"). Todas com aviso e Desfazer |
+| Ações (dentro do resumo) | **Pular hoje** / Desfazer pulo (as que repetem) · **Mudar dia** (as de uma vez: Hoje, Amanhã, Próxima segunda, Outro dia) · **Concluir** / Reabrir (só "marco como feita"). Todas com aviso e Desfazer |
 | Começar agora | **Cronômetro** · **Pomodoro 25min** (some se concluída ou pulada) |
 | Timer rodando (no lugar do anterior) | "Cronômetro rodando", relógio, "Começou às 10:16 · Mudar", **Parar** |
 | Adicionar tempo já feito | botão recolhido; aberto: 15m · 30m · 1h · 2h · campo "3h 20m ou 14:00-15:30" + **Adicionar** · Quando: Hoje / Ontem / Outro dia · Nota |
-| Registros | "Total X em N dias"; por dia com total; os 3 dias mais recentes e "Mostrar mais"; ✎ edita tempo, dia e nota; 🗑 apaga (Desfazer) |
+| Registros | "Total X em N dias"; por dia com total; os 3 dias mais recentes e "Mostrar mais"; tocar num registro edita tempo, dia e nota, com 🗑 para apagar (Desfazer) |
 
 ---
 
@@ -119,7 +119,7 @@ Abre ao tocar numa tarefa no Dia ou em Tarefas.
 | Campo | Opções |
 |---|---|
 | Nome | obrigatório |
-| Uma vez / Repete | Uma vez: data · Repete: Seg…Dom |
+| Uma vez / Repete | Uma vez: **Hoje · Amanhã · Outro dia** (calendário) · Repete: Seg…Dom |
 | Quanto tempo leva / Meta de tempo | "45m, 1h30, 6h"; obrigatório |
 | Mais opções › Horário | um ou mais trechos início–fim; "Adicionar outro horário"; o tempo vira a soma; "Permitir notificações para os avisos" |
 | Mais opções › Como termina | Marco como feita · Cumpro o tempo |
@@ -142,10 +142,10 @@ No computador: horário e semana lado a lado; "Repetem" ao lado de "Não repetem
 
 | Bloco | Conteúdo e ações |
 |---|---|
-| Seu horário | resumo ("Seg a Sex, 08:00–18:00 · Sáb, 09:00–12:00 · almoço 12:00–13:00") · **Editar** |
+| Seu horário | resumo com um trecho por linha ("Seg a Sex, 08:00–18:00" / "Sáb, 09:00–12:00" / "Almoço 12:00–13:00") · **Editar** |
 | Esta semana / Próxima | 7 dias com quanto sobra (verde) ou falta (vermelho), contando as que repetem e as de uma vez; dias passados mostram o feito; hoje destacado; "N dias com mais do que cabe"; **tocar abre o Dia** naquela data |
 | Buscar tarefa | filtra pelo nome, sem acentos |
-| Repetem | por linha: nome (abre a janela da tarefa), tempo editável, horário, "meta de tempo", "extra", botões **Seg…Dom** (largura toda no celular). Criação rápida "Nova que repete, ex: Academia 1h" (sem tempo abre o formulário) |
+| Repetem | por linha: nome (abre a janela da tarefa), tempo editável, horário, "meta de tempo", "extra", botões **Seg…Dom** abaixo do nome (ligado = azul claro, desligado = contorno; largura toda no celular). Criação rápida "Nova que repete, ex: Academia 1h" (sem tempo abre o formulário) |
 | Não repetem | grupos Atrasadas, Hoje, Amanhã, Esta semana, Depois; por linha: nome (abre a janela), tempo editável, horário, data (menu: Hoje, Amanhã, Próxima segunda, Outro dia; com Desfazer). **Concluídas · últimos 7 dias** recolhido, com **Reabrir**. Criação rápida "Nova para hoje, ex: Revisar PR 45m" (sem tempo abre o formulário) |
 | Desativadas | recolhido; nome abre a edição; **Reativar** |
 
@@ -165,7 +165,7 @@ No computador: horário e semana lado a lado; "Repetem" ao lado de "Não repetem
 
 | Estado | Tela |
 |---|---|
-| Parado | Pomodoro / Cronômetro (abre no último modo usado) · relógio · "Pronto para começar" · tarefa (as abertas de hoje, ou "Sem tarefa") · **Começar** |
+| Parado | Pomodoro / Cronômetro (abre no último modo usado) · relógio · "Pronto para começar" · tarefa (lista própria com as abertas de hoje e quanto falta, ou "Sem tarefa") · **Começar** |
 | Foco rodando | modo · anel · "Foco" / "Contando" · tarefa · "Começou às … · Mudar" · **Parar e registrar** |
 | Pausa pronta | **Começar pausa** · Encerrar · Pular pausa |
 | Pausa rodando | Encerrar · **Próximo foco** |
@@ -193,7 +193,7 @@ Depois de um foco sem tarefa: escolha uma das tarefas abertas de hoje ou "Sem ta
 
 | Elemento | Onde | Detalhe |
 |---|---|---|
-| Barra do timer | flutuante, fora da aba Foco | relógio, tarefa ou "Pausa", "Começou às … · Mudar", Parar / Começar / Pular / Encerrar / Próximo conforme o estado; tocar abre Foco |
+| Barra do timer | flutuante e compacta (2 linhas), fora da aba Foco | relógio e tarefa (ou "Pausa") na mesma linha, "Começou às … · Mudar", Parar / Começar / Pular / Encerrar / Próximo conforme o estado; tocar abre Foco |
 | Avisos (toasts) (`toast.tsx`) | rodapé | confirmação (3,5s), com **Desfazer** (6s), ou erro vermelho "Não foi possível salvar" |
 | Sem internet | topo | "Sem internet · salva quando voltar"; as mudanças ficam no aparelho e são enviadas quando a conexão volta |
 | Avisos de horário (`SlotAlerts.tsx`) | com o app aberto | início, pausa entre horários, recomeço e fim; tolerância de 2min; não repete ao recarregar |

@@ -6,7 +6,7 @@
 |---|---|
 | **Seu horário** | De que horas a que horas você tem para tarefas em cada dia da semana (ex: seg a sex, 08:00–18:00). Dia sem horário = dia sem tarefas. |
 | **Pausa fixa** | Intervalo que vale para todos os dias e não conta como tempo para tarefas (ex: almoço 12:00–13:00). |
-| **Horário só de um dia** | Exceção para uma data específica ("Mudar" no topo do dia). Pode ser outro horário ou "sem horário". |
+| **Horário só de um dia** | Exceção para uma data específica (Dia › Detalhes › "Mudar"). Pode ser outro horário ou "sem horário". |
 | **Tarefa que repete** | Acontece em dias fixos da semana (ex: seg, qua, sex). |
 | **Tarefa de uma vez** | Acontece num dia. Sem dia (versões antigas) conta como de hoje. |
 | **Tempo da tarefa** | Quanto você espera gastar nela no dia (estimativa). |

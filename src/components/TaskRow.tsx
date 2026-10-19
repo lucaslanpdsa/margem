@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, ChevronRight, Clock, Play, SkipForward, Square, Target } from "lucide-react";
+import { Check, Clock, Play, SkipForward, Square, Target } from "lucide-react";
 import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
 import { toggleDone } from "@/lib/db";
@@ -74,7 +74,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
           <span className={cx("line-clamp-2 text-sm font-medium", (completed || skipped) && "text-muted line-through")}>{task.title}</span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted">
             <span className="inline-flex items-center gap-1.5">
-              <span className="h-1 w-10 overflow-hidden rounded-full bg-sunken">
+              <span className="h-1.5 w-16 overflow-hidden rounded-full bg-sunken">
                 <span className="block h-full rounded-full bg-done" style={{ width: `${pct}%` }} />
               </span>
               <span className="tabular">
@@ -92,7 +92,6 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
             {warning && <span className="font-medium text-break">⚠ {warning}</span>}
           </span>
         </span>
-        <ChevronRight size={16} className="shrink-0 text-muted" />
       </button>
 
       {/* ▶ começa o timer nesta tarefa (no último modo usado); ■ para e registra. */}
@@ -101,7 +100,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
           onClick={() => (running ? timer.stop() : timer.start(task.id, settings.lastTimerMode ?? "stopwatch"))}
           className={cx(
             "mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors",
-            running ? "bg-todo text-white hover:bg-todo/85" : "bg-todo/10 text-todo hover:bg-todo hover:text-white",
+            running ? "bg-todo text-white hover:bg-todo/85" : "border border-line text-muted hover:border-todo hover:bg-todo hover:text-white",
           )}
           aria-label={running ? "Parar e registrar" : "Começar timer nesta tarefa"}
           title={running ? "Parar e registrar" : settings.lastTimerMode === "pomodoro" ? "Começar pomodoro" : "Começar cronômetro"}

@@ -4,6 +4,14 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 19/10 — Revisão de design
+- **Topo do Dia enxuto**: legenda curta sempre visível (tocar abre Detalhes); horário do dia e "Mudar" foram para Detalhes; "Para dar tempo" virou o botão **Como dar tempo** (recolhido). Objetivo: a lista de tarefas aparecer na primeira tela do celular.
+- **Vermelho só no número e na barra.** Sugestões e aviso de atrasadas em cinza.
+- **Azul forte só para ação.** ▶ da linha em contorno (azul só rodando); dias ligados em azul claro (Tarefas e formulário). Seta › da linha da tarefa saiu (a linha toda abre).
+- **Registros: tocar na linha edita** (lápis e lixeira saíram da lista; apagar fica na edição).
+- Barra do timer compacta; escolha de tarefa do Foco em lista própria; dia da tarefa com Hoje · Amanhã · Outro dia.
+- **Adiado:** grade semanal de horas e semana em colunas com arrastar (Sunsama). Avaliado como pouco útil agora porque a maior parte da rotina repete; rever se mudar tarefas de dia virar rotina.
+
 ### 19/10 — Os 18 pontos da análise
 - **Desfazer em vez de confirmar.** Ações que tiram ou movem algo mostram "Desfazer" no aviso do rodapé. Excluir tarefa deixou de usar a confirmação do navegador.
 - **Gravação nunca falha em silêncio.** Toda escrita passa por `saved()`/`write()` (`db.ts`): erro vira aviso vermelho; sem resposta do servidor a tela não trava. **Firestore com cache no aparelho** (funciona sem internet).

@@ -101,14 +101,14 @@ function describeWindows(windows: (DayWindow | null)[]) {
     }
     i = j + 1;
   }
-  return parts.length ? parts.join(" · ") : "Nenhum dia com horário";
+  return parts.length ? parts : ["Nenhum dia com horário"];
 }
 
 /** O horário do dia para tarefas, resumido numa linha; tocar abre a edição. */
 function ScheduleCard() {
   const { uid, settings } = useStore();
   const [editing, setEditing] = useState<Schedule | null>(null);
-  const breaks = settings.breaks.map((b) => `${b.label.toLowerCase()} ${b.start}–${b.end}`).join(", ");
+  const breaks = settings.breaks.map((b) => `${b.label} ${b.start}–${b.end}`).join(" · ");
 
   async function save() {
     if (!editing) return;
@@ -126,9 +126,14 @@ function ScheduleCard() {
         <Clock size={18} className="shrink-0 text-todo" />
         <span className="min-w-0 flex-1">
           <span className="block text-[15px] font-semibold">Seu horário</span>
-          <span className="tabular block text-[13px] text-muted">
-            {describeWindows(settings.windows)}
-            {breaks && ` · ${breaks}`}
+          {/* Um trecho por linha, para não quebrar um horário no meio. */}
+          <span className="tabular mt-0.5 block text-[13px] leading-relaxed text-muted">
+            {describeWindows(settings.windows).map((p) => (
+              <span key={p} className="block">
+                {p}
+              </span>
+            ))}
+            {breaks && <span className="block">{breaks}</span>}
           </span>
         </span>
         <span className="shrink-0 text-[13px] font-medium text-brand">Editar</span>
@@ -185,7 +190,7 @@ function RoutineCard({ tasks, visible, searching }: { tasks: Task[]; visible: Ta
       ) : (
         <ul className="divide-y divide-line border-t border-line">
           {visible.map((t) => (
-            <li key={t.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
+            <li key={t.id} className="flex flex-col gap-2 px-4 py-3 sm:px-5">
               <TaskName task={t} />
               <div className="flex shrink-0 gap-1 sm:gap-1">
                 {WEEK.map((dow) => {
@@ -203,8 +208,9 @@ function RoutineCard({ tasks, visible, searching }: { tasks: Task[]; visible: Ta
                       aria-label={`${WEEKDAY_SHORT[dow]}: ${on ? "repete" : "não repete"}`}
                       title={last ? "Precisa de pelo menos um dia" : on ? `Tirar de ${WEEKDAY_SHORT[dow].toLowerCase()}` : `Repetir ${WEEKDAY_SHORT[dow].toLowerCase()}`}
                       className={cx(
-                        "h-10 flex-1 rounded-md text-[11px] font-semibold transition-colors sm:h-8 sm:w-9 sm:flex-none",
-                        on ? "bg-todo text-white hover:bg-todo/85" : "bg-sunken text-muted hover:bg-line hover:text-ink",
+                        "h-10 flex-1 rounded-md text-[11px] font-semibold transition-colors sm:h-8 sm:w-10 sm:flex-none",
+                        // Azul claro para ligado: o azul forte fica para os botões de ação.
+                        on ? "bg-todo/15 text-todo hover:bg-todo/25" : "text-muted/80 ring-1 ring-line ring-inset hover:bg-sunken hover:text-ink",
                       )}
                     >
                       {WEEKDAY_SHORT[dow]}

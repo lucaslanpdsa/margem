@@ -164,10 +164,11 @@ function LateBanner({ tasks, date }: { tasks: Task[]; date: string }) {
   };
 
   return (
-    <div className="mt-4 rounded-xl border border-over/25 bg-over/[0.05] px-3 py-2.5">
+    <div className="mt-4 rounded-xl bg-sunken px-3 py-2.5">
       <div className="flex items-center gap-2">
-        <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-1 text-left text-[13px] font-medium text-over">
+        <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-1 text-left text-[13px] font-medium text-ink">
           <ChevronDown size={14} className={cx("shrink-0 transition-transform", !open && "-rotate-90")} />
+          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-over" />
           {tasks.length === 1 ? "1 tarefa ficou" : `${tasks.length} tarefas ficaram`} de dias anteriores · {fmtMin(total)}
         </button>
         <Button size="sm" variant="secondary" onClick={() => bring(tasks)}>
@@ -175,7 +176,7 @@ function LateBanner({ tasks, date }: { tasks: Task[]; date: string }) {
         </Button>
       </div>
       {open && (
-        <ul className="mt-2 space-y-1 border-t border-over/15 pt-2">
+        <ul className="mt-2 space-y-1 border-t border-line pt-2">
           {tasks.map((t) => (
             <li key={t.id} className="flex items-center gap-3 text-sm">
               <span className="min-w-0 flex-1 truncate">{t.title}</span>

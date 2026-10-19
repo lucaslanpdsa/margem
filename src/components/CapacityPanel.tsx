@@ -91,6 +91,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
   const [editing, setEditing] = useState(false);
   const [details, setDetails] = useState(false);
   const [filling, setFilling] = useState(false);
+  const [dropping, setDropping] = useState(false);
   const [draft, setDraft] = useState<DayWindow>({ start: "08:00", end: "18:00" });
   const s = segments(m);
   const isToday = m.date === todayKey();
@@ -125,6 +126,17 @@ export function DayBudget({ m }: { m: DayMetrics }) {
   }
   const where = isToday ? "hoje" : "neste dia";
 
+  const tasksToday = m.items.some((i) => !i.skipped && !i.outside);
+  const showFill = !!m.window && s.idle >= 5 && tasksToday;
+  const showDrop = late && !ended;
+  const legend = [
+    { swatch: "bg-done", label: "Feito", v: s.done },
+    { swatch: "bg-idle", label: "Sem registro", v: s.idle },
+    { swatch: "bg-todo", label: "A fazer", v: s.fits },
+    { swatch: "bg-over", label: "Não cabe", v: s.excess },
+    { swatch: "hatch", label: "Sobra", v: s.free },
+  ].filter((k) => k.v > 0);
+
   return (
     <Panel className="p-5">
       <p
@@ -135,69 +147,96 @@ export function DayBudget({ m }: { m: DayMetrics }) {
       >
         {headline}
       </p>
-      <p className="mt-1 text-sm text-muted">{detail}</p>
-
-      {/* Horário do dia: texto pequeno, com edição só deste dia. */}
-      {editing ? (
-        <div className="mt-3 flex flex-wrap items-center gap-2 text-[13px] text-muted">
-          <TimeSelect label="Início" value={draft.start} onChange={(v) => setDraft({ ...draft, start: v })} />
-          <span>até</span>
-          <TimeSelect label="Fim" value={draft.end} onChange={(v) => setDraft({ ...draft, end: v })} />
-          <Button size="sm" variant="primary" onClick={() => saveOverride(draft)}>
-            Salvar
-          </Button>
-          <Button size="sm" variant="ghost" onClick={() => saveOverride(null)}>
-            Sem horário
-          </Button>
-          {custom && (
-            <Button size="sm" variant="ghost" onClick={resetOverride}>
-              Voltar ao padrão
-            </Button>
-          )}
-          <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-            Cancelar
-          </Button>
-        </div>
-      ) : (
-        <p className="mt-1 text-xs text-muted">
-          {m.window ? `Seu horário ${where}: ${m.window.start}–${m.window.end} (${fmtMin(m.capacityMin)})` : `Sem horário ${where}`}
-          {custom && ` · alterado só ${where}`}
-          {" · "}
-          <button
-            className="font-medium text-brand hover:underline"
-            onClick={() => {
-              setDraft(m.window ?? { start: "08:00", end: "18:00" });
-              setEditing(true);
-            }}
-          >
-            Mudar
-          </button>
-        </p>
-      )}
+      <p className="mt-1 text-sm text-muted">
+        {detail}
+        {custom && <span className="font-medium text-ink"> Horário só {where}.</span>}
+      </p>
 
       {m.window && <TimelineBar m={m} isToday={isToday} />}
 
-      {/* Ações: o que dá para fazer com o que a barra mostra. */}
-      {m.window && s.idle >= 5 && m.items.some((i) => !i.skipped && !i.outside) && (
-        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-sunken px-3 py-2.5">
-          <span className="min-w-0 flex-1 text-[13px] text-muted">
-            <b className="tabular font-semibold text-ink">{fmtMin(s.idle)}</b> já passaram sem nada registrado.
+      {/* Legenda curta sempre visível: a cor da barra e quanto é cada parte. Tocar abre os detalhes. */}
+      {m.window ? (
+        <button onClick={() => setDetails((v) => !v)} aria-expanded={details} className="mt-2 block w-full text-left" title="Detalhes e horário do dia">
+          <span className="tabular flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+            {legend.map((k) => (
+              <span key={k.label} className="inline-flex items-center gap-1.5">
+                <span className={cx("h-2 w-2 shrink-0 rounded-[2px]", k.swatch)} />
+                {k.label} <b className="font-semibold text-ink">{fmtMin(k.v)}</b>
+              </span>
+            ))}
+            <span className="inline-flex items-center gap-0.5 font-medium hover:text-ink">
+              Detalhes
+              <ChevronDown size={13} className={cx("transition-transform", !details && "-rotate-90")} />
+            </span>
           </span>
-          <Button size="sm" variant="secondary" onClick={() => setFilling(true)}>
-            O que você fez?
-          </Button>
+        </button>
+      ) : (
+        <button onClick={() => setDetails((v) => !v)} aria-expanded={details} className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-ink">
+          Mudar horário deste dia
+          <ChevronDown size={14} className={cx("transition-transform", !details && "-rotate-90")} />
+        </button>
+      )}
+
+      {/* Ações: o que dá para fazer com o que a barra mostra. Uma linha só; as sugestões abrem ao tocar. */}
+      {(showFill || showDrop) && (
+        <div className="mt-4 flex flex-wrap items-center gap-2">
+          {showFill && (
+            <Button size="sm" variant="secondary" onClick={() => setFilling(true)}>
+              O que você fez?
+            </Button>
+          )}
+          {showDrop && (
+            <Button size="sm" variant="secondary" onClick={() => setDropping((v) => !v)} aria-expanded={dropping}>
+              Como dar tempo
+              <ChevronDown size={14} className={cx("transition-transform", !dropping && "-rotate-90")} />
+            </Button>
+          )}
         </div>
       )}
-      {late && !ended && <WhatToDrop m={m} excess={s.excess} />}
 
-      {m.window && (
-        <div className="mt-3">
-          <button onClick={() => setDetails((v) => !v)} aria-expanded={details} className="inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-ink">
-            <ChevronDown size={14} className={cx("transition-transform", !details && "-rotate-90")} />
-            Detalhes
-          </button>
-          {details && (
-            <ul className="mt-2 space-y-1.5 text-[13px] text-muted">
+      {showDrop && dropping && <WhatToDrop m={m} excess={s.excess} />}
+
+      {details && (
+        <div className="mt-3 border-t border-line pt-3">
+          {/* Horário do dia, com edição só deste dia. */}
+          {editing ? (
+            <div className="flex flex-wrap items-center gap-2 text-[13px] text-muted">
+              <TimeSelect label="Início" value={draft.start} onChange={(v) => setDraft({ ...draft, start: v })} />
+              <span>até</span>
+              <TimeSelect label="Fim" value={draft.end} onChange={(v) => setDraft({ ...draft, end: v })} />
+              <Button size="sm" variant="primary" onClick={() => saveOverride(draft)}>
+                Salvar
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => saveOverride(null)}>
+                Sem horário
+              </Button>
+              {custom && (
+                <Button size="sm" variant="ghost" onClick={resetOverride}>
+                  Voltar ao padrão
+                </Button>
+              )}
+              <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
+                Cancelar
+              </Button>
+            </div>
+          ) : (
+            <p className="text-[13px] text-muted">
+              {m.window ? `Seu horário ${where}: ${m.window.start}–${m.window.end} (${fmtMin(m.capacityMin)})` : `Sem horário ${where}`}
+              {custom && ` · alterado só ${where}`}
+              {" · "}
+              <button
+                className="font-medium text-brand hover:underline"
+                onClick={() => {
+                  setDraft(m.window ?? { start: "08:00", end: "18:00" });
+                  setEditing(true);
+                }}
+              >
+                Mudar
+              </button>
+            </p>
+          )}
+          {m.window && (
+            <ul className="mt-3 space-y-1.5 text-[13px] text-muted">
               <Key swatch="bg-done" label="Feito" value={s.done} text="tempo registrado nas tarefas (timer, pomodoro ou à mão)." />
               <Key swatch="bg-idle" label="Sem registro" value={s.idle} text="tempo do seu horário que já passou sem nada registrado." />
               <Key swatch="bg-todo" label="A fazer" value={s.fits} text="o que falta das tarefas e ainda cabe até o fim do horário." />
@@ -268,15 +307,19 @@ function WhatToDrop({ m, excess }: { m: DayMetrics; excess: number }) {
   };
 
   return (
-    <div className="mt-3 rounded-xl bg-over/[0.06] p-3">
-      <p className="text-[13px] font-medium text-ink">Para dar tempo, tire {fmtMin(excess)} de hoje:</p>
-      <ul className="mt-2 space-y-1">
+    <div className="mt-3 rounded-xl bg-sunken p-3">
+      <p className="text-[13px] text-muted">
+        Tire <b className="tabular font-semibold text-ink">{fmtMin(excess)}</b> de hoje com um destes:
+      </p>
+      <ul className="mt-2 divide-y divide-line">
         {candidates.map((i) => {
           const a = action(i);
           return (
-            <li key={i.task.id} className="flex items-center gap-3 text-sm">
-              <span className="min-w-0 flex-1 truncate">{i.task.title}</span>
-              <span className="tabular shrink-0 text-xs text-muted">falta {fmtMin(i.remainingMin)}</span>
+            <li key={i.task.id} className="flex items-center gap-3 py-1.5 text-sm">
+              <span className="min-w-0 flex-1">
+                <span className="line-clamp-2 font-medium">{i.task.title}</span>
+                <span className="tabular block text-xs text-muted">falta {fmtMin(i.remainingMin)}</span>
+              </span>
               <button onClick={a.run} className="h-9 shrink-0 rounded-full border sm:h-8 border-line bg-surface px-3 text-[13px] font-medium hover:bg-sunken">
                 {a.label}
               </button>

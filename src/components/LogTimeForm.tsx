@@ -81,56 +81,59 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
             </button>
           </p>
         )}
-      </div>
-
-      {/* Ações do dia logo abaixo do resumo (antes ficavam no fim, depois do histórico). */}
-      <div className="-mt-2 mb-5 flex flex-wrap items-center gap-2">
-        {task.repeat === "weekdays" && !completed && (
-          <Button
-            variant="ghost"
-            onClick={() => {
-              setSkipped(uid, task, date, !skipped);
-              toast(skipped ? `${task.title}: pulo desfeito` : `${task.title} pulada ${dayLabel}`, { tone: "info", undo: () => setSkipped(uid, task, date, skipped) });
-              onClose();
-            }}
-          >
-            {skipped ? <Undo2 size={14} /> : <SkipForward size={14} />} {skipped ? "Desfazer pulo" : `Pular ${dayLabel}`}
-          </Button>
-        )}
-        {task.repeat === "once" && !completed && (
-          <div className="relative">
-            <Button variant="ghost" onClick={() => setMoving((v) => !v)} aria-expanded={moving}>
-              <CalendarDays size={14} /> Mudar dia
+        {/* Ações do dia dentro do resumo: ficam juntas e perto do número. */}
+        {(!completed || !timeTask) && (
+        <div className="-mx-1 mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-2">
+          {task.repeat === "weekdays" && !completed && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => {
+                setSkipped(uid, task, date, !skipped);
+                toast(skipped ? `${task.title}: pulo desfeito` : `${task.title} pulada ${dayLabel}`, { tone: "info", undo: () => setSkipped(uid, task, date, skipped) });
+                onClose();
+              }}
+            >
+              {skipped ? <Undo2 size={14} /> : <SkipForward size={14} />} {skipped ? "Desfazer pulo" : `Pular ${dayLabel}`}
             </Button>
-            {moving && (
-              <DayMenu
-                align="left"
-                value={task.date ?? todayKey()}
-                onClose={() => setMoving(false)}
-                onPick={async (d) => {
-                  setMoving(false);
-                  if (d === (task.date ?? todayKey())) return;
-                  const before = task.date ?? todayKey();
-                  await updateTask(uid, task.id, { date: d });
-                  toast(`${task.title} foi para ${dayName(d).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before }) });
-                  onClose();
-                }}
-              />
-            )}
-          </div>
-        )}
-        {!timeTask && !skipped && (
-          <Button
-            className="ml-auto"
-            variant={completed ? "ghost" : "secondary"}
-            onClick={() => {
-              toggleDone(uid, task, date, !completed);
-              if (!completed) toast(`${task.title} concluída`, { undo: () => toggleDone(uid, task, date, false) });
-              onClose();
-            }}
-          >
-            <Check size={15} /> {completed ? "Reabrir" : "Concluir"}
-          </Button>
+          )}
+          {task.repeat === "once" && !completed && (
+            <div className="relative">
+              <Button size="sm" variant="ghost" onClick={() => setMoving((v) => !v)} aria-expanded={moving}>
+                <CalendarDays size={14} /> Mudar dia
+              </Button>
+              {moving && (
+                <DayMenu
+                  align="left"
+                  value={task.date ?? todayKey()}
+                  onClose={() => setMoving(false)}
+                  onPick={async (d) => {
+                    setMoving(false);
+                    if (d === (task.date ?? todayKey())) return;
+                    const before = task.date ?? todayKey();
+                    await updateTask(uid, task.id, { date: d });
+                    toast(`${task.title} foi para ${dayName(d).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before }) });
+                    onClose();
+                  }}
+                />
+              )}
+            </div>
+          )}
+          {!timeTask && !skipped && (
+            <Button
+              size="sm"
+              className="ml-auto"
+              variant={completed ? "ghost" : "secondary"}
+              onClick={() => {
+                toggleDone(uid, task, date, !completed);
+                if (!completed) toast(`${task.title} concluída`, { undo: () => toggleDone(uid, task, date, false) });
+                onClose();
+              }}
+            >
+              <Check size={15} /> {completed ? "Reabrir" : "Concluir"}
+            </Button>
+          )}
+        </div>
         )}
       </div>
 

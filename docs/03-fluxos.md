@@ -35,7 +35,7 @@ flowchart LR
 | Dia › "Nova tarefa, ex: Revisar PR 45m" | o dia aberto | abre o formulário |
 | Tarefas › "Nova para hoje, ex: Revisar PR 45m" | hoje | abre o formulário |
 
-Formulário: Nome · Uma vez / Repete · dia · Quanto tempo leva · Mais opções (horário, como termina). **Criar**.
+Formulário: Nome · Uma vez / Repete · dia (Hoje · Amanhã · Outro dia) · Quanto tempo leva · Mais opções (horário, como termina). **Criar**.
 
 ## 3.4 Durante o dia: registrar tempo
 
@@ -67,15 +67,15 @@ Regras:
 |---|---|---|
 | Concluir | círculo na linha · janela › Concluir | sai da lista (vai para "Concluídas"); o que faltava volta para a sobra |
 | Concluir tarefa "cumpro o tempo" | automático | conclui quando o registrado chega na meta (ícone de alvo em vez de círculo) |
-| Pular hoje | janela › Pular hoje · "Para dar tempo" | só tarefas que repetem; sai da conta do dia; desfazer na janela |
-| Encurtar para X | "Para dar tempo" (tarefas "cumpro o tempo") | tempo só de hoje; "Voltar ao normal" na janela |
-| Amanhã | "Para dar tempo" (tarefas de uma vez) | muda a data para o dia seguinte |
+| Pular hoje | janela › Pular hoje · "Como dar tempo" | só tarefas que repetem; sai da conta do dia; desfazer na janela |
+| Encurtar para X | "Como dar tempo" (tarefas "cumpro o tempo") | tempo só de hoje; "Voltar ao normal" na janela |
+| Amanhã | "Como dar tempo" (tarefas de uma vez) | muda a data para o dia seguinte |
 | Mudar dia | janela da tarefa de uma vez | Hoje, Amanhã, Próxima segunda ou Outro dia; aviso "X foi para amanhã" |
 
 ## 3.6 Dia apertado ("Não dá tempo")
 
 1. O topo fica vermelho: **Não dá tempo: 43min a mais** e a barra mostra o vermelho depois da marca do fim do horário.
-2. Abaixo aparece **Para dar tempo, tire 43min de hoje**, com até 4 tarefas (primeiro as sem horário, as maiores antes) e a ação de cada uma: **Pular hoje**, **Amanhã** ou **Encurtar para…**.
+2. Tocando em **Como dar tempo** abre "Tire 43min de hoje com um destes:", com até 4 tarefas (primeiro as sem horário, as maiores antes) e a ação de cada uma: **Pular hoje**, **Amanhã** ou **Encurtar para…**.
 3. Se houver tempo sem registro, **O que você fez?** costuma resolver parte do aperto, porque o que foi feito e não registrado ainda conta como "falta".
 
 ## 3.7 Tarefas atrasadas
@@ -114,7 +114,7 @@ stateDiagram-v2
 ## 3.10 Mudar o horário
 
 - **De sempre**: Tarefas › Seu horário › Editar › dias, início/fim, pausas › Salvar.
-- **Só de um dia**: Dia › Mudar › início/fim › Salvar · ou **Sem horário** · ou **Voltar ao padrão**.
+- **Só de um dia**: Dia › Detalhes › Mudar › início/fim › Salvar · ou **Sem horário** · ou **Voltar ao padrão**.
 
 ## 3.11 Organizar e limpar
 
