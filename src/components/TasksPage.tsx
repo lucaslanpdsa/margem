@@ -1,9 +1,10 @@
 "use client";
 
-import { Archive, ArchiveRestore, ChevronDown, Clock, Plus, Search } from "lucide-react";
+import { Archive, ArchiveRestore, Check, ChevronDown, Clock, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, dayName, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
-import { addTask, saveSettings, updateTask } from "@/lib/db";
+import { addTask, saveSettings, toggleDone, updateTask } from "@/lib/db";
+import { dayMetrics } from "@/lib/metrics";
 import { allSlotsOutside, slotsOf, toMin, weekdayCapacity } from "@/lib/schedule";
 import type { DayWindow, Task } from "@/lib/types";
 import { DayMenu } from "./DayMenu";
@@ -11,7 +12,8 @@ import { useToast } from "./toast";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
 import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
-import { Button, Modal, cx, inputCls } from "./ui";
+import { Button, Modal, Segmented, cx, inputCls } from "./ui";
+import { useNow } from "./Timer";
 
 /**
  * Tela de organização das tarefas.
@@ -41,8 +43,8 @@ const byTimeThenTitle = (a: Task, b: Task) => {
   return a.title.localeCompare(b.title);
 };
 
-export function TasksPage() {
-  const { tasks, user, logout } = useStore();
+export function TasksPage({ onOpenDay }: { onOpenDay: (date: string) => void }) {
+  const { tasks } = useStore();
   const [query, setQuery] = useState("");
   const q = norm(query.trim());
   const match = (t: Task) => !q || norm(t.title).includes(q);
@@ -50,11 +52,17 @@ export function TasksPage() {
   const active = tasks.filter((t) => !t.archived);
   const routine = active.filter((t) => t.repeat === "weekdays").sort(byTimeThenTitle);
   const once = active.filter((t) => t.repeat === "once" && !t.completedAt);
+  // Concluídas nos últimos 7 dias, para reabrir uma concluída por engano.
+  const weekAgo = shiftDay(todayKey(), -7);
+  const done = active
+    .filter((t) => t.repeat === "once" && t.completedAt && t.completedAt.slice(0, 10) >= weekAgo)
+    .sort((a, b) => b.completedAt!.localeCompare(a.completedAt!));
   const paused = tasks.filter((t) => t.archived && !(t.repeat === "once" && t.completedAt));
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
       <ScheduleCard />
+      <WeekCard onOpenDay={onOpenDay} />
 
       <label className="relative block">
         <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
@@ -62,15 +70,9 @@ export function TasksPage() {
       </label>
 
       <RoutineCard tasks={routine} visible={routine.filter(match)} searching={!!q} />
-      <OnceCard tasks={once.filter(match)} searching={!!q} />
+      <OnceCard tasks={once.filter(match)} done={done.filter(match)} searching={!!q} />
       {paused.filter(match).length > 0 && <PausedCard tasks={paused.filter(match)} />}
 
-      <p className="pt-4 text-center text-[13px] text-muted">
-        {user?.email ? `Conectado como ${user.email}. ` : ""}
-        <button className="font-medium text-brand hover:underline" onClick={logout}>
-          Sair
-        </button>
-      </p>
     </div>
   );
 }
@@ -152,13 +154,6 @@ function RoutineCard({ tasks, visible, searching }: { tasks: Task[]; visible: Ta
   const { uid, settings } = useStore();
   const { editTask } = useDialogs();
 
-  // Totais da semana: o que as tarefas fixas ocupam em cada dia e o que sobra do horário.
-  const totals = WEEK.map((dow) => {
-    const { window, capacityMin } = weekdayCapacity(settings, dow);
-    const fixed = tasks.filter((t) => t.weekdays?.includes(dow) && !allSlotsOutside(t, window)).reduce((a, t) => a + t.estimateMin, 0);
-    return { dow, hasWindow: !!window, capacityMin, fixed, free: capacityMin - fixed };
-  });
-
   async function quickAdd(text: string) {
     const { title, minutes } = parseQuickAdd(text);
     if (!title) return;
@@ -216,52 +211,14 @@ function RoutineCard({ tasks, visible, searching }: { tasks: Task[]; visible: Ta
         </ul>
       )}
 
-      {tasks.length > 0 && !searching && (
-        <div className="space-y-1 border-t border-line bg-sunken/40 px-4 py-3 sm:px-5">
-          <TotalsRow label="Fixas" hint="Quanto as tarefas que repetem ocupam em cada dia" cells={totals.map((d) => ({ text: d.fixed ? fmtMin(d.fixed) : "–", tone: "muted" as const }))} />
-          <TotalsRow
-            label="Livre"
-            hint="O que sobra do seu horário para o resto"
-            cells={totals.map((d) =>
-              !d.hasWindow
-                ? { text: "–", tone: "muted" as const }
-                : { text: d.free < 0 ? `-${fmtMin(-d.free)}` : fmtMin(d.free), tone: d.free < 0 ? ("over" as const) : ("done" as const) },
-            )}
-          />
-        </div>
-      )}
-
       <QuickAdd placeholder="Nova que repete, ex: Academia 1h" onAdd={quickAdd} />
     </section>
   );
 }
 
-function TotalsRow({ label, hint, cells }: { label: string; hint: string; cells: { text: string; tone: "muted" | "over" | "done" }[] }) {
-  return (
-    <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:gap-4">
-      <span className="min-w-0 flex-1 text-xs font-semibold text-muted" title={hint}>
-        {label}
-      </span>
-      <div className="flex shrink-0 gap-1">
-        {cells.map((c, i) => (
-          <span
-            key={i}
-            className={cx(
-              "tabular w-9 text-center text-[11px] font-semibold",
-              c.tone === "over" ? "text-over" : c.tone === "done" ? "text-done" : "text-muted",
-            )}
-          >
-            {c.text}
-          </span>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 // ---------------- Não repetem ----------------
 
-function OnceCard({ tasks, searching }: { tasks: Task[]; searching: boolean }) {
+function OnceCard({ tasks, done, searching }: { tasks: Task[]; done: Task[]; searching: boolean }) {
   const { uid } = useStore();
   const { editTask } = useDialogs();
   const today = todayKey();
@@ -316,7 +273,106 @@ function OnceCard({ tasks, searching }: { tasks: Task[]; searching: boolean }) {
         ))
       )}
 
+      {done.length > 0 && <DoneGroup tasks={done} />}
+
       <QuickAdd placeholder="Nova para hoje, ex: Revisar PR 45m" onAdd={quickAdd} />
+    </section>
+  );
+}
+
+/** Concluídas nos últimos 7 dias, recolhidas, com Reabrir. */
+function DoneGroup({ tasks }: { tasks: Task[] }) {
+  const { uid } = useStore();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="border-t border-line">
+      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="flex w-full items-center gap-1 px-4 pt-3 pb-2 text-left text-xs font-semibold tracking-wide text-muted uppercase sm:px-5">
+        <ChevronDown size={14} className={cx("transition-transform", !open && "-rotate-90")} />
+        Concluídas · últimos 7 dias <span className="font-normal">· {tasks.length}</span>
+      </button>
+      {open && (
+        <ul className="pb-2">
+          {tasks.map((t) => (
+            <li key={t.id} className="flex items-center gap-3 px-4 py-2 sm:px-5">
+              <Check size={15} className="shrink-0 text-done" />
+              <span className="min-w-0 flex-1 truncate text-sm text-muted line-through">{t.title}</span>
+              <span className="shrink-0 text-xs text-muted">{dayName(t.completedAt!.slice(0, 10)).toLowerCase()}</span>
+              <button
+                onClick={() => {
+                  toggleDone(uid, t, t.date ?? todayKey(), false);
+                  toast(`${t.title} reaberta`, { tone: "info", undo: () => toggleDone(uid, t, t.date ?? todayKey(), true) });
+                }}
+                className="h-8 shrink-0 rounded-full border border-line px-3 text-[13px] font-medium hover:bg-sunken"
+              >
+                Reabrir
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+// ---------------- Esta semana ----------------
+
+/**
+ * A semana dia a dia: quanto sobra (ou falta) em cada dia, com as tarefas que repetem e as de uma vez.
+ * Dias passados mostram o feito. Tocar num dia abre o Dia nele.
+ */
+function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
+  const { settings, tasks, blocks, sessions } = useStore();
+  const now = new Date(useNow(60000));
+  const today = todayKey(now);
+  const [next, setNext] = useState(false);
+  const days = weekDays(next ? shiftDay(today, 7) : today);
+  const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now));
+  const ahead = ms.filter((m) => m.date >= today && m.window);
+  const tight = ahead.filter((m) => m.freeMin < 0).length;
+
+  return (
+    <section className="rounded-2xl border border-line bg-surface">
+      <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2 sm:px-5">
+        <div>
+          <h2 className="text-[15px] font-semibold">{next ? "Próxima semana" : "Esta semana"}</h2>
+          <p className={cx("text-[13px]", tight ? "text-over" : "text-muted")}>
+            {tight ? `${tight === 1 ? "1 dia" : `${tight} dias`} com mais do que cabe` : "Sobra em cada dia. Toque para abrir."}
+          </p>
+        </div>
+        <Segmented
+          value={next ? "next" : "this"}
+          onChange={(v) => setNext(v === "next")}
+          options={[
+            { value: "this", label: "Esta" },
+            { value: "next", label: "Próxima" },
+          ]}
+        />
+      </header>
+      <div className="grid grid-cols-7 gap-1 px-2 pb-3 sm:px-4">
+        {ms.map((m) => {
+          const d = fromKey(m.date);
+          const past = m.date < today;
+          const isToday = m.date === today;
+          const late = !past && m.freeMin < 0;
+          const value = !m.window ? "–" : past ? fmtMin(m.doneMin) : late ? `-${fmtMin(-m.freeMin)}` : fmtMin(m.freeMin);
+          return (
+            <button
+              key={m.date}
+              onClick={() => onOpenDay(m.date)}
+              className={cx(
+                "flex min-h-16 flex-col items-center justify-center rounded-xl px-0.5 py-2 transition-colors hover:bg-sunken",
+                isToday && "bg-todo/[0.07] ring-1 ring-todo/40",
+              )}
+              title={!m.window ? "Sem horário" : past ? `${fmtMin(m.doneMin)} feitos` : late ? `${fmtMin(-m.freeMin)} a mais do que cabe` : `Sobram ${fmtMin(m.freeMin)}`}
+            >
+              <span className={cx("text-[11px] font-semibold", isToday ? "text-todo" : "text-muted")}>{WEEKDAY_SHORT[d.getDay()]}</span>
+              <span className={cx("text-sm font-semibold", past && "text-muted")}>{d.getDate()}</span>
+              <span className={cx("tabular mt-0.5 text-[11px] font-semibold", !m.window || past ? "text-muted" : late ? "text-over" : "text-done")}>{value}</span>
+            </button>
+          );
+        })}
+      </div>
     </section>
   );
 }

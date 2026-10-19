@@ -256,7 +256,14 @@ export function Shell() {
           <main>
             {tab === "dia" && <DayView />}
             {tab === "foco" && <FocusView />}
-            {tab === "tarefas" && <TasksPage />}
+            {tab === "tarefas" && (
+              <TasksPage
+                onOpenDay={(d) => {
+                  setDate(d);
+                  setTab("dia");
+                }}
+              />
+            )}
           </main>
         </div>
       </div>
