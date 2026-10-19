@@ -161,7 +161,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           <div>
             <span className="block text-[13px] font-medium">Horário</span>
             <span className="mb-1.5 block text-xs text-muted">
-              Com horário, o tempo conta sozinho enquanto o horário passa, e o app avisa no início e no fim (com o app aberto).
+              Aparece na agenda e o app avisa no início e no fim (com o app aberto).
             </span>
             {slots.length > 0 && <NotifyPermission />}
             {slots.length > 0 && (

@@ -198,7 +198,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
           </button>
           {details && (
             <ul className="mt-2 space-y-1.5 text-[13px] text-muted">
-              <Key swatch="bg-done" label="Feito" value={s.done} text="tempo registrado, mais o horário que já passou das tarefas com horário." />
+              <Key swatch="bg-done" label="Feito" value={s.done} text="tempo registrado nas tarefas (timer, pomodoro ou à mão)." />
               <Key swatch="bg-idle" label="Sem registro" value={s.idle} text="tempo do seu horário que já passou sem nada registrado." />
               <Key swatch="bg-todo" label="A fazer" value={s.fits} text="o que falta das tarefas e ainda cabe até o fim do horário." />
               {s.excess > 0 && <Key swatch="bg-over" label="Não cabe" value={s.excess} text="o que falta e passa do fim do horário." />}
@@ -270,8 +270,7 @@ function FillGapDialog({ m, onClose }: { m: DayMetrics; onClose: () => void }) {
   const { uid } = useStore();
   const toast = useToast();
   const gap = m.idleMin;
-  // Tarefas contando pelo horário ficam de fora: registrar nelas trocaria a conta do horário pelo registrado.
-  const items = m.items.filter((i) => !i.skipped && !i.outside && i.autoMin === 0);
+  const items = m.items.filter((i) => !i.skipped && !i.outside);
   const [mins, setMins] = useState<Record<string, number>>({});
   const given = Object.values(mins).reduce((a, v) => a + v, 0);
   const left = gap - given;

@@ -2,10 +2,9 @@
 
 import { Check, Pencil, Play, SkipForward, Square, Timer as TimerIcon, Undo2 } from "lucide-react";
 import { useState } from "react";
-import { entryTimes, fmtMin, parseTimeEntry, type TimeEntry } from "@/lib/dates";
+import { entryTimes, fmtMin, fromKey, parseTimeEntry, todayKey, type TimeEntry } from "@/lib/dates";
 import { addSession, setDayEstimate, setSkipped, toggleDone } from "@/lib/db";
-import { isCompletedOn, isSkippedOn, isTimeTask, slotMinutesPassed } from "@/lib/metrics";
-import { windowFor } from "@/lib/schedule";
+import { isCompletedOn, isSkippedOn, isTimeTask } from "@/lib/metrics";
 import { isLive } from "@/lib/pomodoro";
 import { timerDisplay, useNow } from "./Timer";
 import { useTimerActions, useToast } from "./toast";
@@ -46,9 +45,8 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
     await timer.start(task.id, mode);
     onClose();
   }
-  // Sem registro, tarefa com horário conta sozinha o horário que já passou.
-  const auto = logged > 0 || skipped ? 0 : slotMinutesPassed(task, date, windowFor(settings, date), settings.breaks, new Date());
-  const total = logged || auto;
+  const total = logged;
+  const dayLabel = date === todayKey() ? "hoje" : `em ${fromKey(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
   // Tempo deste dia (pode ter sido encurtado só hoje).
   const est = task.estimateFor?.[date] ?? task.estimateMin;
 
@@ -61,7 +59,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   return (
     <Modal title={task.title} onClose={onClose}>
       <div className="mb-5 rounded-xl bg-sunken p-4">
-        <p className="text-[13px] text-muted">{auto > 0 ? "Contado pelo horário" : "Feito neste dia"}</p>
+        <p className="text-[13px] text-muted">Feito {dayLabel}</p>
         <p className="tabular mt-0.5 text-2xl font-semibold">
           {fmtMin(total)}
           {est > 0 && <span className="text-base font-normal text-muted"> de {fmtMin(est)}</span>}
@@ -71,7 +69,6 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
             <div className="h-full rounded-full bg-done" style={{ width: `${Math.min(100, (total / est) * 100)}%` }} />
           </div>
         )}
-        {auto > 0 && <p className="mt-2 text-xs text-muted">O horário da tarefa conta sozinho. Se registrar tempo, vale o registrado.</p>}
         {task.estimateFor?.[date] !== undefined && (
           <p className="mt-2 text-xs text-muted">
             Encurtada só neste dia (normal {fmtMin(task.estimateMin)}).{" "}

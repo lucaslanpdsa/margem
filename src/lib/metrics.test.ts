@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession } from "./pomodoro";
-import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
+import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
 const base = { createdAt: "2026-10-01T10:00:00.000Z", estimateMin: 60 };
@@ -204,54 +204,6 @@ describe("conflito de horário", () => {
   });
 });
 
-describe("horário da tarefa conta sozinho", () => {
-  const work8: Settings = { ...DEFAULT_SETTINGS, windows: [null, null, null, null, null, { start: "08:00", end: "18:00" }, null], breaks: [{ label: "Almoço", start: "12:00", end: "13:00" }] };
-  const job: Task = {
-    id: "j",
-    title: "Trabalho",
-    repeat: "weekdays",
-    weekdays: [5],
-    doneBy: "time",
-    estimateMin: 360,
-    slots: [
-      { start: "08:00", end: "12:00" },
-      { start: "13:00", end: "15:00" },
-    ],
-    createdAt: "2026-10-01T10:00:00.000Z",
-  };
-  const at = (hhmm: string) => new Date(`${D}T${hhmm}:00`);
-
-  it("às 14h já contou 5h, sem registro nenhum, e o dia não fica atrasado", () => {
-    const m = dayMetrics(D, work8, [job], [], [], at("14:00"));
-    expect(m.items[0].autoMin).toBe(300);
-    expect(m.doneMin).toBe(300);
-    expect(m.idleMin).toBe(0);
-    expect(m.remainingMin).toBe(60);
-  });
-
-  it("depois do horário, a tarefa conclui sozinha", () => {
-    const [i] = dayMetrics(D, work8, [job], [], [], at("16:00")).items;
-    expect(i.completed).toBe(true);
-    expect(i.remainingMin).toBe(0);
-  });
-
-  it("com registro, vale o registrado e não o horário", () => {
-    const logged: Session[] = [{ id: "l", taskId: "j", date: D, minutes: 120, kind: "manual", startedAt: "", endedAt: "" }];
-    const m = dayMetrics(D, work8, [job], [], logged, at("16:00"));
-    expect(m.items[0].autoMin).toBe(0);
-    expect(m.items[0].doneMin).toBe(120);
-    expect(m.items[0].completed).toBe(false);
-  });
-
-  it("pulada não conta nada pelo horário", () => {
-    const m = dayMetrics(D, work8, [{ ...job, skipped: { [D]: true } }], [], [], at("16:00"));
-    expect(m.doneMin).toBe(0);
-  });
-
-  it("dia futuro não conta nada ainda", () => {
-    expect(dayMetrics("2026-10-23", work8, [job], [], [], at("16:00")).items[0].autoMin).toBe(0);
-  });
-});
 
 it("meta semanal antiga vira tarefa que repete de segunda a sexta, por tempo", () => {
   const { task, changed } = migrateTask({ id: "m", title: "Inglês", repeat: "weeklyGoal", weeklyGoalMin: 300, estimateMin: 0, createdAt: "2026-10-01T10:00:00.000Z" });
@@ -329,4 +281,11 @@ it("tempo encurtado só vale naquele dia", () => {
   const short = { ...b, estimateFor: { [D]: 45 } };
   expect(dayMetrics(D, settings, [short], blocks, [], early).items[0].estimateMin).toBe(45);
   expect(dayMetrics("2026-10-14", { ...settings, windows: Array(7).fill({ start: "14:00", end: "18:00" }) }, [short], blocks, [], early).items[0].estimateMin).toBe(90);
+});
+
+it("horário da tarefa não conta como feito sozinho", () => {
+  const sim: Task = { id: "s", title: "Simulado", repeat: "once", date: D, estimateMin: 60, slots: [{ start: "07:00", end: "08:00" }], createdAt: "2026-10-01T10:00:00.000Z" };
+  const [i] = dayMetrics(D, { ...settings, windows: Array(7).fill({ start: "07:00", end: "18:00" }) }, [sim], [], [], new Date(`${D}T10:00:00`)).items;
+  expect(i.doneMin).toBe(0);
+  expect(i.completed).toBe(false);
 });
