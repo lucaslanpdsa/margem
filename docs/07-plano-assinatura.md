@@ -1,5 +1,7 @@
 # 7. Plano: do app pessoal à assinatura
 
+**Status (19/10):** feitos 1, 2, 3, 5 da fase 1; configuração inicial, Grátis/Pro, pagamento (falta ligar as chaves, ver [08](08-ligar-cobranca.md)), LGPD e página de vendas da fase 2. Pendentes: lembrete com o app fechado (4), validação da fase 0 e a fase 3.
+
 Plano feito em 19/10/2026 a partir de [6. Público-alvo](06-publico-alvo.md). Público escolhido (a confirmar): **quem trabalha e estuda** (concurso, certificação, faculdade).
 
 **Promessa em uma frase:** *"Saiba todo dia quanto tempo sobra para estudar, e cumpra a meta da semana mesmo com o trabalho no meio."*

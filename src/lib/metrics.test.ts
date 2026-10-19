@@ -2,6 +2,8 @@ import { findConflicts, slotEventText, slotEvents, taskTimeBlocks } from "./sche
 import { entryTimes, parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
+import { streak, taskWeek, weekHistory } from "./week";
+import { planOf } from "./plan";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession, setTimerStart } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
@@ -311,5 +313,87 @@ describe("mudar a hora em que o timer começou", () => {
   it("começando às 10:00, às 10:33 o timer já conta 33min", () => {
     const at10 = { ...sw, startedAt: new Date(`${D}T10:00:00`).toISOString() };
     expect(liveSession(at10, now.getTime())!.minutes).toBe(33);
+  });
+});
+
+describe("semana da tarefa", () => {
+  // Semana de seg 12/10 a dom 18/10; "hoje" = qua 14/10. Estudar 1h seg a sex.
+  const t: Task = { ...base, id: "w", title: "Estudar", repeat: "weekdays", weekdays: [1, 2, 3, 4, 5], estimateMin: 60 };
+  const s = (date: string, minutes: number): Session => ({ id: date + minutes, taskId: "w", date, minutes, kind: "manual", startedAt: "", endedAt: "" });
+  const today = "2026-10-14";
+
+  it("meta da semana é a soma do planejado e o número mostrado é o registrado", () => {
+    const w = taskWeek(t, today, [s("2026-10-12", 60)], today);
+    expect(w.plannedMin).toBe(300);
+    expect(w.doneMin).toBe(60);
+    expect(w.leftMin).toBe(240);
+  });
+
+  it("atraso vem só dos dias que já passaram", () => {
+    const w = taskWeek(t, today, [s("2026-10-12", 60)], today);
+    expect(w.behindMin).toBe(60); // terça ficou sem nada; hoje ainda não conta
+  });
+
+  it("feito a mais hoje recupera o atraso", () => {
+    const w = taskWeek(t, today, [s("2026-10-12", 60), s(today, 90)], today);
+    expect(w.behindMin).toBe(30);
+  });
+
+  it("concluir pelo círculo cumpre o dia sem inventar horas registradas", () => {
+    const done = { ...t, completions: { "2026-10-13": true } };
+    const w = taskWeek(done, today, [s("2026-10-12", 60), s("2026-10-13", 20)], today);
+    expect(w.behindMin).toBe(0);
+    expect(w.doneMin).toBe(80);
+  });
+
+  it("dia pulado sai da meta", () => {
+    const skip = { ...t, skipped: { "2026-10-13": true } };
+    const w = taskWeek(skip, today, [s("2026-10-12", 60)], today);
+    expect(w.plannedMin).toBe(240);
+    expect(w.behindMin).toBe(0);
+  });
+
+  it("tarefa criada no meio da semana não cobra os dias anteriores", () => {
+    const novo = { ...t, createdAt: "2026-10-14T10:00:00.000Z" };
+    expect(taskWeek(novo, today, [], today).plannedMin).toBe(180);
+  });
+
+  it("dias seguidos pulam dias sem plano e hoje não quebra", () => {
+    // sex 9, seg 12, ter 13 cumpridos (sáb e dom não são dias dela); hoje (qua) ainda não
+    const ss = [s("2026-10-09", 60), s("2026-10-12", 60), s("2026-10-13", 60)];
+    expect(streak(t, ss, today, "2026-10-01")).toBe(3);
+    expect(streak(t, [...ss, s(today, 60)], today, "2026-10-01")).toBe(4);
+    expect(streak(t, [s("2026-10-12", 60)], today, "2026-10-01")).toBe(0); // terça quebrou
+  });
+
+  it("histórico traz as últimas semanas, a mais antiga primeiro", () => {
+    const h = weekHistory(t, [s("2026-10-05", 120), s(today, 30)], today, 2);
+    expect(h.map((w) => w.start)).toEqual(["2026-10-05", "2026-10-12"]);
+    expect(h.map((w) => w.doneMin)).toEqual([120, 30]);
+  });
+});
+
+describe("plano (grátis ou Pro)", () => {
+  const now = new Date("2026-11-01T12:00:00Z").getTime();
+  const old = "2026-09-01T12:00:00Z";
+
+  it("com a cobrança desligada, todo mundo é Pro", () => {
+    expect(planOf(null, old, now, false)).toEqual({ pro: true, reason: "aberto" });
+  });
+
+  it("conta nova tem 14 dias de teste", () => {
+    const p = planOf(null, "2026-10-25T12:00:00Z", now, true);
+    expect(p.pro).toBe(true);
+    expect(p.trialDaysLeft).toBe(7);
+  });
+
+  it("depois do teste, sem assinatura, é grátis", () => {
+    expect(planOf(null, old, now, true).pro).toBe(false);
+  });
+
+  it("assinatura ativa é Pro; cancelada vale até o fim do que foi pago", () => {
+    expect(planOf({ status: "active" }, old, now, true).reason).toBe("assinante");
+    expect(planOf({ status: "cancelled", paidUntil: "2026-11-10T00:00:00Z" }, old, now, true).pro).toBe(true);
+    expect(planOf({ status: "cancelled", paidUntil: "2026-10-10T00:00:00Z" }, old, now, true).pro).toBe(false);
   });
 });

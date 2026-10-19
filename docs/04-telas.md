@@ -4,12 +4,25 @@ Referência de cada tela e janela, de cima para baixo. Arquivo do código entre 
 
 ---
 
+## Páginas públicas (`src/app/page.tsx`, `privacidade/`, `termos/`, `_site/`)
+
+Renderizadas no servidor. O app fica em **`/app`**.
+
+| Página | Conteúdo |
+|---|---|
+| `/` Página de vendas | Promessa ("Saiba todo dia quanto tempo sobra para estudar"), **Começar grátis** (→ `/app`), 4 recursos, "Comece em 2 minutos", preços Grátis × Pro, dúvidas, rodapé com Privacidade e Termos. Quem já entrou é mandado para `/app` (marca `margem.entrou` no navegador); `/?site` mostra a página mesmo assim |
+| `/privacidade` | Política de privacidade (LGPD): dados, finalidades e base legal, onde ficam, prazo, direitos e como exercer no app |
+| `/termos` | Termos de uso: planos, teste de 14 dias, renovação, cancelamento, arrependimento de 7 dias, foro |
+
+Responsável, e-mail de contato e preços ficam em `src/lib/legal.ts`.
+
 ## Entrar (`App.tsx`)
 
 ![Entrar](img/01-entrar.png)
 
 - "Saiba quanto ainda cabe no seu dia." + "Diga seu horário e suas tarefas, registre o que fez, e o app mostra a qualquer hora se dá tempo."
 - Resumo **Como funciona** (3 passos e régua de exemplo) e **Entrar com Google**. Erro de domínio não autorizado aparece embaixo do botão.
+- Embaixo: "Ao entrar, você concorda com os termos de uso e a política de privacidade" e **Conhecer o Margem** (→ `/?site`).
 - Enquanto carrega, um esqueleto da tela (sem texto "Carregando…").
 
 ## Configuração inicial (`Onboarding.tsx`)
@@ -21,7 +34,8 @@ Aparece enquanto o horário não foi definido.
 | Passo | Conteúdo | Ações |
 |---|---|---|
 | 1. Bem-vindo ao Margem | Como funciona | Continuar |
-| 2. Qual é o seu horário? | Editor de horário (igual ao de Tarefas) | Voltar · Salvar e começar |
+| 2. Qual é o seu horário? | Editor de horário (igual ao de Tarefas) | Voltar · Continuar |
+| 3. Sua rotina (só conta sem tarefas) | **Trabalho** (liga/desliga, 4h · 6h · 8h por dia, seg a sex, "cumpro o tempo") e **O que você quer encaixar** (nome, Seg a sex · Seg a sáb · Todos os dias, 30min · 1h · 1h30 · 2h, "Meta da semana: 5h") | Voltar · Salvar e começar (cria as tarefas) |
 
 Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 
@@ -42,7 +56,11 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 
 - Nome e e-mail.
 - **Notificações**: ativadas / "Ativar" / bloqueadas no navegador (com instrução) / não suportadas. É o lugar fixo para ligar os avisos.
-- **Como funciona** e **Sair**.
+- **Plano** (só com a cobrança ligada): "Pro grátis · faltam N dias · Assinar", "Plano grátis · Conhecer o Pro" ou "Assinatura Pro · Ver ou cancelar".
+- **Seus dados**: **Baixar arquivo** (tudo da conta em JSON) e **Excluir conta…** (confirmação, pede o Google de novo, apaga tudo e volta para a página de vendas).
+- **Como funciona**, **Sair** e os links Privacidade · Termos.
+
+**Assinar** (`Pro.tsx`): Anual (R$ 79) ou Mensal (R$ 9,90), texto de renovação e reembolso, **Assinar** abre o pagamento do Mercado Pago. Ao voltar (`/app?assinatura=ok`), confirma e avisa. **Assinatura Pro**: plano, próxima cobrança ou até quando vale, **Cancelar assinatura** (confirmação).
 
 ---
 
@@ -79,6 +97,17 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 | Dia vazio | "Nenhuma tarefa neste dia." com **Criar tarefa** e **Montar rotina em Tarefas** |
 
 ![Dia sem tarefas](img/20-dia-vazio.png) ![Não dá tempo](img/19-dia-apertado.png)
+
+**Encaixe** (Pro, no topo do dia, só hoje e quando dá tempo): "Sobram 40min hoje: dá para recuperar 40min de Estudar (1 pomodoro)" · **Começar**. Usa a tarefa mais atrasada na semana que não tem horário fixo.
+
+**Esta semana** (Pro; no computador embaixo do topo do dia, no celular depois das tarefas)
+
+| Elemento | Detalhe |
+|---|---|
+| Linha por tarefa que repete | nome, "3h25 de 9h" (registrado de planejado na semana), barra (laranja se atrasada), "1h30 atrasado" · "em dia" · "semana cumprida" |
+| Fim de semana | "Para fechar a semana faltam 4h até domingo." |
+| Toque na linha | janela **Constância**: dias seguidos, esta semana, dia a dia (verde cumprido, laranja ficou para trás), "1h30 ficaram para trás" · **Recuperar** (começa o timer), últimas 5 semanas |
+| No grátis | cartão "Esta semana · Pro" com **Conhecer o Pro** |
 
 **Registros de hoje** (recolhido, com o total e "N sem tarefa")
 

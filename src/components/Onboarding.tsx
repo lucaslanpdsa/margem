@@ -2,10 +2,11 @@
 
 import { CalendarRange, ListChecks, Sun, Timer } from "lucide-react";
 import { useState } from "react";
-import { saveSettings } from "@/lib/db";
+import { fmtMin } from "@/lib/dates";
+import { addTask, saveSettings } from "@/lib/db";
 import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
 import { useStore } from "./store";
-import { Button, Modal } from "./ui";
+import { Button, Modal, Switch, cx, inputCls } from "./ui";
 
 const HOW = [
   {
@@ -57,7 +58,7 @@ const TABS_HELP = [
   {
     icon: Sun,
     title: "Dia",
-    text: "Mostra se dá tempo hoje. Toque numa tarefa para registrar, concluir, pular ou mudar o dia. O ▶ começa o timer nela. Toque na data para ir a outro dia.",
+    text: "Mostra se dá tempo hoje e, em “Esta semana”, quanto falta da meta de cada tarefa que repete. Toque numa tarefa para registrar, concluir, pular ou mudar o dia. O ▶ começa o timer nela.",
   },
   {
     icon: ListChecks,
@@ -75,6 +76,7 @@ const TIPS = [
   "Esqueceu de dar play? Com o timer rodando, use “Começou às… · Mudar”.",
   "Passou tempo sem registrar? “O que você fez?” no topo do dia distribui esse tempo.",
   "Não dá tempo? O app sugere o que tirar de hoje: pular, mandar para amanhã ou encurtar.",
+  "Ficou para trás na semana? Quando sobrar tempo, o topo do dia sugere quanto dá para recuperar.",
   "Errou? Os avisos no rodapé têm “Desfazer”.",
 ];
 
@@ -111,19 +113,109 @@ export function HelpDialog({ onClose }: { onClose: () => void }) {
   );
 }
 
+/** A rotina de quem trabalha e estuda, em dois blocos: o trabalho (opcional) e o que quer encaixar. */
+export interface Routine {
+  work: boolean;
+  workMin: number;
+  study: boolean;
+  studyTitle: string;
+  studyMin: number;
+  studyDays: number[];
+}
+
+const DAY_SETS = [
+  { label: "Seg a sex", days: [1, 2, 3, 4, 5] },
+  { label: "Seg a sáb", days: [1, 2, 3, 4, 5, 6] },
+  { label: "Todos os dias", days: [0, 1, 2, 3, 4, 5, 6] },
+];
+
+function Chips<T>({ options, value, onChange }: { options: { label: string; value: T }[]; value: T; onChange: (v: T) => void }) {
+  return (
+    <div className="flex flex-wrap gap-1.5">
+      {options.map((o) => {
+        const on = JSON.stringify(o.value) === JSON.stringify(value);
+        return (
+          <button
+            key={o.label}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onChange(o.value)}
+            className={cx(
+              "h-10 rounded-lg border px-3.5 text-[13px] font-medium transition-colors",
+              on ? "border-todo/30 bg-todo/15 text-todo" : "border-line text-muted hover:text-ink",
+            )}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function RoutineStep({ value, onChange }: { value: Routine; onChange: (r: Routine) => void }) {
+  const set = (p: Partial<Routine>) => onChange({ ...value, ...p });
+  const weekly = value.studyMin * value.studyDays.length;
+  return (
+    <div className="space-y-5">
+      <section className="rounded-xl border border-line p-4">
+        <Switch checked={value.work} onChange={(work) => set({ work })} label="Trabalho" />
+        {value.work && (
+          <div className="mt-3">
+            <p className="mb-2 text-[13px] text-muted">Quantas horas por dia, de segunda a sexta? Ele termina quando você cumprir o tempo.</p>
+            <Chips
+              value={value.workMin}
+              onChange={(workMin) => set({ workMin })}
+              options={[4, 6, 8].map((h) => ({ label: `${h}h`, value: h * 60 }))}
+            />
+          </div>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-line p-4">
+        <Switch checked={value.study} onChange={(study) => set({ study })} label="O que você quer encaixar (estudo, curso…)" />
+        {value.study && (
+          <div className="mt-3 space-y-3">
+            <input className={inputCls} value={value.studyTitle} onChange={(e) => set({ studyTitle: e.target.value })} placeholder="Ex: Estudar para o concurso" aria-label="Nome" />
+            <Chips value={value.studyDays} onChange={(studyDays) => set({ studyDays })} options={DAY_SETS.map((d) => ({ label: d.label, value: d.days }))} />
+            <Chips
+              value={value.studyMin}
+              onChange={(studyMin) => set({ studyMin })}
+              options={[30, 60, 90, 120].map((m) => ({ label: fmtMin(m), value: m }))}
+            />
+            <p className="text-[13px] text-muted">
+              Meta da semana: <b className="tabular font-semibold text-ink">{fmtMin(weekly)}</b>. O app mostra quanto falta e quando dá para recuperar.
+            </p>
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function Onboarding() {
-  const { uid, settings } = useStore();
+  const { uid, settings, tasks } = useStore();
   // Quem já usava a versão antiga (por horas) vê só o passo do horário.
   const returning = !!settings.onboarded;
   const [step, setStep] = useState(returning ? 1 : 0);
   const [schedule, setSchedule] = useState<Schedule>({ windows: settings.windows, breaks: settings.breaks });
+  // Só oferece montar a rotina para quem ainda não tem tarefas.
+  const [routine, setRoutine] = useState<Routine>({ work: true, workMin: 480, study: true, studyTitle: "Estudar", studyMin: 60, studyDays: [1, 2, 3, 4, 5] });
+  const offerRoutine = !returning && tasks.length === 0;
 
-  const finish = (skip = false) =>
-    saveSettings(uid, {
+  const finish = async (skip = false) => {
+    if (!skip && offerRoutine) {
+      const workdays = [1, 2, 3, 4, 5];
+      if (routine.work) await addTask(uid, { title: "Trabalho", repeat: "weekdays", weekdays: workdays, estimateMin: routine.workMin, doneBy: "time" });
+      if (routine.study && routine.studyTitle.trim())
+        await addTask(uid, { title: routine.studyTitle.trim(), repeat: "weekdays", weekdays: routine.studyDays, estimateMin: routine.studyMin });
+    }
+    await saveSettings(uid, {
       ...(skip ? {} : { windows: schedule.windows, breaks: schedule.breaks }),
       onboarded: true,
       scheduleSet: true,
     });
+  };
 
   const steps = [
     {
@@ -138,6 +230,15 @@ export function Onboarding() {
         : "De que horas a que horas você tem para tarefas em cada dia. Dá para mudar um dia específico depois.",
       body: <ScheduleEditor value={schedule} onChange={setSchedule} />,
     },
+    ...(offerRoutine
+      ? [
+          {
+            title: "Sua rotina",
+            description: "Para começar com o trabalho e o estudo já no lugar. Dá para mudar tudo depois em Tarefas.",
+            body: <RoutineStep value={routine} onChange={setRoutine} />,
+          },
+        ]
+      : []),
   ];
 
   const s = steps[step];

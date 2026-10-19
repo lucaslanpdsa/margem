@@ -1,10 +1,12 @@
 "use client";
 
-import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut, type User } from "firebase/auth";
+import { GoogleAuthProvider, deleteUser, onAuthStateChanged, reauthenticateWithPopup, signInWithPopup, signOut, type User } from "firebase/auth";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { dayKey, fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addDays, differenceInCalendarDays } from "date-fns";
-import { replaceTask, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import { SIGNED_IN_KEY } from "@/lib/legal";
+import { deleteUserData, replaceTask, watchBilling, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import type { Billing } from "@/lib/plan";
 import { migrateTask } from "@/lib/migrate";
 import { taskTimeBlocks } from "@/lib/schedule";
 import { liveSession } from "@/lib/pomodoro";
@@ -26,6 +28,10 @@ export interface Store {
   setDate: (d: string) => void;
   login: () => Promise<void>;
   logout: () => Promise<void>;
+  /** Exclui a conta e todos os dados (LGPD). Pede o Google de novo antes, por segurança. */
+  deleteAccount: () => Promise<void>;
+  /** Situação da assinatura gravada pelo servidor (null = nunca assinou ou ainda não carregou). */
+  billing: Billing | null;
 }
 
 export const StoreCtx = createContext<Store | null>(null);
@@ -42,6 +48,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [authReady, setAuthReady] = useState(false);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [sessions, setSessions] = useState<Session[]>([]);
+  const [billing, setBilling] = useState<Billing | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [settingsReady, setSettingsReady] = useState(false);
   const [date, setDate] = useState(todayKey);
@@ -51,16 +58,24 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       onAuthStateChanged(auth(), (u) => {
         setUser(u);
         setAuthReady(true);
+        // A página inicial (vendas) lê isto para mandar quem já entrou direto para o app.
+        try {
+          if (u) localStorage.setItem(SIGNED_IN_KEY, "1");
+          else localStorage.removeItem(SIGNED_IN_KEY);
+        } catch {
+          /* sem armazenamento: a página inicial só não redireciona */
+        }
       }),
     [],
   );
 
   const uid = user?.uid ?? "";
 
-  // Carrega a partir do menor entre: semana em foco e 4 semanas atrás (histórico recente).
+  // Carrega a partir do menor entre: semana em foco e o começo da semana de 4 semanas atrás
+  // (histórico recente com semanas inteiras, para a constância).
   const fromDate = useMemo(() => {
     const a = weekDays(date)[0];
-    const b = shiftDay(todayKey(), -28);
+    const b = weekDays(shiftDay(todayKey(), -28))[0];
     return a < b ? a : b;
   }, [date]);
 
@@ -77,6 +92,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setSettings(s);
         setSettingsReady(true);
       }),
+      watchBilling(uid, setBilling),
     ];
     return () => subs.forEach((u) => u());
   }, [uid]);
@@ -127,6 +143,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       await signInWithPopup(auth(), new GoogleAuthProvider());
     },
     logout: () => signOut(auth()),
+    billing,
+    deleteAccount: async () => {
+      const u = auth().currentUser;
+      if (!u) return;
+      // Confirma a identidade primeiro (o Google exige login recente para excluir), só então apaga.
+      await reauthenticateWithPopup(u, new GoogleAuthProvider());
+      await deleteUserData(u.uid);
+      await deleteUser(u);
+    },
   };
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -20,6 +20,10 @@
 | **Mudar dia** | Muda a data de uma tarefa de uma vez (Hoje, Amanhã, Próxima segunda, Outro dia). |
 | **Desativar tarefa** | Tira uma tarefa que repete de todos os dias, sem apagar o histórico (vai para "Desativadas"). |
 | **Atrasada** | Tarefa de uma vez com data no passado e não concluída. |
+| **Meta da semana** | Soma do tempo planejado de uma tarefa que repete nos dias dela, de segunda a domingo (1h30 seg a sex = 7h30). Não é um campo: muda quando muda o tempo, os dias, "Pular hoje" ou "Encurtar". |
+| **Atraso da semana** | O que ficou faltando nos dias que já passaram, descontado o que foi feito a mais hoje. Dia concluído pelo círculo conta como cumprido. |
+| **Dias seguidos** | Dias planejados cumpridos em sequência, contando para trás; dias sem plano não quebram, e hoje só quebra depois que passar. |
+| **Grátis / Pro** | Pro = semana, encaixe e constância. Teste de 14 dias contado da criação da conta. Sem a cobrança ligada, todos são Pro. |
 
 ## As contas do dia
 
@@ -59,4 +63,5 @@ Horário 08:00–18:00 com almoço 12–13 (9h). Às 15:00 já passaram 6h. Voc�
 | Linha da tarefa | registros daquela tarefa naquele dia / tempo do dia dela |
 | Janela da tarefa › Registros | todos os registros da tarefa, de todos os dias |
 | Dia › Registros de hoje · Foco › "Hoje · Xh registrados" | todos os registros do dia, de todas as tarefas |
+| Dia › Esta semana | por tarefa que repete: registrado na semana / soma do planejado; atraso só dos dias passados (`src/lib/week.ts`) |
 | Tarefas › Esta semana | por dia: tempo do dia − falta das tarefas daquele dia (repetem + de uma vez); dias passados mostram o feito |

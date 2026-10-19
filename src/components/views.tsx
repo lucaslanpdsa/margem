@@ -7,6 +7,7 @@ import { dayMetrics } from "@/lib/metrics";
 import { DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
 import { DayEntries } from "./TimeEntries";
+import { WeekPanel } from "./WeekPanel";
 import { useNow } from "./Timer";
 import { useStore } from "./store";
 import { Panel, cx } from "./ui";
@@ -20,11 +21,18 @@ export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
   // No computador, duas colunas: o resumo do dia fica parado à esquerda e as tarefas rolam à direita.
   return (
     <div className="mx-auto grid max-w-3xl gap-4 lg:max-w-6xl lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:items-start">
-      <div className="lg:sticky lg:top-6">
+      {/* No computador a semana fica embaixo do resumo; no celular, depois das tarefas. */}
+      <div className="space-y-4 lg:sticky lg:top-6">
         <DayBudget m={m} />
+        <div className="hidden lg:block">
+          <WeekPanel />
+        </div>
       </div>
       <div className="min-w-0 space-y-4">
         <DayLists m={m} onGoTasks={onGoTasks} />
+        <div className="lg:hidden">
+          <WeekPanel />
+        </div>
         <DayRecords date={date} />
       </div>
     </div>

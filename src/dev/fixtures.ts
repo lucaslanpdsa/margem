@@ -9,9 +9,10 @@ import { DEFAULT_SETTINGS, type Session, type Settings, type Task } from "@/lib/
 
 export { PREVIEW_UID } from "@/lib/preview";
 
-export type Scenario = "dia" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
+export type Scenario = "dia" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
 export const SCENARIOS: { id: Scenario; label: string }[] = [
   { id: "dia", label: "Dia normal (com atrasada e sem registro)" },
+  { id: "sobra", label: "Dia com sobra (encaixe para recuperar a semana)" },
   { id: "apertado", label: "Não dá tempo" },
   { id: "timer", label: "Timer rodando" },
   { id: "vazio", label: "Sem tarefas" },
@@ -48,8 +49,23 @@ const s = (id: string, taskId: string, d: string, from: string, to: string, minu
   ...(note ? { note } : {}),
 });
 
+/** Histórico das últimas semanas, com falhas de propósito, para a semana e a constância. */
+function history(t0: string): Session[] {
+  const out: Session[] = [];
+  for (let i = 1; i <= 33; i++) {
+    const d = shiftDay(t0, -i);
+    const dow = new Date(`${d}T12:00:00`).getDay();
+    const day = Number(d.slice(8));
+    if (dow >= 1 && dow <= 6 && day % 4 !== 0) out.push(s(`h-e-${d}`, "estudo", d, "07:00", "08:30", day % 5 === 0 ? 45 : 90));
+    if ((dow === 2 || dow === 4) && day % 3 !== 0) out.push(s(`h-i-${d}`, "ingles", d, "19:00", "19:45", 45));
+    if (dow >= 1 && dow <= 5 && i > 3) out.push(s(`h-t-${d}`, "trabalho", d, "08:00", "15:00", 420));
+  }
+  return out;
+}
+
 function sessions(t0: string): Session[] {
   return [
+    ...history(t0),
     s("sw-1", "trabalho", t0, "08:10", "09:40", 90, "Ajuste no módulo de pagamentos"),
     s("pomo-2", "estudo", t0, "07:20", "07:45", 25),
     s("m1", "trabalho", shiftDay(t0, -3), "09:00", "12:00", 180, "Daily + revisão de PR"),
@@ -81,10 +97,17 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     ts = [];
     ss = [];
   }
+  if (scenario === "sobra") {
+    // Dia leve (sem trabalho hoje), para sobrar tempo e aparecer o encaixe.
+    ts = ts.filter((t) => t.id !== "trabalho" && t.id !== "pr");
+  }
   if (scenario === "apertado") {
     ts = [...ts, { id: "relatorio", title: "Relatório mensal", repeat: "once", date: t0, estimateMin: 150, createdAt: created }];
   }
   if (scenario === "onboarding") {
+    // Conta nova: sem tarefas, para aparecer o passo "Sua rotina".
+    ts = [];
+    ss = [];
     settings.scheduleSet = false;
     settings.onboarded = false;
   }

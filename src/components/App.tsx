@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronLeft, ChevronRight, ListChecks, PanelLeftClose, PanelLeftOpen, Plus, Sun, Timer as TimerIcon } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fromKey, shiftDay, todayKey } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
@@ -12,6 +13,7 @@ import { Timer } from "./Timer";
 import { OfflineNotice, ToastProvider } from "./toast";
 import { AccountMenu } from "./AccountMenu";
 import { SlotAlerts } from "./SlotAlerts";
+import { BillingSync } from "./Pro";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
 import { DayView } from "./views";
@@ -117,6 +119,20 @@ export function Shell() {
             Entrar com Google
           </Button>
           {error && <p className="mt-3 text-sm text-over">{error}</p>}
+          <p className="mt-4 text-center text-xs text-muted">
+            Ao entrar, você concorda com os{" "}
+            <Link href="/termos" className="text-accent underline">
+              termos de uso
+            </Link>{" "}
+            e a{" "}
+            <Link href="/privacidade" className="text-accent underline">
+              política de privacidade
+            </Link>
+            .{" "}
+            <Link href="/?site" className="text-accent underline">
+              Conhecer o Margem
+            </Link>
+          </p>
         </div>
       </main>
     );
@@ -289,6 +305,7 @@ export function Shell() {
 
       <Timer hidden={tab === "foco"} onOpen={() => setTab("foco")} />
       <SlotAlerts />
+      <BillingSync />
       <OfflineNotice />
       <AssignDialog />
       {settingsReady && !settings.scheduleSet && <Onboarding />}

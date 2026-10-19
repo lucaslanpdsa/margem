@@ -13,7 +13,7 @@ São **3 abas** e um botão de criar:
 | Menu da conta (notificações, Como funciona, Sair) | avatar no cabeçalho | nome no rodapé da barra |
 | Recolher barra | – | rodapé da barra |
 
-A aba fica no endereço (`#tarefas`, `#foco`). Recarregar mantém a aba e o "voltar" do celular volta para a aba anterior. O dia escolhido na tela Dia volta para hoje ao recarregar.
+Endereços: `/` página de vendas (quem já entrou vai direto para o app), `/app` o app, `/privacidade`, `/termos`. A aba fica no endereço (`/app#tarefas`, `/app#foco`). Recarregar mantém a aba e o "voltar" do celular volta para a aba anterior. O dia escolhido na tela Dia volta para hoje ao recarregar.
 
 Por cima de tudo podem aparecer:
 
@@ -90,3 +90,9 @@ flowchart TD
 | Ver a semana | Tarefas › **Esta semana** / Próxima |
 | Reabrir tarefa concluída | Tarefas › Não repetem › Concluídas · últimos 7 dias › Reabrir · Dia › Concluídas › círculo |
 | Como funciona / Sair | menu da conta |
+| Ver a meta da semana e o atraso | Dia › **Esta semana** |
+| Ver dias seguidos e semanas anteriores | Dia › Esta semana › toque na tarefa |
+| Recuperar o atraso | topo do Dia › encaixe › **Começar** · Constância › **Recuperar** |
+| Assinar / cancelar o Pro | menu da conta › plano |
+| Baixar meus dados / excluir conta | menu da conta › **Seus dados** |
+| Privacidade e termos | rodapé da página de vendas · tela de entrar · menu da conta |

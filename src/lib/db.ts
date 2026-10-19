@@ -4,16 +4,19 @@ import {
   collection,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   query,
   setDoc,
   deleteField,
   updateDoc,
   where,
+  writeBatch,
   type Unsubscribe,
 } from "firebase/firestore";
 import { db } from "./firebase";
 import { PREVIEW_UID } from "./preview";
+import type { Billing } from "./plan";
 import { DEFAULT_SETTINGS, type Session, type Settings, type Task } from "./types";
 
 const col = (uid: string, name: string) => collection(db(), "users", uid, name);
@@ -142,3 +145,43 @@ export const restoreSession = (uid: string, s: Session) => {
 /** Cada campo enviado é substituído por inteiro (mapas inclusive), os outros são mantidos. */
 export const saveSettings = (uid: string, patch: Partial<Settings>) =>
   write(uid, () => setDoc(settingsRef(uid), patch, { mergeFields: Object.keys(patch) }));
+
+// ---------- Seus dados (LGPD) ----------
+
+const USER_COLLECTIONS = ["tasks", "sessions", "meta"] as const;
+
+/** Tudo da conta num objeto só, para baixar como arquivo (direito de acesso e portabilidade). */
+export async function exportUserData(uid: string) {
+  const out: Record<string, unknown[]> = {};
+  for (const name of USER_COLLECTIONS) {
+    const snap = await getDocs(col(uid, name));
+    out[name] = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  }
+  return out;
+}
+
+/**
+ * Apaga todos os documentos da conta (direito de exclusão). Lotes de até 450 escritas (o limite é 500).
+ * Diferente das outras gravações, aqui o erro sobe: quem chama precisa saber se apagou mesmo.
+ */
+export async function deleteUserData(uid: string) {
+  for (const name of USER_COLLECTIONS) {
+    const snap = await getDocs(col(uid, name));
+    for (let i = 0; i < snap.docs.length; i += 450) {
+      const batch = writeBatch(db());
+      snap.docs.slice(i, i + 450).forEach((d) => batch.delete(d.ref));
+      await batch.commit();
+    }
+  }
+}
+
+// ---------- Assinatura ----------
+
+/** Situação da assinatura (só leitura: quem grava é o servidor). Sem permissão ou sem documento = null. */
+export function watchBilling(uid: string, cb: (b: Billing | null) => void): Unsubscribe {
+  return onSnapshot(
+    doc(db(), "billing", uid),
+    (snap) => cb(snap.exists() ? (snap.data() as Billing) : null),
+    () => cb(null),
+  );
+}

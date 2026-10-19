@@ -15,7 +15,7 @@ Princípios (vêm do dono, valem para toda mudança):
 - **Rotina flexível.** O horário de trabalho do dono não é fixo: nada pode supor que o horário da tarefa foi cumprido.
 - **Registrar tempo com o mínimo de esforço** (▶ na tarefa, adicionar depois, "O que você fez?").
 
-Público: o próprio dono (desenvolvedor, usa no computador durante o expediente e no celular). Inspirações citadas por ele: ClickUp (registro de tempo), Pomofocus (pomodoro).
+Público: o próprio dono (desenvolvedor, usa no computador durante o expediente e no celular) e, como produto pago, **quem trabalha e estuda** (ver `docs/06` e `docs/07`). Inspirações citadas por ele: ClickUp (registro de tempo), Pomofocus (pomodoro).
 
 ## Como trabalhar com o dono
 
@@ -43,15 +43,20 @@ Comandos prontos em `.claude/commands/`: `/verificar`, `/previa`, `/publicar`.
 ## Mapa do código
 
 ```
-src/app/page.tsx            entra no App
+src/app/page.tsx            página de vendas (servidor); quem já entrou vai para /app
+src/app/app/page.tsx        o app (só no navegador)
+src/app/privacidade, termos páginas legais (LGPD); _site/ tem cabeçalho, rodapé e o redirecionamento
+src/app/api/assinatura/…    criar, sincronizar e cancelar assinatura; api/mercadopago = aviso do Mercado Pago
 src/app/dev/page.tsx        prévia com dados de exemplo (só em dev): /dev?cenario=…&abrir=…#aba
 src/dev/fixtures.ts         dados de exemplo e cenários da prévia
 src/components/
   App.tsx                   casca: login, abas (#dia, #tarefas, #foco), barra lateral/inferior, cabeçalho (data abre calendário), esqueleto
-  AccountMenu.tsx           menu da conta: notificações (lugar fixo), Como funciona, Sair
+  AccountMenu.tsx           menu da conta: notificações, plano/assinatura, Seus dados (baixar, excluir conta), Como funciona, Sair
   store.tsx                 auth + dados em tempo real; migra tarefas antigas; timer rodando vira registro "ao vivo"
   dialogs.tsx               abre as janelas globais: editTask (formulário) e logTime (janela da tarefa)
   views.tsx                 aba Dia (duas colunas no computador) e "Registros de hoje"
+  WeekPanel.tsx             "Esta semana" no Dia (meta, atraso) e janela Constância
+  Pro.tsx                   usePlan, assinar, cartão bloqueado do Pro, sincronização da assinatura
   CapacityPanel.tsx         topo do dia: título, linha do tempo, "O que você fez?", "Para dar tempo", Detalhes
   DaySidebar.tsx            lista de tarefas do dia, criação rápida, aviso de atrasadas, concluídas
   TaskRow.tsx               linha da tarefa no Dia (círculo, progresso, ▶/■)
@@ -78,12 +83,17 @@ src/lib/
   preview.ts                PREVIEW_UID da prévia
   dates.ts                  chaves de dia, durações ("3h 20m"), intervalos ("14:00-15:30"), nomes de dia
   migrate.ts                conversão de dados antigos (metas semanais)
+  week.ts                   semana da tarefa: meta (soma do planejado), atraso, histórico, dias seguidos (pura e testada)
+  plan.ts                   Grátis/Pro a partir de billing e da data da conta (pura e testada)
+  legal.ts                  responsável, e-mail de contato, preços, teste de 14 dias
+  server/                   só no servidor: firebase-admin (admin.ts) e Mercado Pago (mercadopago.ts)
 ```
 
 ## Modelo de dados (Firestore, `users/{uid}/…`)
 
 - `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `archived` (desativada), `createdAt`.
 - `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, `pomo-` pomodoro, outro = manual.
+- `billing/{uid}` (fora de `users/`): `status` (`active` | `pending` | `paused` | `cancelled` | `none`), `period`, `paidUntil`, `preapprovalId`, `updatedAt`. **Só o servidor grava** (regras em `firestore.rules`).
 - `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer`, `lastTimerMode`, `pendingAssign`, `scheduleSet`, `onboarded`.
 
 Regras: toda escrita nova vai em `db.ts` usando `write(uid, () => …)` (avisa erro, não trava sem internet, não grava na prévia); ações que tiram ou movem algo mostram `toast(texto, { undo })`; Firestore não aceita `undefined` (use `clean` em `db.ts`); `saveSettings` substitui cada campo enviado por inteiro (`mergeFields`); campos novos precisam ser opcionais e ter migração em `migrate.ts` se mudarem o significado de dados antigos.
@@ -120,6 +130,8 @@ Toda mudança de conta ganha teste em `metrics.test.ts`.
 - **Não rode prettier no arquivo inteiro**: o projeto usa linhas longas (~160) e não tem config; o diff vira ruído.
 - **Fuso**: datas de dia são chaves locais `yyyy-MM-dd` (`dates.ts`); não use `toISOString().slice(0,10)` para dia.
 - **Prévia** (`/dev`): uid `preview` (`src/lib/preview.ts`), nada é salvo; `TimeEntries` lê o histórico da prévia em vez do Firestore. Código de produção não importa `src/dev/` (só a página `/dev`), para os dados de exemplo não irem para o pacote. Em produção `/dev` devolve 404.
+- **Cobrança**: sem `NEXT_PUBLIC_BILLING_ENABLED=1` todo mundo é Pro. Variáveis e passo a passo em `docs/08-ligar-cobranca.md`. Mudou `firestore.rules`? O dono precisa publicar no console do Firebase.
+- **Rotas**: o app é `/app` (links internos para a página inicial usam `/?site`); `/` é a página de vendas.
 - Antes de `git push`, `git fetch origin main && git rebase origin/main` (o dono também edita).
 
 ## Pendências

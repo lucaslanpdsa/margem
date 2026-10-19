@@ -52,6 +52,8 @@ export default function DevPreview() {
         setDate: () => {},
         login: async () => {},
         logout: async () => {},
+        deleteAccount: async () => {},
+        billing: null,
       }}
     >
       <ToastProvider>

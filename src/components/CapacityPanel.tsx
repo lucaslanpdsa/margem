@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Minus, Plus } from "lucide-react";
+import { ChevronDown, Minus, Play, Plus } from "lucide-react";
 import { useState } from "react";
 import { entryTimes, fmtMin, shiftDay, todayKey } from "@/lib/dates";
 import { addSession, deleteSession, saveSettings, setDayEstimate, setSkipped, updateTask } from "@/lib/db";
@@ -8,7 +8,9 @@ import { isTimeTask, type DayItem, type DayMetrics } from "@/lib/metrics";
 import { slotsOf } from "@/lib/schedule";
 import type { DayWindow } from "@/lib/types";
 import { useStore } from "./store";
-import { useToast } from "./toast";
+import { useTimerActions, useToast } from "./toast";
+import { useWeekItems } from "./WeekPanel";
+import { usePlan } from "./Pro";
 import { Button, Modal, Panel, TimeSelect, cx } from "./ui";
 
 /** Segmentos do horário: feito | passou sem registro | a fazer (o que cabe) | sobra; e o que não cabe, depois do fim. */
@@ -178,6 +180,8 @@ export function DayBudget({ m }: { m: DayMetrics }) {
       )}
 
       {/* Ações: o que dá para fazer com o que a barra mostra. Uma linha só; as sugestões abrem ao tocar. */}
+      {isToday && !late && !ended && m.window && <FitSuggestion freeMin={m.freeMin} />}
+
       {(showFill || showDrop) && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
           {showFill && (
@@ -254,6 +258,36 @@ export function DayBudget({ m }: { m: DayMetrics }) {
 
       {filling && <FillGapDialog m={m} onClose={() => setFilling(false)} />}
     </Panel>
+  );
+}
+
+/**
+ * Encaixe do dia: quando sobra tempo hoje e alguma tarefa está atrasada na semana,
+ * sugere usar a sobra para recuperar, com um toque para começar.
+ */
+function FitSuggestion({ freeMin }: { freeMin: number }) {
+  const { settings } = useStore();
+  const timer = useTimerActions();
+  const items = useWeekItems();
+  const plan = usePlan();
+  const running = settings.activeTimer?.taskId;
+  // Só tarefas sem horário fixo: academia às 18:30 não se recupera no meio da tarde.
+  const behind = items.filter((x) => x.week.behindMin > 0 && x.task.id !== running && slotsOf(x.task).length === 0).sort((a, b) => b.week.behindMin - a.week.behindMin)[0];
+  if (!behind || !plan.pro) return null;
+  const amount = Math.min(freeMin, behind.week.behindMin);
+  if (amount < 15) return null;
+  const pomos = Math.floor(amount / settings.focusMin);
+  return (
+    <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-done/[0.08] px-3 py-2.5">
+      <span className="min-w-0 flex-1 text-[13px]">
+        Sobram <b className="tabular font-semibold">{fmtMin(freeMin)}</b> hoje: dá para recuperar{" "}
+        <b className="tabular font-semibold">{fmtMin(amount)}</b> de {behind.task.title}
+        {pomos >= 1 && <span className="text-muted"> ({pomos === 1 ? "1 pomodoro" : `${pomos} pomodoros`})</span>}.
+      </span>
+      <Button size="sm" variant="primary" onClick={() => timer.start(behind.task.id, settings.lastTimerMode ?? "pomodoro")}>
+        <Play size={12} fill="currentColor" /> Começar
+      </Button>
+    </div>
   );
 }
 

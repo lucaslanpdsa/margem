@@ -4,6 +4,17 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 19/10 — Produto pago para quem trabalha e estuda
+- **Público**: quem trabalha e estuda (ver [06](06-publico-alvo.md)); plano em [07](07-plano-assinatura.md).
+- **Meta da semana sem campo novo**: é a soma do planejado nos dias da tarefa. As metas semanais antigas (removidas em 16/10) eram outro tipo de tarefa e confundiam; esta é só um acompanhamento das tarefas que repetem.
+- **Número registrado sempre**: concluir pelo círculo cumpre o dia (atraso, constância), mas a semana mostra só horas registradas.
+- **Encaixe** só para tarefas sem horário fixo (academia às 18:30 não se recupera à tarde).
+- **App em `/app`, vendas em `/`** (servidor, aparece em buscas). Quem já entrou é redirecionado; atalhos antigos com `#aba` continuam funcionando.
+- **Pro = semana, encaixe, constância.** O grátis continua com tudo o que já existia. Teste de 14 dias pela data de criação da conta, sem cartão e sem gravar nada.
+- **Cobrança**: Mercado Pago (assinatura sem plano). A situação fica em `billing/{uid}`, gravada só pelo servidor; o app só lê. Avisos do Mercado Pago só disparam uma nova leitura na API (não confiamos no conteúdo). Sem as chaves, todo mundo é Pro.
+- **LGPD**: política e termos em linguagem simples, baixar dados e excluir conta no app. O e-mail de contato fica para o dono preencher em `src/lib/legal.ts`.
+- **Adiado**: lembrete com o app fechado (precisa de chave do Firebase e agendador).
+
 ### 19/10 — Revisão de design
 - **Topo do Dia enxuto**: legenda curta sempre visível (tocar abre Detalhes); horário do dia e "Mudar" foram para Detalhes; "Para dar tempo" virou o botão **Como dar tempo** (recolhido). Objetivo: a lista de tarefas aparecer na primeira tela do celular.
 - **Vermelho só no número e na barra.** Sugestões e aviso de atrasadas em cinza.
