@@ -42,9 +42,11 @@ flowchart TD
     Dia -- Mudar --> HorDia[Horário só deste dia<br/>inline]
     Dia -- Detalhes --> Leg[Legenda da barra<br/>inline]
 
-    JT -- Editar tarefa --> Form[Formulário da tarefa]
+    JT -- Editar --> Form[Formulário da tarefa]
     JT -- Cronômetro / Pomodoro --> Timer
-    Tarefas -- nome da tarefa --> Form
+    JT -- Mudar dia --> DM[Menu de dia]
+    Tarefas -- toque na tarefa --> JT
+    Tarefas -- desativada --> Form
     Tarefas -- Editar seu horário --> Hor[Seu horário]
     Nova[Nova] --> Form
 
@@ -61,9 +63,9 @@ flowchart TD
 | Quero… | Caminhos |
 |---|---|
 | Criar tarefa | **Nova** · campo "Nova tarefa" no Dia · campos de criação rápida em Tarefas (Repetem / Não repetem) |
-| Editar tarefa | Dia › toque na tarefa › **Editar tarefa** · Tarefas › toque no nome |
+| Editar tarefa | toque na tarefa (Dia ou Tarefas) › **Editar** no cabeçalho da janela |
 | Mudar só o tempo | Tarefas › toque no tempo (ex: "1h") |
-| Mudar só a data | Tarefas › toque na data · Dia › aviso de atrasadas › Trazer para hoje · Dia › "Para dar tempo" › Amanhã |
+| Mudar só a data | janela da tarefa › **Mudar dia** · Tarefas › toque na data · Dia › aviso de atrasadas › Trazer para hoje · Dia › "Para dar tempo" › Amanhã |
 | Mudar os dias de uma que repete | Tarefas › botões Seg…Dom da linha · formulário |
 | Começar timer | ▶ na linha (último modo usado) · janela da tarefa (Cronômetro ou Pomodoro) · Foco › Começar |
 | Parar timer | ■ na linha · barra flutuante · janela da tarefa · Foco |
@@ -72,7 +74,7 @@ flowchart TD
 | Ver/editar registros | janela da tarefa › Registros (histórico da tarefa) · Foco › Hoje · Xh registrados (só hoje) |
 | Concluir | círculo na linha · janela da tarefa › Concluir |
 | Pular hoje | janela da tarefa · Dia › "Para dar tempo" |
-| Pausar / retomar tarefa que repete | formulário › Pausar · Tarefas › Pausadas › Retomar |
+| Desativar / reativar tarefa que repete | formulário › Desativar · Tarefas › Desativadas › Reativar |
 | Excluir tarefa | formulário › Excluir |
 | Mudar seu horário | Tarefas › Seu horário |
 | Mudar horário só de hoje | Dia › Mudar |

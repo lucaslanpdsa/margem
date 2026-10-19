@@ -24,7 +24,7 @@ flowchart LR
    - Sem tempo ("Academia"): abre o formulário para completar.
 2. Ajustar os dias tocando em **Seg…Dom** na linha (não deixa ficar sem nenhum dia).
 3. Ajustar o tempo tocando nele ("1h") e digitando ("1h30"), Enter.
-4. Para horário fixo ou "cumpro o tempo": toque no nome › **Mais opções**.
+4. Para horário fixo ou "cumpro o tempo": toque na tarefa › **Editar** › **Mais opções**.
 5. Conferir **Fixas** e **Livre** embaixo da grade: quanto a rotina ocupa e quanto sobra em cada dia. Livre negativo (vermelho) = a rotina não cabe no seu horário daquele dia.
 
 ## 3.3 Criar uma tarefa de uma vez
@@ -33,7 +33,7 @@ flowchart LR
 |---|---|---|
 | **Nova** (barra/botão) | o dia aberto no Dia | abre o formulário (tempo obrigatório) |
 | Dia › "Nova tarefa, ex: Revisar PR 45m" | o dia aberto | abre o formulário |
-| Tarefas › "Nova para hoje, ex: Revisar PR 45m" | hoje | **cria com 30min** |
+| Tarefas › "Nova para hoje, ex: Revisar PR 45m" | hoje | abre o formulário |
 
 Formulário: Nome · Uma vez / Repete · dia · Quanto tempo leva · Mais opções (horário, como termina). **Criar**.
 
@@ -68,6 +68,7 @@ Regras:
 | Pular hoje | janela › Pular hoje · "Para dar tempo" | só tarefas que repetem; sai da conta do dia; desfazer na janela |
 | Encurtar para X | "Para dar tempo" (tarefas "cumpro o tempo") | tempo só de hoje; "Voltar ao normal" na janela |
 | Amanhã | "Para dar tempo" (tarefas de uma vez) | muda a data para o dia seguinte |
+| Mudar dia | janela da tarefa de uma vez | Hoje, Amanhã, Próxima segunda ou Outro dia; aviso "X foi para amanhã" |
 
 ## 3.6 Dia apertado ("Não dá tempo")
 
@@ -115,6 +116,6 @@ stateDiagram-v2
 
 ## 3.11 Organizar e limpar
 
-- **Pausar** (tarefas que repetem): formulário › Pausar. Some dos dias e vai para Tarefas › Pausadas › Retomar.
+- **Desativar** (tarefas que repetem): toque na tarefa › Editar › Desativar. Some dos dias e vai para Tarefas › Desativadas › Reativar.
 - **Excluir**: formulário › Excluir (confirmação do navegador). Os registros continuam.
 - **Buscar**: Tarefas › Buscar tarefa (ignora acentos).

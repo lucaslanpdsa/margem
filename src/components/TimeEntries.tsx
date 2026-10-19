@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { dayName, entryTimes, fmtMin, parseTimeEntry, shiftDay, todayKey } from "@/lib/dates";
 import { addSession, deleteSession, updateSession, watchTaskSessions } from "@/lib/db";
 import { isLive, sessionSource } from "@/lib/pomodoro";
-import { PREVIEW_UID } from "@/dev/fixtures";
+import { PREVIEW_UID } from "@/lib/preview";
 import type { Session, Task } from "@/lib/types";
 import { useStore } from "./store";
 import { useToast } from "./toast";

@@ -17,7 +17,8 @@
 | **Registro** | Um pedaço de tempo feito numa tarefa: vem do cronômetro, do pomodoro ou é adicionado à mão. Tem dia, duração, horário (opcional) e nota (opcional). |
 | **Registro sem tarefa** | Foco feito sem escolher tarefa. Conta no dia; o app pergunta depois em que você trabalhou. |
 | **Pular hoje** | Tira uma tarefa que repete só daquele dia. O que já tinha sido feito continua contando. |
-| **Pausar tarefa** | Tira uma tarefa que repete de todos os dias, sem apagar o histórico (vai para "Pausadas"). |
+| **Mudar dia** | Muda a data de uma tarefa de uma vez (Hoje, Amanhã, Próxima segunda, Outro dia). |
+| **Desativar tarefa** | Tira uma tarefa que repete de todos os dias, sem apagar o histórico (vai para "Desativadas"). |
 | **Atrasada** | Tarefa de uma vez com data no passado e não concluída. |
 
 ## As contas do dia

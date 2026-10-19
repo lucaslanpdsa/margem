@@ -69,13 +69,14 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 
 | Bloco | Conteúdo |
 |---|---|
+| Cabeçalho | nome da tarefa · **Editar** (abre o formulário) · fechar |
 | Feito hoje / Feito em 18/10 | total do dia aberto, "de X", barra; "Encurtada só neste dia · Voltar ao normal" quando for o caso |
 | Começar agora | **Cronômetro** · **Pomodoro 25min** (some se concluída ou pulada) |
 | Timer rodando (no lugar do anterior) | "Cronômetro rodando", relógio, "Começou às 10:16 · Mudar", **Parar** |
 | Adicionar tempo já feito | 15m · 30m · 1h · 2h · campo "3h 20m ou 14:00-15:30" + **Adicionar** · Quando: Hoje / Ontem / Outro dia · Nota |
 | Registros | "Total X em N dias"; por dia (Hoje, Ontem, Sex 16/10…) com total; linha: horário ou "sem horário", nota, origem, tempo, ✎, 🗑; os 5 dias mais recentes e "Mostrar mais" |
 | Editar registro (✎) | tempo ou intervalo, dia (Hoje/Ontem/Outro), nota, ✓ / ✕ |
-| Rodapé | **Editar tarefa** · **Pular hoje** / Desfazer pulo (só as que repetem) · **Concluir** / Reabrir (só "marco como feita") |
+| Rodapé | **Pular hoje** / Desfazer pulo (as que repetem) · **Mudar dia** (as de uma vez; menu abre para cima) · **Concluir** / Reabrir (só "marco como feita") |
 
 ---
 
@@ -92,7 +93,7 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 | Mais opções › Como termina | Marco como feita · Cumpro o tempo |
 | Avisos | conflito de horário com outras tarefas nos próximos 14 dias (não impede salvar) |
 | Erros | sem nome, sem tempo, repete sem dia, horário que termina antes de começar |
-| Rodapé (editar) | **Excluir** (confirmação) · **Pausar** / Retomar (só as que repetem) · Cancelar · **Salvar** |
+| Rodapé (editar) | **Excluir** (confirmação) · **Desativar** / Reativar (só as que repetem) · Cancelar · **Salvar** |
 | Rodapé (nova) | Cancelar · **Criar** |
 
 "Mais opções" já vem aberto quando a tarefa tem horário ou é "cumpro o tempo".
@@ -107,9 +108,9 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 |---|---|
 | Seu horário | resumo ("Seg a Sex, 08:00–18:00 · Sáb, 09:00–12:00 · almoço 12:00–13:00") · **Editar** |
 | Buscar tarefa | filtra pelo nome, sem acentos |
-| Repetem | por linha: nome (abre o formulário), tempo editável, horário, "meta de tempo", "extra", botões **Seg…Dom**. Embaixo: **Fixas** e **Livre** por dia. Criação rápida "Nova que repete, ex: Academia 1h" |
-| Não repetem | grupos Atrasadas, Hoje, Amanhã, Esta semana, Depois; por linha: nome, tempo editável, horário, data (menu: Hoje, Amanhã, Próxima segunda, Outro dia). Criação rápida "Nova para hoje, ex: Revisar PR 45m" (sem tempo = 30min) |
-| Pausadas | recolhido; **Retomar** |
+| Repetem | por linha: nome (abre a janela da tarefa), tempo editável, horário, "meta de tempo", "extra", botões **Seg…Dom**. Embaixo: **Fixas** e **Livre** por dia. Criação rápida "Nova que repete, ex: Academia 1h" |
+| Não repetem | grupos Atrasadas, Hoje, Amanhã, Esta semana, Depois; por linha: nome (abre a janela da tarefa), tempo editável, horário, data (menu: Hoje, Amanhã, Próxima segunda, Outro dia). Criação rápida "Nova para hoje, ex: Revisar PR 45m" (sem tempo abre o formulário) |
+| Desativadas | recolhido; nome abre a edição; **Reativar** |
 | Conta | "Conectado como …" · **Sair** |
 
 Tarefas de uma vez concluídas não aparecem aqui.
@@ -130,7 +131,7 @@ Tarefas de uma vez concluídas não aparecem aqui.
 
 | Estado | Tela |
 |---|---|
-| Parado | Pomodoro / Cronômetro · relógio (25:00 ou 00:00) · "Pronto para começar" · tarefa (lista com as do dia, ou "Sem tarefa") · **Começar** |
+| Parado | Pomodoro / Cronômetro (abre no último modo usado) · relógio (25:00 ou 00:00) · "Pronto para começar" · tarefa (lista com as do dia, ou "Sem tarefa") · **Começar** |
 | Foco rodando | modo · anel de progresso · "Foco" / "Contando" · tarefa · "Começou às … · Mudar" · **Parar e registrar** |
 | Pausa pronta | **Começar pausa** · Encerrar · Pular pausa |
 | Pausa rodando | Encerrar · **Próximo foco** |
@@ -162,6 +163,10 @@ Depois de um foco sem tarefa: escolha uma das tarefas abertas de hoje ou "Sem ta
 | Como funciona (`Onboarding.tsx › HelpDialog`) | (?) | os 3 passos e a régua de exemplo |
 
 ![Dia com timer rodando](img/15-dia-timer-rodando.png) ![Como funciona](img/16-como-funciona.png)
+
+Outros estados do Dia:
+
+![Não dá tempo](img/19-dia-apertado.png) ![Dia sem tarefas](img/20-dia-vazio.png)
 
 ## No computador
 

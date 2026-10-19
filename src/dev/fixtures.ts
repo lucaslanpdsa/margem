@@ -7,7 +7,7 @@ import { shiftDay, todayKey } from "@/lib/dates";
 import { liveSession } from "@/lib/pomodoro";
 import { DEFAULT_SETTINGS, type Session, type Settings, type Task } from "@/lib/types";
 
-export const PREVIEW_UID = "preview";
+export { PREVIEW_UID } from "@/lib/preview";
 
 export type Scenario = "dia" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
 export const SCENARIOS: { id: Scenario; label: string }[] = [

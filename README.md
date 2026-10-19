@@ -59,24 +59,7 @@ npm test                     # testes da lógica de capacidade
 
 ## Estrutura
 
-```
-src/
-  app/                 layout, página e manifesto PWA
-  components/
-    App.tsx            casca: login, abas, navegação de datas
-    store.tsx          auth + dados em tempo real do Firestore
-    views.tsx          Dia
-    TasksPage.tsx      Tarefas (seu horário, grade da semana e avulsas por data)
-    CapacityPanel.tsx  topo do dia (em dia / atrasado) e barra
-    DaySidebar.tsx     lista de tarefas do dia
-    FocusView.tsx      aba Foco (pomodoro / cronômetro)
-    TaskForm.tsx / LogTimeForm.tsx / ScheduleEditor.tsx
-  lib/
-    metrics.ts         conta do dia (pura, testada)
-    schedule.ts        horário, relógio e horários das tarefas
-    db.ts              leitura/escrita no Firestore
-    pomodoro.ts        ciclo do timer
-```
+O mapa do código, o modelo de dados e o jeito de trabalhar no projeto estão em [`CLAUDE.md`](CLAUDE.md). Para ver o app sem login, com dados de exemplo, rode `npm run dev` e abra `http://localhost:3000/dev` (cenários em `src/dev/fixtures.ts`).
 
 ### Dados no Firestore
 

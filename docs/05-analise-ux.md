@@ -2,36 +2,38 @@
 
 Análise feita percorrendo o app com dados de exemplo (celular e computador) e lendo o código. O critério é o objetivo do app: **saber a qualquer hora quanto tempo ainda tenho e se dá tempo**, com o mínimo de esforço para manter os números certos.
 
-Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade considera quanto o ponto atrapalha o uso diário e quanto custa mudar.
+Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade considera quanto o ponto atrapalha o uso diário e quanto custa mudar. Ao resolver um ponto, marque o status na tabela e anote a data.
 
 ## Resumo
 
-| # | Ponto | Prioridade | Esforço |
-|---|---|---|---|
-| 1 | Tocar numa tarefa faz coisas diferentes em cada tela | Alta | Baixo |
-| 2 | Registros aparecem em três lugares, com três formatos | Alta | Médio |
-| 3 | Janela da tarefa longa demais no celular | Alta | Médio |
-| 4 | Tarefa de uma vez não tem "mudar data" no Dia | Alta | Baixo |
-| 5 | Ações sem desfazer (apagar registro, pular, amanhã, trazer) | Alta | Médio |
-| 6 | Falhas ao salvar passam em silêncio | Alta | Médio |
-| 7 | Criação rápida se comporta diferente em cada campo | Média | Baixo |
-| 8 | "Pausa" tem três significados | Média | Baixo |
-| 9 | Foco começa em Pomodoro e o ▶ em Cronômetro | Média | Baixo |
-| 10 | Permissão de notificação pedida em três lugares (uma de surpresa) | Média | Baixo |
-| 11 | Não há visão dos próximos dias | Média | Médio |
-| 12 | Tarefas de uma vez concluídas somem | Média | Baixo |
-| 13 | Configurações espalhadas (conta dentro de Tarefas) | Média | Baixo |
-| 14 | Alvos de toque pequenos no celular | Média | Baixo |
-| 15 | Computador usa só uma coluna estreita | Baixa | Médio |
-| 16 | Ajuda curta e textos repetidos na entrada | Baixa | Baixo |
-| 17 | Ir para um dia específico só pelas setas | Baixa | Baixo |
-| 18 | Estados vazios e de carregamento simples | Baixa | Baixo |
+| # | Ponto | Prioridade | Esforço | Status |
+|---|---|---|---|---|
+| 1 | Tocar numa tarefa faz coisas diferentes em cada tela | Alta | Baixo | ✅ feito 19/10 |
+| 2 | Registros aparecem em três lugares, com três formatos | Alta | Médio | pendente |
+| 3 | Janela da tarefa longa demais no celular | Alta | Médio | pendente |
+| 4 | Tarefa de uma vez não tem "mudar data" no Dia | Alta | Baixo | ✅ feito 19/10 |
+| 5 | Ações sem desfazer (apagar registro, pular, amanhã, trazer) | Alta | Médio | pendente |
+| 6 | Falhas ao salvar passam em silêncio | Alta | Médio | pendente |
+| 7 | Criação rápida se comporta diferente em cada campo | Média | Baixo | ✅ feito 19/10 |
+| 8 | "Pausa" tem três significados | Média | Baixo | ✅ feito 19/10 |
+| 9 | Foco começa em Pomodoro e o ▶ em Cronômetro | Média | Baixo | ✅ feito 19/10 |
+| 10 | Permissão de notificação pedida em três lugares (uma de surpresa) | Média | Baixo | pendente |
+| 11 | Não há visão dos próximos dias | Média | Médio | pendente |
+| 12 | Tarefas de uma vez concluídas somem | Média | Baixo | pendente |
+| 13 | Configurações espalhadas (conta dentro de Tarefas) | Média | Baixo | pendente |
+| 14 | Alvos de toque pequenos no celular | Média | Baixo | pendente |
+| 15 | Computador usa só uma coluna estreita | Baixa | Médio | pendente |
+| 16 | Ajuda curta e textos repetidos na entrada | Baixa | Baixo | pendente |
+| 17 | Ir para um dia específico só pelas setas | Baixa | Baixo | pendente |
+| 18 | Estados vazios e de carregamento simples | Baixa | Baixo | pendente |
 
 ---
 
 ## Alta prioridade
 
 ### 1. Tocar numa tarefa faz coisas diferentes em cada tela
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--consistência-entre-telas).
 
 - **Evidência**: no Dia, tocar na tarefa abre a **janela da tarefa** (registrar, concluir, pular). Em Tarefas, tocar no nome abre o **formulário de edição**. Para editar a partir do Dia são dois toques (janela › Editar tarefa); para registrar a partir de Tarefas, não há caminho.
 - **Impacto**: o mesmo gesto tem resultados diferentes e o usuário precisa lembrar onde está. É a principal causa da sensação de "telas avulsas".
@@ -57,6 +59,8 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 
 ### 4. Tarefa de uma vez não tem "mudar data" no Dia
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--consistência-entre-telas).
+
 - **Evidência**: a janela da tarefa oferece **Pular hoje** só para as que repetem. Para uma tarefa de uma vez, mudar a data só existe em Tarefas (menu de data) ou na sugestão "Para dar tempo" (Amanhã), que só aparece quando não dá tempo.
 - **Impacto**: "não vou fazer isso hoje" é uma ação diária, e para tarefas de uma vez ela exige trocar de aba.
 - **Proposta**: na janela da tarefa de uma vez, **Mudar dia** com Amanhã / Próxima segunda / Outro dia (o mesmo menu de Tarefas), no lugar de "Pular hoje".
@@ -79,16 +83,22 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 
 ### 7. Criação rápida se comporta diferente em cada campo
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--consistência-entre-telas).
+
 - **Evidência**: "Nova tarefa" no Dia sem tempo **abre o formulário**; "Nova que repete" sem tempo **abre o formulário**; "Nova para hoje" em Tarefas sem tempo **cria com 30min**.
 - **Proposta**: o mesmo comportamento nos três. Sugestão: criar com um tempo padrão e mostrar o tempo destacado para ajustar na hora, ou abrir o formulário nos três.
 
 ### 8. "Pausa" tem três significados
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--consistência-entre-telas).
 
 - **Evidência**: pausa fixa do horário (almoço), pausa do pomodoro e **Pausar** tarefa (= arquivar).
 - **Impacto**: "Pausadas" em Tarefas parece ter a ver com pomodoro ou almoço.
 - **Proposta**: trocar **Pausar tarefa** por **Desativar** / "Desativadas" (ou "Arquivar"). Pausa fica só para intervalo.
 
 ### 9. Foco começa em Pomodoro e o ▶ em Cronômetro
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--consistência-entre-telas).
 
 - **Evidência**: o ▶ da linha usa o último modo usado (cronômetro por padrão). A aba Foco sempre abre em **Pomodoro**.
 - **Proposta**: a aba Foco abre no último modo usado também.
@@ -155,7 +165,7 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 
 ## Sugestão de ordem
 
-1. **Consistência** (1, 4, 7, 8, 9): pouco esforço e tira a maior parte da confusão.
+1. ~~**Consistência** (1, 4, 7, 8, 9)~~ ✅ feito em 19/10.
 2. **Confiança nos números** (5, 6): desfazer e erros de gravação.
 3. **Registros num lugar só** (2, 3): janela da tarefa mais curta e "Registros de hoje" no Dia.
 4. **Planejamento** (11, 12): semana em Tarefas e concluídas.
