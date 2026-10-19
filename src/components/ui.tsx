@@ -39,7 +39,8 @@ export function IconButton({ label, className, ...props }: ButtonHTMLAttributes<
       aria-label={label}
       title={label}
       className={cx(
-        "grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition-colors hover:bg-sunken hover:text-ink disabled:pointer-events-none disabled:opacity-30",
+        // Área de toque maior que o desenho (44px no celular), sem mudar o visual.
+        "relative grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted transition-colors before:absolute before:-inset-1.5 before:content-[''] hover:bg-sunken hover:text-ink disabled:pointer-events-none disabled:opacity-30 sm:before:-inset-0.5",
         className,
       )}
     />

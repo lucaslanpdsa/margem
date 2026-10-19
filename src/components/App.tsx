@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronLeft, ChevronRight, CircleHelp, ListChecks, LogOut, PanelLeftClose, PanelLeftOpen, Plus, Sun, Timer as TimerIcon } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, ListChecks, PanelLeftClose, PanelLeftOpen, Plus, Sun, Timer as TimerIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { fromKey, shiftDay, todayKey } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
@@ -10,6 +10,7 @@ import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
 import { OfflineNotice, ToastProvider } from "./toast";
+import { AccountMenu } from "./AccountMenu";
 import { SlotAlerts } from "./SlotAlerts";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
@@ -71,7 +72,7 @@ function Logo() {
 }
 
 export function Shell() {
-  const { ready, user, login, logout, date, setDate, settings, settingsReady } = useStore();
+  const { ready, user, login, date, setDate, settings, settingsReady } = useStore();
   const { editTask } = useDialogs();
   const [tab, setTab] = useTab();
   const [help, setHelp] = useState(false);
@@ -96,7 +97,7 @@ export function Shell() {
     });
   const [error, setError] = useState("");
 
-  if (!ready) return <div className="grid min-h-screen place-items-center text-sm text-muted">Carregando…</div>;
+  if (!ready) return <LoadingSkeleton />;
 
   if (!user) {
     return (
@@ -104,7 +105,7 @@ export function Shell() {
         <div className="w-full max-w-md">
           <Logo />
           <h1 className="mt-8 text-2xl font-semibold tracking-tight">Saiba quanto ainda cabe no seu dia.</h1>
-          <p className="mt-2 text-muted">Saiba a qualquer hora quanto tempo ainda tem e se está em dia ou atrasado.</p>
+          <p className="mt-2 text-muted">Diga seu horário e suas tarefas, registre o que fez, e o app mostra a qualquer hora se dá tempo.</p>
           <div className="mt-8 rounded-2xl border border-line bg-surface p-5">
             <HowItWorks />
           </div>
@@ -185,31 +186,7 @@ export function Shell() {
           ))}
         </nav>
         <div className={cx("mt-auto space-y-0.5", collapsed && "flex flex-col items-center")}>
-          <button
-            onClick={() => setHelp(true)}
-            title={collapsed ? "Como funciona" : undefined}
-            aria-label="Como funciona"
-            className={cx(
-              "flex items-center gap-3 rounded-lg text-sm font-medium text-muted hover:bg-sunken hover:text-ink",
-              collapsed ? "h-10 w-10 justify-center" : "w-full px-3 py-2",
-            )}
-          >
-            <CircleHelp size={18} /> {!collapsed && "Como funciona"}
-          </button>
-          {!collapsed && (
-            <div className="flex items-center gap-2 rounded-lg px-3 py-2">
-              {user.photoURL ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={user.photoURL} alt="" className="h-7 w-7 rounded-full" referrerPolicy="no-referrer" />
-              ) : (
-                <span className="grid h-7 w-7 place-items-center rounded-full bg-sunken text-xs font-semibold">{user.displayName?.[0] ?? "?"}</span>
-              )}
-              <span className="min-w-0 flex-1 truncate text-[13px]">{user.displayName ?? user.email}</span>
-              <IconButton label="Sair" onClick={logout}>
-                <LogOut size={15} />
-              </IconButton>
-            </div>
-          )}
+          <AccountMenu variant={collapsed ? "sidebar-collapsed" : "sidebar"} onHelp={() => setHelp(true)} />
           <button
             onClick={toggleCollapsed}
             title={collapsed ? "Abrir barra lateral" : "Recolher barra lateral"}
@@ -226,10 +203,32 @@ export function Shell() {
 
       <div className={cx("min-w-0 flex-1 px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:pt-7 lg:pb-10", settings.activeTimer && tab !== "foco" && "pb-48 lg:pb-32")}>
         <div className="mx-auto max-w-[1400px]">
-          <header className={cx("mx-auto mb-5 flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-3", tab === "foco" && "sr-only")}>
+          <header className={cx("mx-auto mb-5 flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-3 lg:max-w-6xl", tab === "foco" && "sr-only")}>
             <div className="mr-auto">
               <h1 className="text-2xl font-semibold tracking-tight first-letter:uppercase">{titles[tab]}</h1>
-              <p className="text-sm text-muted first-letter:uppercase">{subtitle}</p>
+              {tab === "dia" ? (
+                // Toque na data abre o calendário para ir direto a um dia.
+                <label className="relative inline-flex cursor-pointer items-center gap-1 text-sm text-muted hover:text-ink" title="Escolher o dia">
+                  <span className="first-letter:uppercase">{subtitle}</span>
+                  <ChevronDown size={14} />
+                  <input
+                    type="date"
+                    value={date}
+                    onChange={(e) => e.target.value && setDate(e.target.value)}
+                    onClick={(e) => {
+                      try {
+                        e.currentTarget.showPicker();
+                      } catch {
+                        /* navegador sem showPicker: o campo abre normalmente */
+                      }
+                    }}
+                    className="absolute inset-0 cursor-pointer opacity-0"
+                    aria-label="Escolher o dia"
+                  />
+                </label>
+              ) : (
+                <p className="text-sm text-muted first-letter:uppercase">{subtitle}</p>
+              )}
             </div>
             {showNav && (
               <div className="flex items-center gap-1.5">
@@ -248,13 +247,13 @@ export function Shell() {
                 </div>
               </div>
             )}
-            <IconButton label="Como funciona" onClick={() => setHelp(true)} className="lg:hidden">
-              <CircleHelp size={18} />
-            </IconButton>
+            <div className="lg:hidden">
+              <AccountMenu variant="header" onHelp={() => setHelp(true)} />
+            </div>
           </header>
 
           <main>
-            {tab === "dia" && <DayView />}
+            {tab === "dia" && <DayView onGoTasks={() => setTab("tarefas")} />}
             {tab === "foco" && <FocusView />}
             {tab === "tarefas" && (
               <TasksPage
@@ -294,6 +293,18 @@ export function Shell() {
       <AssignDialog />
       {settingsReady && !settings.scheduleSet && <Onboarding />}
       {help && <HelpDialog onClose={() => setHelp(false)} />}
+    </div>
+  );
+}
+
+/** Esqueleto da tela enquanto carrega (em vez de só "Carregando…"). */
+function LoadingSkeleton() {
+  return (
+    <div className="mx-auto max-w-3xl animate-pulse space-y-4 px-4 pt-6" aria-label="Carregando" role="status">
+      <div className="h-7 w-32 rounded-lg bg-line/70" />
+      <div className="h-4 w-48 rounded bg-line/50" />
+      <div className="h-44 rounded-2xl bg-line/40" />
+      <div className="h-64 rounded-2xl bg-line/40" />
     </div>
   );
 }

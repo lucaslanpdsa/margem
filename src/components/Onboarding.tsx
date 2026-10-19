@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarRange, ListChecks, Timer } from "lucide-react";
+import { CalendarRange, ListChecks, Sun, Timer } from "lucide-react";
 import { useState } from "react";
 import { saveSettings } from "@/lib/db";
 import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
@@ -52,10 +52,56 @@ export function HowItWorks() {
   );
 }
 
+/** O que cada aba faz e os atalhos que valem a pena conhecer. */
+const TABS_HELP = [
+  {
+    icon: Sun,
+    title: "Dia",
+    text: "Mostra se dá tempo hoje. Toque numa tarefa para registrar, concluir, pular ou mudar o dia. O ▶ começa o timer nela. Toque na data para ir a outro dia.",
+  },
+  {
+    icon: ListChecks,
+    title: "Tarefas",
+    text: "Onde você organiza: seu horário, a semana (quanto sobra em cada dia), as tarefas que repetem (toque nos dias para ligar ou desligar) e as de uma vez, por data.",
+  },
+  {
+    icon: Timer,
+    title: "Foco",
+    text: "Pomodoro ou cronômetro em tela cheia, e os registros de hoje. Em ··· você ajusta os tempos e o início automático.",
+  },
+];
+
+const TIPS = [
+  "Esqueceu de dar play? Com o timer rodando, use “Começou às… · Mudar”.",
+  "Passou tempo sem registrar? “O que você fez?” no topo do dia distribui esse tempo.",
+  "Não dá tempo? O app sugere o que tirar de hoje: pular, mandar para amanhã ou encurtar.",
+  "Errou? Os avisos no rodapé têm “Desfazer”.",
+];
+
 export function HelpDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal title="Como o Margem funciona" onClose={onClose}>
       <HowItWorks />
+      <h3 className="mt-6 mb-3 text-sm font-semibold">As abas</h3>
+      <div className="space-y-3">
+        {TABS_HELP.map((h) => (
+          <div key={h.title} className="flex gap-3">
+            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-sunken text-muted">
+              <h.icon size={16} />
+            </span>
+            <div>
+              <p className="text-sm font-semibold">{h.title}</p>
+              <p className="mt-0.5 text-sm text-muted">{h.text}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+      <h3 className="mt-6 mb-2 text-sm font-semibold">Dicas</h3>
+      <ul className="list-disc space-y-1 pl-5 text-sm text-muted">
+        {TIPS.map((t) => (
+          <li key={t}>{t}</li>
+        ))}
+      </ul>
       <div className="mt-6 flex justify-end">
         <Button variant="primary" onClick={onClose}>
           Entendi

@@ -60,19 +60,25 @@ export function TasksPage({ onOpenDay }: { onOpenDay: (date: string) => void }) 
   const paused = tasks.filter((t) => t.archived && !(t.repeat === "once" && t.completedAt));
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <ScheduleCard />
-      <WeekCard onOpenDay={onOpenDay} />
+    // No computador: horário e semana lado a lado, e "Repetem" ao lado de "Não repetem".
+    <div className="mx-auto max-w-3xl space-y-4 lg:max-w-6xl">
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <ScheduleCard />
+        <WeekCard onOpenDay={onOpenDay} />
+      </div>
 
       <label className="relative block">
         <Search size={16} className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-muted" />
         <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar tarefa" aria-label="Buscar tarefa" className={cx(inputCls, "pl-9")} />
       </label>
 
-      <RoutineCard tasks={routine} visible={routine.filter(match)} searching={!!q} />
-      <OnceCard tasks={once.filter(match)} done={done.filter(match)} searching={!!q} />
-      {paused.filter(match).length > 0 && <PausedCard tasks={paused.filter(match)} />}
-
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+        <RoutineCard tasks={routine} visible={routine.filter(match)} searching={!!q} />
+        <div className="space-y-4">
+          <OnceCard tasks={once.filter(match)} done={done.filter(match)} searching={!!q} />
+          {paused.filter(match).length > 0 && <PausedCard tasks={paused.filter(match)} />}
+        </div>
+      </div>
     </div>
   );
 }
@@ -181,7 +187,7 @@ function RoutineCard({ tasks, visible, searching }: { tasks: Task[]; visible: Ta
           {visible.map((t) => (
             <li key={t.id} className="flex flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:gap-4 sm:px-5">
               <TaskName task={t} />
-              <div className="flex shrink-0 gap-1">
+              <div className="flex shrink-0 gap-1 sm:gap-1">
                 {WEEK.map((dow) => {
                   const on = !!t.weekdays?.includes(dow);
                   const last = on && (t.weekdays?.length ?? 0) <= 1;
@@ -197,7 +203,7 @@ function RoutineCard({ tasks, visible, searching }: { tasks: Task[]; visible: Ta
                       aria-label={`${WEEKDAY_SHORT[dow]}: ${on ? "repete" : "não repete"}`}
                       title={last ? "Precisa de pelo menos um dia" : on ? `Tirar de ${WEEKDAY_SHORT[dow].toLowerCase()}` : `Repetir ${WEEKDAY_SHORT[dow].toLowerCase()}`}
                       className={cx(
-                        "h-8 w-9 rounded-md text-[11px] font-semibold transition-colors",
+                        "h-10 flex-1 rounded-md text-[11px] font-semibold transition-colors sm:h-8 sm:w-9 sm:flex-none",
                         on ? "bg-todo text-white hover:bg-todo/85" : "bg-sunken text-muted hover:bg-line hover:text-ink",
                       )}
                     >
@@ -303,7 +309,7 @@ function DoneGroup({ tasks }: { tasks: Task[] }) {
                   toggleDone(uid, t, t.date ?? todayKey(), false);
                   toast(`${t.title} reaberta`, { tone: "info", undo: () => toggleDone(uid, t, t.date ?? todayKey(), true) });
                 }}
-                className="h-8 shrink-0 rounded-full border border-line px-3 text-[13px] font-medium hover:bg-sunken"
+                className="h-9 shrink-0 rounded-full border sm:h-8 border-line px-3 text-[13px] font-medium hover:bg-sunken"
               >
                 Reabrir
               </button>
@@ -478,7 +484,7 @@ function DurationChip({ task }: { task: Task }) {
   return (
     <button
       onClick={() => setDraft(fmtMin(task.estimateMin))}
-      className="tabular rounded border border-dashed border-line px-1.5 py-px font-semibold text-ink hover:border-todo hover:text-todo"
+      className="tabular relative rounded border border-dashed border-line px-1.5 py-px font-semibold text-ink before:absolute before:-inset-2 before:content-[''] hover:border-todo hover:text-todo"
       title="Mudar o tempo"
     >
       {fmtMin(task.estimateMin)}
@@ -512,7 +518,7 @@ function DateChip({ task }: { task: Task }) {
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className={cx(
-          "tabular h-8 rounded-full border px-3 text-[13px] font-medium transition-colors",
+          "tabular h-9 rounded-full border px-3 text-[13px] font-medium transition-colors sm:h-8",
           late ? "border-over/40 text-over hover:bg-over/10" : "border-line hover:bg-sunken",
         )}
         title="Mudar a data"

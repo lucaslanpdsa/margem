@@ -129,7 +129,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
     <Panel className="p-5">
       <p
         className={cx(
-          "tabular text-[22px] leading-tight font-semibold tracking-tight sm:text-[32px]",
+          "tabular text-[22px] leading-tight font-semibold tracking-tight sm:text-[32px] lg:text-[26px]",
           late ? "text-over" : m.window && !ended ? "text-done" : "text-ink",
         )}
       >
@@ -178,7 +178,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
       {m.window && <TimelineBar m={m} isToday={isToday} />}
 
       {/* Ações: o que dá para fazer com o que a barra mostra. */}
-      {m.window && s.idle >= 5 && (
+      {m.window && s.idle >= 5 && m.items.some((i) => !i.skipped && !i.outside) && (
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-sunken px-3 py-2.5">
           <span className="min-w-0 flex-1 text-[13px] text-muted">
             <b className="tabular font-semibold text-ink">{fmtMin(s.idle)}</b> já passaram sem nada registrado.
@@ -277,7 +277,7 @@ function WhatToDrop({ m, excess }: { m: DayMetrics; excess: number }) {
             <li key={i.task.id} className="flex items-center gap-3 text-sm">
               <span className="min-w-0 flex-1 truncate">{i.task.title}</span>
               <span className="tabular shrink-0 text-xs text-muted">falta {fmtMin(i.remainingMin)}</span>
-              <button onClick={a.run} className="h-8 shrink-0 rounded-full border border-line bg-surface px-3 text-[13px] font-medium hover:bg-sunken">
+              <button onClick={a.run} className="h-9 shrink-0 rounded-full border sm:h-8 border-line bg-surface px-3 text-[13px] font-medium hover:bg-sunken">
                 {a.label}
               </button>
             </li>

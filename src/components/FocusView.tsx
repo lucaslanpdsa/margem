@@ -199,9 +199,11 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
             ]}
           />
         )}
-        <IconButton label="Configurar pomodoro" onClick={() => setMenu(true)} className="absolute top-0 right-0">
-          <MoreHorizontal size={18} />
-        </IconButton>
+        <div className="absolute top-0 right-0">
+          <IconButton label="Configurar pomodoro" onClick={() => setMenu(true)}>
+            <MoreHorizontal size={18} />
+          </IconButton>
+        </div>
       </div>
 
       <div className={focus ? "text-todo" : "text-break"}>

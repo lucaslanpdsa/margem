@@ -13,15 +13,20 @@ import { Panel, cx } from "./ui";
 
 // ---------------- Dia ----------------
 
-export function DayView() {
+export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
   const { date, settings, tasks, blocks, sessions } = useStore();
   const now = new Date(useNow(60000));
   const m = dayMetrics(date, settings, tasks, blocks, sessions, now);
+  // No computador, duas colunas: o resumo do dia fica parado à esquerda e as tarefas rolam à direita.
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <DayBudget m={m} />
-      <DayLists m={m} />
-      <DayRecords date={date} />
+    <div className="mx-auto grid max-w-3xl gap-4 lg:max-w-6xl lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:items-start">
+      <div className="lg:sticky lg:top-6">
+        <DayBudget m={m} />
+      </div>
+      <div className="min-w-0 space-y-4">
+        <DayLists m={m} onGoTasks={onGoTasks} />
+        <DayRecords date={date} />
+      </div>
     </div>
   );
 }

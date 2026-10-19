@@ -54,8 +54,9 @@ export function QuickAdd({ date }: { date: string }) {
   );
 }
 
-export function DayLists({ m }: { m: DayMetrics }) {
+export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => void }) {
   const { tasks, blocks, date } = useStore();
+  const { editTask } = useDialogs();
   const [showDone, setShowDone] = useState(false);
   const isToday = date === todayKey();
 
@@ -100,11 +101,24 @@ export function DayLists({ m }: { m: DayMetrics }) {
           />
         ))}
       </ul>
-      {open.length === 0 && (
-        <p className="mt-4 rounded-xl bg-sunken px-4 py-3 text-sm text-muted">
-          {m.items.length === 0 ? "Nenhuma tarefa neste dia. Adicione acima ou pelo botão Nova tarefa." : "Tudo feito por aqui."}
-        </p>
-      )}
+      {open.length === 0 &&
+        (m.items.length === 0 ? (
+          // Dia vazio: os dois caminhos para começar.
+          <div className="mt-4 rounded-xl bg-sunken px-4 py-4 text-sm">
+            <p className="font-medium">Nenhuma tarefa neste dia.</p>
+            <p className="mt-0.5 text-muted">Crie uma tarefa para hoje ou monte a rotina da semana (tarefas que repetem).</p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button variant="primary" onClick={() => editTask({ repeat: "once", date })}>
+                <Plus size={14} /> Criar tarefa
+              </Button>
+              <Button variant="secondary" onClick={onGoTasks}>
+                Montar rotina em Tarefas
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <p className="mt-4 rounded-xl bg-sunken px-4 py-3 text-sm text-muted">Tudo feito por aqui.</p>
+        ))}
 
       {done.length > 0 && (
         <div className="mt-3">
