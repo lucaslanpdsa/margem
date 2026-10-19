@@ -1,11 +1,12 @@
 "use client";
 
-import { ChevronDown, Clock, Pause, Play, Plus, Search } from "lucide-react";
+import { Archive, ArchiveRestore, ChevronDown, Clock, Plus, Search } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addTask, saveSettings, updateTask } from "@/lib/db";
 import { allSlotsOutside, slotsOf, toMin, weekdayCapacity } from "@/lib/schedule";
 import type { DayWindow, Task } from "@/lib/types";
+import { DayMenu } from "./DayMenu";
 import { useDialogs } from "./dialogs";
 import { useStore } from "./store";
 import { ScheduleEditor, type Schedule } from "./ScheduleEditor";
@@ -261,6 +262,7 @@ function TotalsRow({ label, hint, cells }: { label: string; hint: string; cells:
 
 function OnceCard({ tasks, searching }: { tasks: Task[]; searching: boolean }) {
   const { uid } = useStore();
+  const { editTask } = useDialogs();
   const today = todayKey();
   const tomorrow = shiftDay(today, 1);
   const weekEnd = weekDays(today)[6];
@@ -277,7 +279,8 @@ function OnceCard({ tasks, searching }: { tasks: Task[]; searching: boolean }) {
   async function quickAdd(text: string) {
     const { title, minutes } = parseQuickAdd(text);
     if (!title) return;
-    await addTask(uid, { title, repeat: "once", date: today, estimateMin: minutes ?? 30 });
+    if (minutes === null) return editTask({ title, repeat: "once", date: today });
+    await addTask(uid, { title, repeat: "once", date: today, estimateMin: minutes });
   }
 
   return (
@@ -317,7 +320,7 @@ function OnceCard({ tasks, searching }: { tasks: Task[]; searching: boolean }) {
   );
 }
 
-// ---------------- Pausadas ----------------
+// ---------------- Desativadas ----------------
 
 function PausedCard({ tasks }: { tasks: Task[] }) {
   const { uid } = useStore();
@@ -326,7 +329,7 @@ function PausedCard({ tasks }: { tasks: Task[] }) {
     <section>
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="inline-flex items-center gap-1 px-1 text-[13px] font-medium text-muted hover:text-ink">
         <ChevronDown size={14} className={cx("transition-transform", !open && "-rotate-90")} />
-        <Pause size={13} /> Pausadas ({tasks.length})
+        <Archive size={13} /> Desativadas ({tasks.length})
       </button>
       {open && (
         <ul className="mt-2 divide-y divide-line rounded-2xl border border-line bg-surface">
@@ -337,7 +340,7 @@ function PausedCard({ tasks }: { tasks: Task[] }) {
                 onClick={() => updateTask(uid, t.id, { archived: false })}
                 className="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-line px-3 text-[13px] font-medium hover:bg-sunken"
               >
-                <Play size={12} /> Retomar
+                <ArchiveRestore size={12} /> Reativar
               </button>
             </li>
           ))}
@@ -349,9 +352,9 @@ function PausedCard({ tasks }: { tasks: Task[] }) {
 
 // ---------------- Peças ----------------
 
-/** Nome (abre a edição completa) e, embaixo, tempo editável e horários. */
+/** Nome (abre a janela da tarefa, igual ao Dia; desativadas abrem a edição) e, embaixo, tempo editável e horários. */
 function TaskName({ task, sub }: { task: Task; sub?: string }) {
-  const { editTask } = useDialogs();
+  const { editTask, logTime } = useDialogs();
   const { settings } = useStore();
   const slots = slotText(task);
   // Horário fora do seu horário em todos os dias dela: não entra nas contas (ex: academia à noite).
@@ -359,7 +362,11 @@ function TaskName({ task, sub }: { task: Task; sub?: string }) {
   const extra = days.length > 0 && days.every((d) => allSlotsOutside(task, weekdayCapacity(settings, d).window));
   return (
     <div className="min-w-0 flex-1">
-      <button onClick={() => editTask(task)} className="block max-w-full truncate text-left text-sm font-medium hover:text-todo" title="Editar tudo">
+      <button
+        onClick={() => (task.archived ? editTask(task) : logTime(task))}
+        className="block max-w-full truncate text-left text-sm font-medium hover:text-todo"
+        title={task.archived ? "Editar" : "Abrir tarefa"}
+      >
         {task.title}
       </button>
       <div className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs text-muted">
@@ -451,29 +458,8 @@ function DateChip({ task }: { task: Task }) {
       >
         {late ? short : label}
       </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 z-50 mt-1 w-48 rounded-xl border border-line bg-surface p-1.5 shadow-xl">
-            <MenuItem onClick={() => set(today)}>Hoje</MenuItem>
-            <MenuItem onClick={() => set(shiftDay(today, 1))}>Amanhã</MenuItem>
-            <MenuItem onClick={() => set(shiftDay(weekDays(today)[0], 7))}>Próxima segunda</MenuItem>
-            <label className="mt-1 block border-t border-line px-2 pt-2 pb-1 text-xs text-muted">
-              Outro dia
-              <input type="date" defaultValue={key} onChange={(e) => set(e.target.value)} className={cx(inputCls, "mt-1 h-9 text-sm")} />
-            </label>
-          </div>
-        </>
-      )}
+      {open && <DayMenu value={key} onPick={set} onClose={() => setOpen(false)} />}
     </div>
-  );
-}
-
-function MenuItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} className="block w-full rounded-lg px-2 py-1.5 text-left text-sm hover:bg-sunken">
-      {children}
-    </button>
   );
 }
 

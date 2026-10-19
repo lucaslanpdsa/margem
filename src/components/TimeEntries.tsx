@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { dayName, entryTimes, fmtMin, parseTimeEntry, shiftDay, todayKey } from "@/lib/dates";
 import { addSession, deleteSession, updateSession, watchTaskSessions } from "@/lib/db";
 import { isLive, sessionSource } from "@/lib/pomodoro";
+import { PREVIEW_UID } from "@/dev/fixtures";
 import type { Session, Task } from "@/lib/types";
 import { useStore } from "./store";
 import { useToast } from "./toast";
@@ -123,12 +124,15 @@ export function TaskEntries({ task }: { task: Task }) {
   const [all, setAll] = useState<Session[] | null>(null);
   const [showAll, setShowAll] = useState(false);
 
-  useEffect(() => watchTaskSessions(uid, task.id, setAll), [uid, task.id]);
+  // Na prévia (/dev) não há banco: o histórico vem dos registros de exemplo.
+  const preview = uid === PREVIEW_UID;
+  useEffect(() => (preview ? undefined : watchTaskSessions(uid, task.id, setAll)), [uid, task.id, preview]);
 
   // Histórico completo do banco + o timer rodando (que ainda não é um registro).
   const live = sessions.filter((s) => isLive(s) && s.taskId === task.id);
-  const list = [...(all ?? []), ...live];
-  if (all === null) return null;
+  const stored = preview ? sessions.filter((s) => s.taskId === task.id && !isLive(s)) : all;
+  const list = [...(stored ?? []), ...live];
+  if (stored === null) return null;
   if (list.length === 0) return <p className="text-sm text-muted">Nenhum registro ainda.</p>;
 
   const byDay = new Map<string, Session[]>();

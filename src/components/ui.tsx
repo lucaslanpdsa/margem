@@ -68,12 +68,15 @@ export function Modal({
   onClose,
   children,
   wide,
+  action,
 }: {
   title: string;
   description?: string;
   onClose: () => void;
   children: ReactNode;
   wide?: boolean;
+  /** Botão extra no cabeçalho, ao lado do fechar (ex: Editar). */
+  action?: ReactNode;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -97,9 +100,12 @@ export function Modal({
             <h2 className="text-lg font-semibold">{title}</h2>
             {description && <p className="mt-1 text-sm text-muted">{description}</p>}
           </div>
-          <IconButton label="Fechar" onClick={onClose}>
-            <X size={18} />
-          </IconButton>
+          <div className="flex shrink-0 items-center gap-1">
+            {action}
+            <IconButton label="Fechar" onClick={onClose}>
+              <X size={18} />
+            </IconButton>
+          </div>
         </div>
         <div className="px-6 pt-4 pb-6">{children}</div>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Pause, Play, Plus, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { WEEKDAY_SHORT, fmtMin, fromKey, parseDuration, shiftDay, todayKey } from "@/lib/dates";
 import { addTask, deleteTask, replaceTask, updateTask } from "@/lib/db";
@@ -96,8 +96,8 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
     onClose();
   }
 
-  // Pausar só vale para o que repete: para de aparecer nos dias, sem perder o histórico.
-  async function togglePause() {
+  // Desativar só vale para o que repete: para de aparecer nos dias, sem perder o histórico.
+  async function toggleArchived() {
     await updateTask(uid, initial.id!, { archived: !initial.archived });
     onClose();
   }
@@ -226,9 +226,9 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
                 <Trash2 size={14} /> Excluir
               </Button>
               {initial.repeat === "weekdays" && (
-                <Button type="button" variant="ghost" onClick={togglePause}>
-                  {initial.archived ? <Play size={14} /> : <Pause size={14} />}
-                  {initial.archived ? "Retomar" : "Pausar"}
+                <Button type="button" variant="ghost" onClick={toggleArchived}>
+                  {initial.archived ? <ArchiveRestore size={14} /> : <Archive size={14} />}
+                  {initial.archived ? "Reativar" : "Desativar"}
                 </Button>
               )}
             </div>

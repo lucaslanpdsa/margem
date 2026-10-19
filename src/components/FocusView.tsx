@@ -196,7 +196,8 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
   const timer = useTimerActions();
   const now = useNow();
   const t = settings.activeTimer;
-  const [mode, setMode] = useState<"pomodoro" | "stopwatch">("pomodoro");
+  // Mesmo modo do ▶ das tarefas: o último usado (cronômetro na primeira vez).
+  const [mode, setMode] = useState<"pomodoro" | "stopwatch">(settings.lastTimerMode ?? "stopwatch");
   const [taskId, setTaskId] = useState(initialTaskId);
   const [menu, setMenu] = useState(false);
 

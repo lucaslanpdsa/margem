@@ -1,11 +1,13 @@
 "use client";
 
-import { Check, Pencil, Play, SkipForward, Square, Timer as TimerIcon, Undo2 } from "lucide-react";
-import { fmtMin, fromKey, todayKey } from "@/lib/dates";
-import { setDayEstimate, setSkipped, toggleDone } from "@/lib/db";
+import { CalendarDays, Check, Pencil, Play, SkipForward, Square, Timer as TimerIcon, Undo2 } from "lucide-react";
+import { useState } from "react";
+import { dayName, fmtMin, fromKey, todayKey } from "@/lib/dates";
+import { setDayEstimate, setSkipped, toggleDone, updateTask } from "@/lib/db";
 import { isCompletedOn, isSkippedOn, isTimeTask } from "@/lib/metrics";
 import { timerDisplay, useNow } from "./Timer";
-import { useTimerActions } from "./toast";
+import { useTimerActions, useToast } from "./toast";
+import { DayMenu } from "./DayMenu";
 import { AddTime, TaskEntries } from "./TimeEntries";
 import { TimerStart } from "./TimerStart";
 import { useDialogs } from "./dialogs";
@@ -19,6 +21,8 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   const { uid, date, sessions, settings } = useStore();
   const { editTask } = useDialogs();
   const timer = useTimerActions();
+  const toast = useToast();
+  const [moving, setMoving] = useState(false);
   const timeTask = isTimeTask(task);
   const skipped = isSkippedOn(task, date);
   const completed = !timeTask && !skipped && isCompletedOn(task, date);
@@ -40,7 +44,22 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
 
 
   return (
-    <Modal title={task.title} onClose={onClose}>
+    <Modal
+      title={task.title}
+      onClose={onClose}
+      action={
+        <Button
+          size="sm"
+          variant="ghost"
+          onClick={() => {
+            onClose();
+            editTask(task);
+          }}
+        >
+          <Pencil size={14} /> Editar
+        </Button>
+      }
+    >
       <div className="mb-5 rounded-xl bg-sunken p-4">
         <p className="text-[13px] text-muted">Feito {dayLabel}</p>
         <p className="tabular mt-0.5 text-2xl font-semibold">
@@ -105,28 +124,43 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
       </div>
 
       <div className="mt-5 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-4">
-        <Button
-          variant="ghost"
-          onClick={() => {
-            onClose();
-            editTask(task);
-          }}
-        >
-          <Pencil size={14} /> Editar tarefa
-        </Button>
         {task.repeat === "weekdays" && !completed && (
           <Button
             variant="ghost"
             onClick={() => {
               setSkipped(uid, task, date, !skipped);
+              toast(skipped ? `${task.title}: pulo desfeito` : `${task.title} pulada ${dayLabel}`, "info");
               onClose();
             }}
           >
-            {skipped ? <Undo2 size={14} /> : <SkipForward size={14} />} {skipped ? "Desfazer pulo" : "Pular hoje"}
+            {skipped ? <Undo2 size={14} /> : <SkipForward size={14} />} {skipped ? "Desfazer pulo" : `Pular ${dayLabel}`}
           </Button>
+        )}
+        {task.repeat === "once" && !completed && (
+          <div className="relative">
+            <Button variant="ghost" onClick={() => setMoving((v) => !v)} aria-expanded={moving}>
+              <CalendarDays size={14} /> Mudar dia
+            </Button>
+            {moving && (
+              <DayMenu
+                up
+                align="left"
+                value={task.date ?? todayKey()}
+                onClose={() => setMoving(false)}
+                onPick={async (d) => {
+                  setMoving(false);
+                  if (d === (task.date ?? todayKey())) return;
+                  await updateTask(uid, task.id, { date: d });
+                  toast(`${task.title} foi para ${dayName(d).toLowerCase()}`, "info");
+                  onClose();
+                }}
+              />
+            )}
+          </div>
         )}
         {!timeTask && !skipped && (
           <Button
+            className="ml-auto"
             variant={completed ? "ghost" : "secondary"}
             onClick={() => {
               toggleDone(uid, task, date, !completed);
