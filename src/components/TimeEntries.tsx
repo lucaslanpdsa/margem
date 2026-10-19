@@ -138,7 +138,8 @@ export function TaskEntries({ task }: { task: Task }) {
   const byDay = new Map<string, Session[]>();
   for (const s of list) byDay.set(s.date, [...(byDay.get(s.date) ?? []), s]);
   const days = [...byDay.keys()].sort().reverse();
-  const shown = showAll ? days : days.slice(0, 5);
+  // Os 3 dias mais recentes; o resto em "Mostrar mais".
+  const shown = showAll ? days : days.slice(0, 3);
   const total = list.reduce((a, s) => a + s.minutes, 0);
 
   return (
@@ -163,29 +164,60 @@ export function TaskEntries({ task }: { task: Task }) {
           );
         })}
       </div>
-      {days.length > 5 && (
+      {days.length > 3 && (
         <button onClick={() => setShowAll((v) => !v)} className="mt-2 inline-flex items-center gap-1 text-[13px] font-medium text-muted hover:text-ink">
           <ChevronDown size={14} className={cx("transition-transform", showAll && "rotate-180")} />
-          {showAll ? "Mostrar menos" : `Mostrar mais ${days.length - 5} dias`}
+          {showAll ? "Mostrar menos" : `Mostrar mais ${days.length - 3} ${days.length - 3 === 1 ? "dia" : "dias"}`}
         </button>
       )}
     </div>
   );
 }
 
-function LiveRow({ s }: { s: Session }) {
+/**
+ * Registros de um dia, de todas as tarefas (Dia e Foco): mesma linha da janela da tarefa,
+ * com o nome da tarefa e, nos registros sem tarefa, a escolha de uma.
+ */
+export function DayEntries({ date }: { date: string }) {
+  const { sessions } = useStore();
+  const list = sessions
+    .filter((s) => s.date === date)
+    .sort((a, b) => Number(isLive(b)) - Number(isLive(a)) || Number(hasRange(b)) - Number(hasRange(a)) || b.startedAt.localeCompare(a.startedAt));
+  if (list.length === 0) return <p className="text-sm text-muted">Nada registrado {date === todayKey() ? "ainda hoje" : "neste dia"}.</p>;
+  return (
+    <ul className="divide-y divide-line">
+      {list.map((s) => (isLive(s) ? <LiveRow key={s.id} s={s} showTask /> : <EntryRow key={s.id} s={s} showTask />))}
+    </ul>
+  );
+}
+
+/** Nome da tarefa do registro (ou "Sem tarefa" / "Tarefa excluída"). */
+function TaskLabel({ s }: { s: Session }) {
+  const { tasks } = useStore();
+  const task = tasks.find((t) => t.id === s.taskId);
+  if (!s.taskId) return <span className="block truncate font-medium text-break">Sem tarefa</span>;
+  return <span className={cx("block truncate font-medium", !task && "text-muted")}>{task?.title ?? "Tarefa excluída"}</span>;
+}
+
+function LiveRow({ s, showTask }: { s: Session; showTask?: boolean }) {
   return (
     <li className="flex items-center gap-3 py-2 text-sm">
-      <span className="tabular w-24 shrink-0 text-muted">{hhmm(s.startedAt)}–agora</span>
-      <span className="min-w-0 flex-1 text-xs font-medium text-todo">● rodando</span>
+      {!showTask && <span className="tabular w-24 shrink-0 text-muted">{hhmm(s.startedAt)}–agora</span>}
+      <span className="min-w-0 flex-1">
+        {showTask && <TaskLabel s={s} />}
+        <span className="block text-xs font-medium text-todo">
+          {showTask && <span className="tabular text-muted">{hhmm(s.startedAt)}–agora · </span>}● rodando
+        </span>
+      </span>
       <span className="tabular font-semibold">{fmtMin(s.minutes)}</span>
     </li>
   );
 }
 
 /** Um registro: horário, de onde veio, nota e tempo; lápis edita (tempo, dia, nota), lixeira apaga. */
-function EntryRow({ s }: { s: Session }) {
-  const { uid } = useStore();
+function EntryRow({ s, showTask }: { s: Session; showTask?: boolean }) {
+  const { uid, tasks } = useStore();
+  const [taskId, setTaskId] = useState(s.taskId);
   const toast = useToast();
   const [editing, setEditing] = useState(false);
   const [text, setText] = useState("");
@@ -197,6 +229,7 @@ function EntryRow({ s }: { s: Session }) {
     setText(hasRange(s) ? `${hhmm(s.startedAt)}-${hhmm(s.endedAt)}` : fmtMin(s.minutes));
     setDate(s.date);
     setNote(s.note ?? "");
+    setTaskId(s.taskId);
     setInvalid(false);
     setEditing(true);
   }
@@ -210,10 +243,13 @@ function EntryRow({ s }: { s: Session }) {
       minutes: entry.minutes,
       date,
       note: note.trim(),
+      ...(showTask ? { taskId } : {}),
       ...(keepTimes ? {} : entryTimes(entry, date)),
     });
     setEditing(false);
   }
+
+  const when = hasRange(s) ? `${hhmm(s.startedAt)}–${hhmm(s.endedAt)}` : "sem horário";
 
   if (editing) {
     return (
@@ -244,6 +280,18 @@ function EntryRow({ s }: { s: Session }) {
             <X size={16} />
           </IconButton>
         </form>
+        {showTask && (
+          <select value={taskId} onChange={(e) => setTaskId(e.target.value)} aria-label="Tarefa" className={cx(inputCls, "h-9 text-sm")}>
+            <option value="">Sem tarefa</option>
+            {tasks
+              .filter((t) => !t.archived || t.id === s.taskId)
+              .map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.title}
+                </option>
+              ))}
+          </select>
+        )}
         <DayPicker value={date} onChange={setDate} />
         <input className={cx(inputCls, "h-9 text-sm")} value={note} onChange={(e) => setNote(e.target.value)} placeholder="Nota (opcional)" aria-label="Nota" />
       </li>
@@ -252,10 +300,20 @@ function EntryRow({ s }: { s: Session }) {
 
   return (
     <li className="group flex items-center gap-3 py-2 text-sm">
-      <span className="tabular w-24 shrink-0 text-muted">{hasRange(s) ? `${hhmm(s.startedAt)}–${hhmm(s.endedAt)}` : "sem horário"}</span>
+      {/* Na lista do dia, o horário vai para a linha de baixo, para o nome da tarefa caber. */}
+      {!showTask && <span className="tabular w-24 shrink-0 text-muted">{when}</span>}
       <span className="min-w-0 flex-1">
-        {s.note && <span className="block truncate">{s.note}</span>}
-        <span className="block text-xs text-muted">{sessionSource(s)}</span>
+        {showTask && <TaskLabel s={s} />}
+        {s.note && <span className={cx("block truncate", showTask && "text-[13px] text-muted")}>{s.note}</span>}
+        <span className="block text-xs text-muted">
+          {showTask && <span className="tabular">{when} · </span>}
+          {sessionSource(s)}
+          {showTask && !s.taskId && (
+            <button onClick={open} className="ml-2 font-medium text-brand hover:underline">
+              Escolher tarefa
+            </button>
+          )}
+        </span>
       </span>
       <span className="tabular font-semibold">{fmtMin(s.minutes)}</span>
       <span className="flex">

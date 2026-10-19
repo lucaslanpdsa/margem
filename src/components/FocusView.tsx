@@ -5,16 +5,14 @@ import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings, updateSession } from "@/lib/db";
 import { dayItems } from "@/lib/metrics";
-import { isLive, isStopwatch, sessionSource, skipBreak, startWaiting } from "@/lib/pomodoro";
-import type { Session, Task } from "@/lib/types";
-import { RecordTime } from "./EditableMinutes";
+import { isStopwatch, skipBreak, startWaiting } from "@/lib/pomodoro";
+import type { Task } from "@/lib/types";
+import { DayEntries } from "./TimeEntries";
 import { useStore } from "./store";
 import { timerDisplay, useNow } from "./Timer";
 import { Button, IconButton, Modal, Segmented, Switch, cx, inputCls } from "./ui";
 import { useTimerActions } from "./toast";
 import { TimerStart } from "./TimerStart";
-
-const hhmm = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
 /** Tarefas que fazem sentido escolher hoje: as do dia ainda abertas. */
 export function useTaskOptions() {
@@ -136,19 +134,12 @@ function PomodoroMenu({ onClose }: { onClose: () => void }) {
   );
 }
 
-const kindOf = (s: Session) => {
-  const src = sessionSource(s);
-  return src[0].toUpperCase() + src.slice(1);
-};
-
+/** "Hoje · Xh registrados": a mesma lista de registros do Dia, recolhida. */
 function History() {
-  const { uid, sessions, tasks } = useStore();
+  const { sessions } = useStore();
   const today = todayKey();
-  const list = sessions.filter((s) => s.date === today && !isLive(s)).sort((a, b) => b.startedAt.localeCompare(a.startedAt));
-  const total = list.reduce((a, s) => a + s.minutes, 0);
-
+  const total = sessions.filter((s) => s.date === today).reduce((a, s) => a + s.minutes, 0);
   const [open, setOpen] = useState(false);
-
   return (
     <div className="w-full">
       <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="mx-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-sunken hover:text-ink">
@@ -156,36 +147,9 @@ function History() {
         Hoje · <span className="tabular font-semibold text-ink">{fmtMin(total)}</span> registrados
       </button>
       {open && (
-      <ul className="mt-2 space-y-1.5">
-        {list.length === 0 && <li className="rounded-xl bg-sunken px-4 py-3 text-sm text-muted">Nada registrado ainda hoje.</li>}
-        {list.map((s) => {
-          const task = tasks.find((t) => t.id === s.taskId);
-          return (
-            <li key={s.id} className={cx("flex items-center gap-3 rounded-xl border px-3 py-2", s.taskId ? "border-line" : "border-dashed border-muted/40")}>
-              <span className="tabular w-[5.5rem] shrink-0 text-[13px] text-muted">{s.endedAt > s.startedAt ? `${hhmm(s.startedAt)}–${hhmm(s.endedAt)}` : "—"}</span>
-              <div className="min-w-0 flex-1">
-                <select
-                  value={s.taskId}
-                  onChange={(e) => updateSession(uid, s.id, { taskId: e.target.value })}
-                  className={cx("w-full truncate bg-transparent text-sm font-medium outline-none", !s.taskId && "text-muted")}
-                  aria-label="Tarefa da sessão"
-                >
-                  <option value="">Sem tarefa</option>
-                  {tasks
-                    .filter((t) => !t.archived || t.id === s.taskId)
-                    .map((t) => (
-                      <option key={t.id} value={t.id}>
-                        {t.title}
-                      </option>
-                    ))}
-                </select>
-                <span className="block text-xs text-muted">{task || !s.taskId ? kindOf(s) : "Tarefa excluída"}</span>
-              </div>
-              <RecordTime session={s} className="text-sm" />
-            </li>
-          );
-        })}
-      </ul>
+        <div className="mt-2 rounded-xl border border-line bg-surface px-4 py-1">
+          <DayEntries date={today} />
+        </div>
       )}
     </div>
   );
