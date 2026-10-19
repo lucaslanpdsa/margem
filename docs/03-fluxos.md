@@ -25,7 +25,7 @@ flowchart LR
 2. Ajustar os dias tocando em **Seg…Dom** na linha (não deixa ficar sem nenhum dia).
 3. Ajustar o tempo tocando nele ("1h") e digitando ("1h30"), Enter.
 4. Para horário fixo ou "cumpro o tempo": toque na tarefa › **Editar** › **Mais opções**.
-5. Conferir **Fixas** e **Livre** embaixo da grade: quanto a rotina ocupa e quanto sobra em cada dia. Livre negativo (vermelho) = a rotina não cabe no seu horário daquele dia.
+5. Conferir **Esta semana** no topo de Tarefas: quanto sobra (verde) ou falta (vermelho) em cada dia, já contando as tarefas de uma vez. Tocar num dia abre o Dia naquela data.
 
 ## 3.3 Criar uma tarefa de uma vez
 
@@ -49,6 +49,7 @@ flowchart TD
   P -- já fiz --> Add[Toque na tarefa › Adicionar tempo já feito<br/>15m/30m/1h/2h ou 3h 20m / 14:00-15:30<br/>Quando: Hoje/Ontem/Outro dia · Nota]
   Add --> T2[Aviso: 1h adicionados em X · hoje]
   P -- passou tempo sem registrar --> Gap[Topo › O que você fez?<br/>distribui o tempo entre tarefas]
+  T1 --> Rev[Dia › Registros de hoje<br/>conferir, editar, escolher tarefa]
 ```
 
 Regras:
@@ -56,7 +57,8 @@ Regras:
 - O ▶ usa o último modo usado (cronômetro por padrão).
 - Parar com menos de 1 minuto não registra ("Menos de 1 minuto: não foi registrado").
 - Começar timer em outra tarefa encerra e registra o anterior.
-- Foco sem tarefa (só pela aba Foco): ao parar, pergunta "Em que você trabalhou?".
+- Foco sem tarefa (só pela aba Foco): ao parar, pergunta "Em que você trabalhou?". Também dá para escolher depois em Registros de hoje › Escolher tarefa.
+- Na janela da tarefa, "Adicionar tempo já feito" fica recolhido num botão.
 - O horário de início ajustado tem que ser de hoje e não pode ser no futuro.
 
 ## 3.5 Concluir, pular, encurtar
@@ -119,3 +121,15 @@ stateDiagram-v2
 - **Desativar** (tarefas que repetem): toque na tarefa › Editar › Desativar. Some dos dias e vai para Tarefas › Desativadas › Reativar.
 - **Excluir**: formulário › Excluir (confirmação do navegador). Os registros continuam.
 - **Buscar**: Tarefas › Buscar tarefa (ignora acentos).
+
+## 3.12 Desfazer e erros
+
+- Toda ação que tira ou move algo mostra um aviso no rodapé com **Desfazer** por 6 segundos: concluir, pular, mudar dia, amanhã, encurtar, trazer para hoje, apagar registro, adicionar tempo, "O que você fez?", desativar e excluir tarefa.
+- Excluir tarefa não pede confirmação: some na hora e o Desfazer a recria igual. Os registros dela nunca são apagados.
+- Se uma gravação falhar, aparece o aviso vermelho "Não foi possível salvar. Confira a internet e tente de novo."
+- Sem internet, o app continua funcionando com o que já tinha carregado. As mudanças ficam no aparelho e são enviadas quando a conexão voltar ("Sem internet · salva quando voltar" no topo).
+
+## 3.13 Notificações
+
+- O app não pede permissão sozinho. O lugar fixo é o **menu da conta › Notificações › Ativar**. Também dá para ativar em Foco › ··· e no formulário de uma tarefa com horário.
+- Se a permissão foi negada, o menu explica que é preciso liberar nas configurações do navegador para o site.

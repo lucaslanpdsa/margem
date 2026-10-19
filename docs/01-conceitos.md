@@ -57,6 +57,6 @@ Horário 08:00–18:00 com almoço 12–13 (9h). Às 15:00 já passaram 6h. Voc�
 |---|---|
 | Topo do dia | registros do dia (com timer rodando), tarefas do dia dentro do horário |
 | Linha da tarefa | registros daquela tarefa naquele dia / tempo do dia dela |
-| Tarefas › Fixas / Livre | só tarefas que repetem: soma do tempo delas por dia da semana × seu horário |
 | Janela da tarefa › Registros | todos os registros da tarefa, de todos os dias |
-| Foco › "Hoje · Xh registrados" | todos os registros de hoje, de todas as tarefas |
+| Dia › Registros de hoje · Foco › "Hoje · Xh registrados" | todos os registros do dia, de todas as tarefas |
+| Tarefas › Esta semana | por dia: tempo do dia − falta das tarefas daquele dia (repetem + de uma vez); dias passados mostram o feito |

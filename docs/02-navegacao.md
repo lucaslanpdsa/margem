@@ -10,8 +10,7 @@ São **3 abas** e um botão de criar:
 | **Tarefas** | 2º item | 2º item |
 | **Nova** (criar tarefa) | 3º item | botão azul no topo |
 | **Foco** | 4º item | 3º item |
-| Como funciona | ícone (?) no cabeçalho | rodapé da barra |
-| Conta / Sair | fim da tela Tarefas | rodapé da barra (e fim de Tarefas) |
+| Menu da conta (notificações, Como funciona, Sair) | avatar no cabeçalho | nome no rodapé da barra |
 | Recolher barra | – | rodapé da barra |
 
 A aba fica no endereço (`#tarefas`, `#foco`). Recarregar mantém a aba e o "voltar" do celular volta para a aba anterior. O dia escolhido na tela Dia volta para hoje ao recarregar.
@@ -19,7 +18,8 @@ A aba fica no endereço (`#tarefas`, `#foco`). Recarregar mantém a aba e o "vol
 Por cima de tudo podem aparecer:
 
 - **Barra do timer** (flutuante), quando há timer rodando e você não está em Foco.
-- **Avisos no rodapé** (toasts): tempo registrado, avisos de início e fim de horário.
+- **Avisos no rodapé** (toasts): tempo registrado, ações com **Desfazer**, erro ao salvar, avisos de início e fim de horário.
+- **Sem internet** no topo, quando a conexão cai.
 
 ## Mapa de telas e janelas
 
@@ -41,6 +41,9 @@ flowchart TD
     Dia -- O que você fez? --> Gap[Distribuir tempo sem registro]
     Dia -- Mudar --> HorDia[Horário só deste dia<br/>inline]
     Dia -- Detalhes --> Leg[Legenda da barra<br/>inline]
+    Dia -- Registros de hoje --> Reg[Lista de registros<br/>inline]
+    Dia -- toque na data --> Cal[Calendário]
+    Tarefas -- dia da semana --> Dia
 
     JT -- Editar --> Form[Formulário da tarefa]
     JT -- Cronômetro / Pomodoro --> Timer
@@ -55,7 +58,8 @@ flowchart TD
     Timer -- parar foco sem tarefa --> Assign[Em que você trabalhou?]
     Timer -- barra flutuante --> Foco
 
-    Help[Como funciona] -.-> Dia
+    Conta[Menu da conta] --> Help[Como funciona]
+    Conta --> Notif[Notificações]
 ```
 
 ## Por onde se chega em cada coisa
@@ -71,7 +75,9 @@ flowchart TD
 | Parar timer | ■ na linha · barra flutuante · janela da tarefa · Foco |
 | Ajustar hora de início do timer | "Começou às… · Mudar" na barra flutuante, janela da tarefa ou Foco |
 | Adicionar tempo já feito | janela da tarefa › Adicionar tempo já feito · Dia › O que você fez? |
-| Ver/editar registros | janela da tarefa › Registros (histórico da tarefa) · Foco › Hoje · Xh registrados (só hoje) |
+| Ver/editar registros | Dia › **Registros de hoje** (todas as tarefas) · janela da tarefa › Registros (histórico da tarefa) · Foco › Hoje · Xh registrados |
+| Dar tarefa a um registro sem tarefa | Registros de hoje › **Escolher tarefa** |
+| Desfazer | **Desfazer** no aviso do rodapé, logo depois da ação |
 | Concluir | círculo na linha · janela da tarefa › Concluir |
 | Pular hoje | janela da tarefa · Dia › "Para dar tempo" |
 | Desativar / reativar tarefa que repete | formulário › Desativar · Tarefas › Desativadas › Reativar |
@@ -79,5 +85,8 @@ flowchart TD
 | Mudar seu horário | Tarefas › Seu horário |
 | Mudar horário só de hoje | Dia › Mudar |
 | Configurar pomodoro | Foco › ··· |
-| Permitir notificações | Foco › ··· › Avisar quando o tempo acabar · formulário › com horário › Permitir notificações |
-| Ver outro dia | Dia › setas ‹ › (e "Hoje" para voltar) |
+| Permitir notificações | **Menu da conta › Notificações › Ativar** · Foco › ··· · formulário › com horário |
+| Ver outro dia | Dia › setas ‹ › · **toque na data** (calendário) · Tarefas › Esta semana › toque no dia · "Hoje" para voltar |
+| Ver a semana | Tarefas › **Esta semana** / Próxima |
+| Reabrir tarefa concluída | Tarefas › Não repetem › Concluídas · últimos 7 dias › Reabrir · Dia › Concluídas › círculo |
+| Como funciona / Sair | menu da conta |

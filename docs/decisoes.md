@@ -4,6 +4,17 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 19/10 — Os 18 pontos da análise
+- **Desfazer em vez de confirmar.** Ações que tiram ou movem algo mostram "Desfazer" no aviso do rodapé. Excluir tarefa deixou de usar a confirmação do navegador.
+- **Gravação nunca falha em silêncio.** Toda escrita passa por `saved()`/`write()` (`db.ts`): erro vira aviso vermelho; sem resposta do servidor a tela não trava. **Firestore com cache no aparelho** (funciona sem internet).
+- **Registros num lugar só**: a mesma lista (`TimeEntries.tsx`) na janela da tarefa, em "Registros de hoje" (Dia) e em Foco.
+- **Janela da tarefa curta**: ações logo abaixo do resumo; "Adicionar tempo já feito" recolhido; histórico com 3 dias.
+- **Semana em Tarefas** ("Esta semana"/"Próxima"), com o livre real de cada dia; substituiu a linha Fixas/Livre da grade.
+- **Concluídas dos últimos 7 dias** em "Não repetem", com Reabrir.
+- **Menu da conta** é o lugar fixo de notificações, ajuda e sair. Sem pedido automático de notificação.
+- **Computador em duas colunas** (Dia e Tarefas). **Toque na data abre o calendário.** Alvos de toque de 40–44px no celular.
+- **Dia vazio** leva a "Criar tarefa" ou "Montar rotina". Esqueleto no carregamento.
+
 ### 19/10 — Consistência entre telas
 - **Tocar numa tarefa abre sempre a janela da tarefa** (Dia e Tarefas). "Editar" fica no cabeçalho da janela. Antes, em Tarefas o nome abria direto a edição.
 - **Tarefa de uma vez tem "Mudar dia"** na janela (Hoje, Amanhã, Próxima segunda, Outro dia). Tarefa que repete tem "Pular hoje".

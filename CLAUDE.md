@@ -47,23 +47,24 @@ src/app/page.tsx            entra no App
 src/app/dev/page.tsx        prévia com dados de exemplo (só em dev): /dev?cenario=…&abrir=…#aba
 src/dev/fixtures.ts         dados de exemplo e cenários da prévia
 src/components/
-  App.tsx                   casca: login, abas (#dia, #tarefas, #foco), barra lateral/inferior, cabeçalho
+  App.tsx                   casca: login, abas (#dia, #tarefas, #foco), barra lateral/inferior, cabeçalho (data abre calendário), esqueleto
+  AccountMenu.tsx           menu da conta: notificações (lugar fixo), Como funciona, Sair
   store.tsx                 auth + dados em tempo real; migra tarefas antigas; timer rodando vira registro "ao vivo"
   dialogs.tsx               abre as janelas globais: editTask (formulário) e logTime (janela da tarefa)
-  views.tsx                 aba Dia (junta CapacityPanel + DaySidebar)
+  views.tsx                 aba Dia (duas colunas no computador) e "Registros de hoje"
   CapacityPanel.tsx         topo do dia: título, linha do tempo, "O que você fez?", "Para dar tempo", Detalhes
   DaySidebar.tsx            lista de tarefas do dia, criação rápida, aviso de atrasadas, concluídas
   TaskRow.tsx               linha da tarefa no Dia (círculo, progresso, ▶/■)
   LogTimeForm.tsx           janela da tarefa: feito, começar timer, adicionar tempo, registros, pular/mudar dia/concluir
-  TimeEntries.tsx           adicionar tempo (com dia e nota) e histórico de registros por dia
+  TimeEntries.tsx           adicionar tempo (dia e nota); lista de registros única: da tarefa (por dia) e do dia (DayEntries)
   TaskForm.tsx              formulário de criar/editar tarefa
-  TasksPage.tsx             aba Tarefas: seu horário, grade "Repetem", "Não repetem" por data, desativadas
+  TasksPage.tsx             aba Tarefas: seu horário, Esta semana, grade "Repetem", "Não repetem" por data + concluídas, desativadas
   ScheduleEditor.tsx        editor do horário semanal e pausas
   FocusView.tsx             aba Foco (pomodoro/cronômetro), config do pomodoro, "Em que você trabalhou?"
   Timer.tsx                 motor do timer (sempre montado) + barra flutuante
   TimerStart.tsx            "Começou às … · Mudar"
   SlotAlerts.tsx            avisos de início/pausa/fim do horário das tarefas (app aberto)
-  toast.tsx                 avisos de rodapé + useTimerActions (start/stop com aviso)
+  toast.tsx                 avisos de rodapé (Desfazer, erro de gravação), "Sem internet", useTimerActions (start/stop com aviso)
   DayMenu.tsx               menu Hoje/Amanhã/Próxima segunda/Outro dia
   Onboarding.tsx            configuração inicial e "Como funciona"
   ui.tsx                    Button, IconButton, Modal, Panel, Segmented, Switch, TimeSelect, inputCls, cx
@@ -72,7 +73,9 @@ src/lib/
   metrics.ts                contas do dia (pura e testada)
   schedule.ts               horário do dia, horários das tarefas, conflitos, eventos de aviso
   pomodoro.ts               ciclo do timer, registro ao vivo, ajustar início
-  db.ts                     leitura/escrita no Firestore
+  db.ts                     leitura/escrita no Firestore; toda escrita passa por write()/saved() (erro vira aviso; na prévia não grava)
+  firebase.ts               app, auth e Firestore com cache no aparelho (offline, várias abas)
+  preview.ts                PREVIEW_UID da prévia
   dates.ts                  chaves de dia, durações ("3h 20m"), intervalos ("14:00-15:30"), nomes de dia
   migrate.ts                conversão de dados antigos (metas semanais)
 ```
@@ -83,7 +86,7 @@ src/lib/
 - `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, `pomo-` pomodoro, outro = manual.
 - `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer`, `lastTimerMode`, `pendingAssign`, `scheduleSet`, `onboarded`.
 
-Regras: Firestore não aceita `undefined` (use `clean` em `db.ts`); `saveSettings` substitui cada campo enviado por inteiro (`mergeFields`); campos novos precisam ser opcionais e ter migração em `migrate.ts` se mudarem o significado de dados antigos.
+Regras: toda escrita nova vai em `db.ts` usando `write(uid, () => …)` (avisa erro, não trava sem internet, não grava na prévia); ações que tiram ou movem algo mostram `toast(texto, { undo })`; Firestore não aceita `undefined` (use `clean` em `db.ts`); `saveSettings` substitui cada campo enviado por inteiro (`mergeFields`); campos novos precisam ser opcionais e ter migração em `migrate.ts` se mudarem o significado de dados antigos.
 
 ## Regras de negócio que não podem quebrar
 

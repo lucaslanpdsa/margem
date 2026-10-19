@@ -19,28 +19,31 @@ from playwright.sync_api import sync_playwright
 HIDE = "nextjs-portal{display:none!important}"
 HIDE_NAV = HIDE + " nav.fixed{display:none!important}"
 
-# (arquivo, endereço, ação opcional, página inteira?, esconder barra?)
+# (arquivo, endereço, ações (lista de (tipo, rótulo)), página inteira?, esconder barra?)
 SHOTS = [
     ("01-entrar", "/dev?cenario=entrar", None, True, False),
     ("02-configuracao-inicial", "/dev?cenario=onboarding", None, False, False),
     ("03-dia", "/dev", None, True, True),
-    ("04-dia-detalhes", "/dev", ("button", "Detalhes"), True, True),
-    ("05-o-que-voce-fez", "/dev", ("button", "O que você fez?"), False, False),
+    ("04-dia-detalhes", "/dev", [("button", "Detalhes")], True, True),
+    ("05-o-que-voce-fez", "/dev", [("button", "O que você fez?")], False, False),
     ("06-janela-da-tarefa", "/dev?abrir=tarefa", None, False, False),
     ("07-nova-tarefa", "/dev?abrir=nova", None, False, False),
-    ("08-nova-tarefa-mais-opcoes", "/dev?abrir=nova", ("button", "Mais opções: horário e como termina"), True, False),
+    ("08-nova-tarefa-mais-opcoes", "/dev?abrir=nova", [("button", "Mais opções: horário e como termina")], True, False),
     ("09-editar-tarefa", "/dev?abrir=editar", None, False, False),
     ("10-tarefas", "/dev#tarefas", None, True, True),
-    ("11-seu-horario", "/dev#tarefas", ("title", "Mudar seu horário"), True, False),
+    ("11-seu-horario", "/dev#tarefas", [("title", "Mudar seu horário")], True, False),
     ("12-foco", "/dev#foco", None, False, False),
-    ("13-pomodoro-config", "/dev#foco", ("button", "Configurar pomodoro"), False, False),
+    ("13-pomodoro-config", "/dev#foco", [("button", "Configurar pomodoro")], False, False),
     ("14-foco-rodando", "/dev?cenario=timer#foco", None, False, False),
     ("15-dia-timer-rodando", "/dev?cenario=timer", None, False, False),
-    ("16-como-funciona", "/dev", ("button", "Como funciona"), False, False),
+    ("16-como-funciona", "/dev", [("button", "Conta e ajuda"), ("button", "Como funciona")], False, False),
     ("19-dia-apertado", "/dev?cenario=apertado", None, True, True),
     ("20-dia-vazio", "/dev?cenario=vazio", None, False, False),
+    ("21-menu-da-conta", "/dev", [("button", "Conta e ajuda")], False, False),
+    ("22-registros-de-hoje", "/dev", [("button", "Registros de hoje")], True, True),
+    ("23-desfazer", "/dev", [("button", "Concluir")], False, False),
 ]
-DESKTOP = [("17-dia-computador", "/dev"), ("18-tarefas-computador", "/dev#tarefas")]
+DESKTOP = [("17-dia-computador", "/dev"), ("18-tarefas-computador", "/dev#tarefas"), ("24-foco-computador", "/dev#foco")]
 
 
 def main():
@@ -64,8 +67,7 @@ def main():
             pg.add_init_script(f"document.addEventListener('DOMContentLoaded',()=>{{const s=document.createElement('style');s.textContent='{css}';document.head.appendChild(s)}})")
             pg.goto(a.url + path, wait_until="networkidle")
             pg.wait_for_timeout(1500)
-            if action:
-                kind, label = action
+            for kind, label in action or []:
                 (pg.get_by_title(label) if kind == "title" else pg.get_by_role("button", name=label)).first.click()
                 pg.wait_for_timeout(400)
             out = os.path.join(a.saida, name + ".png")

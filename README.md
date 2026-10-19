@@ -12,7 +12,8 @@ Documentação completa (conceitos, navegação, fluxos, telas e análise de UI/
 - **Como termina** (em "Mais opções"): marcando como feita (terminou antes, o resto volta para o dia) ou cumprindo o tempo (ex: trabalhar 7h).
 - **Registrar tempo**: toque na tarefa e registre 15m, 30m, 1h, 2h, outra duração ou um intervalo como 14:00-15:30 (registros editáveis), ou use a aba **Foco** (pomodoro ou cronômetro).
 - **Topo do dia**: "Sobram 2h10" ou "Atrasado 1h50". Atrasado mostra o que dá para tirar de hoje, com "Amanhã" ou "Pular hoje".
-- **Tarefas**: a tela para organizar. No topo, **seu horário** resumido numa linha (toque para editar). As que repetem aparecem como uma grade da semana (toque nos dias para ligar ou desligar), com o total fixo e o livre de cada dia embaixo; as que não repetem ficam agrupadas por data (atrasadas, hoje, amanhã, esta semana, depois). Tempo e data mudam com um toque, o nome abre a edição completa, e cada grupo tem criação rápida ("Academia 1h").
+- **Tarefas**: a tela para organizar. No topo, **seu horário** (toque para editar) e **Esta semana** (quanto sobra ou falta em cada dia; toque para abrir o dia). As que repetem aparecem como uma grade da semana (toque nos dias para ligar ou desligar); as que não repetem ficam agrupadas por data, com as concluídas dos últimos 7 dias. Tempo e data mudam com um toque, o nome abre a tarefa, e cada grupo tem criação rápida ("Academia 1h").
+- **Registros**: a janela da tarefa mostra o histórico dela; "Registros de hoje" no Dia mostra o de todas as tarefas. Ações têm **Desfazer**; funciona sem internet.
 - Tarefa com horário fora do seu horário vira extra e não ocupa o tempo do dia. Tarefas de dias anteriores não concluídas aparecem num aviso, com "Trazer para hoje".
 
 ### Como as contas funcionam
@@ -23,7 +24,7 @@ Documentação completa (conceitos, navegação, fluxos, telas e análise de UI/
 | Feito | tempo registrado no dia (timer, pomodoro e manual, incluindo o timer rodando), sem contar os extras |
 | Passou | horário que já passou no relógio sem nada registrado |
 | Falta | para cada tarefa não concluída do horário: estimativa − feito |
-| Livre | o que resta do horário − falta (negativo = não cabe) |
+| Sobra | o que resta do horário − falta (negativo = não dá tempo) |
 
 Concluir uma tarefa antes da estimativa libera o tempo restante dela.
 

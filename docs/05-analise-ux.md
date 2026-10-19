@@ -9,23 +9,23 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 | # | Ponto | Prioridade | Esforço | Status |
 |---|---|---|---|---|
 | 1 | Tocar numa tarefa faz coisas diferentes em cada tela | Alta | Baixo | ✅ feito 19/10 |
-| 2 | Registros aparecem em três lugares, com três formatos | Alta | Médio | pendente |
-| 3 | Janela da tarefa longa demais no celular | Alta | Médio | pendente |
+| 2 | Registros aparecem em três lugares, com três formatos | Alta | Médio | ✅ feito 19/10 |
+| 3 | Janela da tarefa longa demais no celular | Alta | Médio | ✅ feito 19/10 |
 | 4 | Tarefa de uma vez não tem "mudar data" no Dia | Alta | Baixo | ✅ feito 19/10 |
-| 5 | Ações sem desfazer (apagar registro, pular, amanhã, trazer) | Alta | Médio | pendente |
-| 6 | Falhas ao salvar passam em silêncio | Alta | Médio | pendente |
+| 5 | Ações sem desfazer (apagar registro, pular, amanhã, trazer) | Alta | Médio | ✅ feito 19/10 |
+| 6 | Falhas ao salvar passam em silêncio | Alta | Médio | ✅ feito 19/10 |
 | 7 | Criação rápida se comporta diferente em cada campo | Média | Baixo | ✅ feito 19/10 |
 | 8 | "Pausa" tem três significados | Média | Baixo | ✅ feito 19/10 |
 | 9 | Foco começa em Pomodoro e o ▶ em Cronômetro | Média | Baixo | ✅ feito 19/10 |
-| 10 | Permissão de notificação pedida em três lugares (uma de surpresa) | Média | Baixo | pendente |
-| 11 | Não há visão dos próximos dias | Média | Médio | pendente |
-| 12 | Tarefas de uma vez concluídas somem | Média | Baixo | pendente |
-| 13 | Configurações espalhadas (conta dentro de Tarefas) | Média | Baixo | pendente |
-| 14 | Alvos de toque pequenos no celular | Média | Baixo | pendente |
-| 15 | Computador usa só uma coluna estreita | Baixa | Médio | pendente |
-| 16 | Ajuda curta e textos repetidos na entrada | Baixa | Baixo | pendente |
-| 17 | Ir para um dia específico só pelas setas | Baixa | Baixo | pendente |
-| 18 | Estados vazios e de carregamento simples | Baixa | Baixo | pendente |
+| 10 | Permissão de notificação pedida em três lugares (uma de surpresa) | Média | Baixo | ✅ feito 19/10 |
+| 11 | Não há visão dos próximos dias | Média | Médio | ✅ feito 19/10 |
+| 12 | Tarefas de uma vez concluídas somem | Média | Baixo | ✅ feito 19/10 |
+| 13 | Configurações espalhadas (conta dentro de Tarefas) | Média | Baixo | ✅ feito 19/10 |
+| 14 | Alvos de toque pequenos no celular | Média | Baixo | ✅ feito 19/10 |
+| 15 | Computador usa só uma coluna estreita | Baixa | Médio | ✅ feito 19/10 |
+| 16 | Ajuda curta e textos repetidos na entrada | Baixa | Baixo | ✅ feito 19/10 |
+| 17 | Ir para um dia específico só pelas setas | Baixa | Baixo | ✅ feito 19/10 |
+| 18 | Estados vazios e de carregamento simples | Baixa | Baixo | ✅ feito 19/10 |
 
 ---
 
@@ -41,6 +41,8 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 
 ### 2. Registros aparecem em três lugares, com três formatos
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
+
 - **Evidência**:
   - Janela da tarefa › Registros: histórico por dia, edita tempo, dia e nota.
   - Foco › "Hoje · Xh registrados": só hoje, edita só o tempo e troca a tarefa numa lista; não mostra nota.
@@ -49,6 +51,8 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 - **Proposta**: um componente só de lista de registros (o de `TimeEntries.tsx`), usado na janela da tarefa (filtrado pela tarefa) e num bloco **"Registros de hoje"** no fim do Dia (todas as tarefas, com a tarefa em cada linha e "Sem tarefa" destacado). A lista de Foco passa a usar o mesmo componente ou sai.
 
 ### 3. Janela da tarefa longa demais no celular
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
 
 - **Evidência**: [`img/06-janela-da-tarefa.png`](img/06-janela-da-tarefa.png). Ela tem resumo, começar timer, adicionar tempo (atalhos, campo, quando, nota), histórico e, no fim, Editar/Pular/Concluir. Com histórico, Concluir fica a várias rolagens de distância.
 - **Impacto**: as ações mais comuns depois de registrar (concluir, pular) ficam escondidas.
@@ -67,11 +71,15 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 
 ### 5. Ações sem desfazer
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
+
 - **Evidência**: apagar registro (lixeira) apaga na hora, sem confirmação. Pular hoje, Amanhã, Encurtar e Trazer para hoje tiram coisas da tela sem aviso. Excluir tarefa usa a confirmação nativa do navegador, diferente do resto do app.
 - **Impacto**: um toque errado apaga horas registradas sem volta, e uma tarefa some da lista sem a pessoa entender para onde foi.
 - **Proposta**: o aviso de rodapé ganha **Desfazer** (5s) para: registro apagado, pulada, movida para amanhã, encurtada, trazida para hoje e concluída. Excluir tarefa usa uma janela do próprio app.
 
 ### 6. Falhas ao salvar passam em silêncio
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
 
 - **Evidência**: as gravações no Firestore (`db.ts`) não têm tratamento de erro nos componentes. Se a internet cair ou a gravação falhar, nada avisa.
 - **Impacto**: o app mostra o tempo como registrado e depois ele some. Num app cujo valor é o número estar certo, isso quebra a confiança.
@@ -105,27 +113,37 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 
 ### 10. Permissão de notificação pedida em três lugares
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
+
 - **Evidência**: Foco › ··· › "Avisar quando o tempo acabar"; formulário com horário › "Permitir notificações para os avisos"; e um pedido automático do navegador **no primeiro Começar** de qualquer timer (`startTimer` em `pomodoro.ts`).
 - **Impacto**: o pedido automático aparece sem contexto, e quem nega sem querer não tem um lugar claro para ligar de novo.
 - **Proposta**: tirar o pedido automático. Pedir só quando o usuário liga algo que avisa (tarefa com horário, pomodoro), com uma frase dizendo para que serve, e ter um lugar fixo com o estado das notificações.
 
 ### 11. Não há visão dos próximos dias
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
+
 - **Evidência**: a antiga visão da semana saiu. Para saber se amanhã está cheio, é preciso ir ao Dia e avançar com as setas. Em Tarefas, "Fixas/Livre" considera só as que repetem, sem as de uma vez.
 - **Proposta**: em Tarefas, trocar "Fixas/Livre" por uma linha **"Esta semana"** com o livre real de cada dia (repetem + de uma vez daquele dia), tocável para abrir o dia. Assim a carga da semana aparece sem uma tela nova.
 
 ### 12. Tarefas de uma vez concluídas somem
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
 
 - **Evidência**: em Tarefas, "Não repetem" mostra só as pendentes. Uma tarefa concluída por engano num dia passado só volta se você navegar até aquele dia.
 - **Proposta**: um grupo recolhido **Concluídas (últimos 7 dias)** em "Não repetem", com Reabrir.
 
 ### 13. Configurações espalhadas
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
+
 - **Evidência**: seu horário em Tarefas; pomodoro em Foco › ···; notificações em dois lugares; conta e Sair no fim de Tarefas (e na barra lateral no computador); recolher a barra no computador.
 - **Impacto**: "onde eu mudo X?" não tem resposta óbvia, principalmente conta e notificações.
 - **Proposta**: manter horário em Tarefas e pomodoro em Foco (estão perto de onde são usados) e criar um menu de **conta** (avatar no cabeçalho do celular) com: notificações, como funciona e sair. Tirar conta e Sair do fim de Tarefas.
 
 ### 14. Alvos de toque pequenos no celular
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
 
 - **Evidência**: dias Seg…Dom em Tarefas (32×36px), tempo editável (cerca de 20px de altura), ✎ e 🗑 dos registros (32×32px), chips de data. O recomendado é 44×44px.
 - **Proposta**: aumentar a área de toque desses botões no celular (pode manter o desenho com área invisível maior).
@@ -136,19 +154,27 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 
 ### 15. Computador usa só uma coluna estreita
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
+
 - **Evidência**: [`img/17-dia-computador.png`](img/17-dia-computador.png). O conteúdo fica numa coluna de 768px e sobra muito espaço dos lados.
 - **Proposta**: no Dia, em telas largas, duas colunas: topo do dia (fixo ao rolar) à esquerda e tarefas à direita. Em Tarefas, repetem e não repetem lado a lado.
 
 ### 16. Ajuda curta e textos repetidos na entrada
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
 
 - **Evidência**: na entrada, o título e o subtítulo dizem quase a mesma coisa ("Saiba quanto ainda cabe…" / "Saiba a qualquer hora quanto tempo ainda tem…"). "Como funciona" explica só o Dia: não fala de Tarefas, Foco, pular, encurtar nem "O que você fez?".
 - **Proposta**: subtítulo diferente do título (ex: "Diga seu horário, suas tarefas e registre o que fez. O app mostra se dá tempo."). "Como funciona" com uma seção curta por aba.
 
 ### 17. Ir para um dia específico só pelas setas
 
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
+
 - **Proposta**: tocar na data do cabeçalho abre um calendário.
 
 ### 18. Estados vazios e de carregamento simples
+
+> ✅ **Feito em 19/10.** Ver [decisões](decisoes.md#1910--os-18-pontos-da-análise).
 
 - **Evidência**: "Carregando…" em texto; Foco sem registros mostra "Nada registrado ainda hoje."; Dia vazio sugere "Adicione acima ou pelo botão Nova tarefa".
 - **Proposta**: Dia vazio com dois atalhos ("Criar tarefa", "Montar rotina em Tarefas"); carregamento com o esqueleto das telas.
@@ -163,7 +189,10 @@ Cada ponto traz o problema, a evidência, o impacto e uma proposta. A prioridade
 - A grade de Tarefas permite ajustar a rotina sem abrir formulários.
 - Avisos curtos confirmam o que aconteceu.
 
-## Sugestão de ordem
+## Sugestão de ordem (concluída)
+
+Todos os 18 pontos foram feitos em 19/10. Para a próxima rodada, refaça a análise percorrendo a prévia (`/dev`) e o app em produção.
+
 
 1. ~~**Consistência** (1, 4, 7, 8, 9)~~ ✅ feito em 19/10.
 2. **Confiança nos números** (5, 6): desfazer e erros de gravação.
