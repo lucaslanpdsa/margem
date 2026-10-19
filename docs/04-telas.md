@@ -136,7 +136,7 @@ Abre ao tocar numa tarefa no Dia ou em Tarefas.
 
 ![Tarefas](img/10-tarefas.png)
 
-No computador: horário e semana lado a lado; "Repetem" ao lado de "Não repetem".
+No computador: horário e semana lado a lado, com a mesma altura; "Repetem" ao lado de "Não repetem".
 
 ![Tarefas no computador](img/18-tarefas-computador.png)
 

@@ -62,7 +62,8 @@ export function TasksPage({ onOpenDay }: { onOpenDay: (date: string) => void }) 
   return (
     // No computador: horário e semana lado a lado, e "Repetem" ao lado de "Não repetem".
     <div className="mx-auto max-w-3xl space-y-4 lg:max-w-6xl">
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-start">
+      {/* Mesma altura lado a lado no computador: o horário costuma ser mais baixo que a semana. */}
+      <div className="grid gap-4 lg:grid-cols-2">
         <ScheduleCard />
         <WeekCard onOpenDay={onOpenDay} />
       </div>
@@ -117,10 +118,10 @@ function ScheduleCard() {
   }
 
   return (
-    <section className="rounded-2xl border border-line bg-surface">
+    <section className="flex flex-col rounded-2xl border border-line bg-surface">
       <button
         onClick={() => setEditing({ windows: settings.windows, breaks: settings.breaks })}
-        className="flex w-full items-center gap-3 px-4 py-3.5 text-left hover:bg-sunken/50 sm:px-5"
+        className="flex w-full flex-1 items-center gap-3 rounded-2xl px-4 py-3.5 text-left hover:bg-sunken/50 sm:px-5"
         title="Mudar seu horário"
       >
         <Clock size={18} className="shrink-0 text-todo" />
