@@ -433,9 +433,25 @@ describe("pomodoro separado do registro", () => {
 });
 
 describe("pomodoros por tarefa (só contagem, sem horas)", () => {
-  it("estimativa em pomodoros vem do tempo da tarefa", () => {
-    expect(pomodorosFor(90, 25)).toBe(4);
-    expect(pomodorosFor(20, 25)).toBe(1);
+  const ciclo = { focusMin: 25, breakMin: 5 };
+
+  it("estimado conta o ciclo inteiro (foco + pausa)", () => {
+    expect(pomodorosFor(420, ciclo)).toBe(14); // 7h / 30min
+    expect(pomodorosFor(90, ciclo)).toBe(3);
+    expect(pomodorosFor(20, ciclo)).toBe(1);
+  });
+
+  it("mudar o tamanho no meio recalcula só o que falta", () => {
+    // 4 pomodoros de 25+5 (2h) no Trabalho de 7h; passa para 50+10: faltam 5h / 1h = 5.
+    expect(pomodorosFor(420, { focusMin: 50, breakMin: 10 }, 4, 120)).toBe(9);
+  });
+
+  it("contagem antiga sem minutos supõe ciclos do tamanho atual", () => {
+    expect(pomodorosFor(90, ciclo, 2, 0)).toBe(3); // 2 feitos = 1h; falta 30min = 1
+  });
+
+  it("nunca estima menos do que já foi feito", () => {
+    expect(pomodorosFor(60, ciclo, 5, 150)).toBe(5);
   });
 
   it("conta só no dia", () => {

@@ -22,8 +22,20 @@ export const countToday = (p: PomodoroState | null | undefined, today = todayKey
 export const countForTask = (p: PomodoroState | null | undefined, taskId: string, today = todayKey()) =>
   p && p.countDate === today ? (p.perTask?.[taskId] ?? 0) : 0;
 
-/** Estimativa em pomodoros a partir do tempo da tarefa (1h30 com foco de 25min = 4). */
-export const pomodorosFor = (minutes: number, focusMin: number) => Math.max(1, Math.ceil(minutes / Math.max(1, focusMin)));
+/** Minutos de ciclo (foco + pausa) já concluídos hoje numa tarefa. */
+export const minutesForTask = (p: PomodoroState | null | undefined, taskId: string, today = todayKey()) =>
+  p && p.countDate === today ? (p.perTaskMin?.[taskId] ?? 0) : 0;
+
+/**
+ * Pomodoros estimados para a tarefa: os já feitos + o que falta do tempo dela dividido pelo ciclo atual (foco + pausa).
+ * Ex: 7h com 25+5 = 14. Mudou o tamanho no meio? Só o que falta é recalculado; o feito continua valendo.
+ */
+export function pomodorosFor(taskMin: number, settings: Pick<Settings, "focusMin" | "breakMin">, done = 0, coveredMin = 0) {
+  const cycle = Math.max(1, settings.focusMin + settings.breakMin);
+  // Contagens de antes de guardar os minutos: supõe ciclos do tamanho atual.
+  const covered = coveredMin || done * cycle;
+  return Math.max(1, done + Math.ceil(Math.max(0, taskMin - covered) / cycle));
+}
 
 /**
  * Estado sem campos vazios (o Firestore não aceita undefined).
@@ -41,6 +53,7 @@ function make(settings: Settings, phase: Phase, opts: { running: boolean; starte
   if (!opts.running) s.waiting = true;
   if (opts.prev?.taskId) s.taskId = opts.prev.taskId;
   if (opts.prev?.perTask && opts.prev.countDate === today) s.perTask = opts.prev.perTask;
+  if (opts.prev?.perTaskMin && opts.prev.countDate === today) s.perTaskMin = opts.prev.perTaskMin;
   return s;
 }
 
@@ -103,8 +116,14 @@ export async function finishPhase(uid: string, settings: Settings, p: PomodoroSt
   const focus = p.phase === "focus";
   const count = countToday(p) + (focus ? 1 : 0);
   // Foco completo numa tarefa escolhida: +1 nela.
-  const prev: PomodoroState = { ...p, countDate: todayKey(), perTask: p.countDate === todayKey() ? p.perTask : undefined };
-  if (focus && p.taskId) prev.perTask = { ...(p.countDate === todayKey() ? p.perTask : {}), [p.taskId]: countForTask(p, p.taskId) + 1 };
+  const today = todayKey();
+  const fresh = p.countDate === today;
+  const prev: PomodoroState = { ...p, countDate: today, perTask: fresh ? p.perTask : undefined, perTaskMin: fresh ? p.perTaskMin : undefined };
+  if (p.taskId) {
+    // Foco completo: +1 pomodoro. Foco e pausa completos somam minutos de ciclo na tarefa.
+    if (focus) prev.perTask = { ...prev.perTask, [p.taskId]: countForTask(p, p.taskId) + 1 };
+    prev.perTaskMin = { ...prev.perTaskMin, [p.taskId]: minutesForTask(p, p.taskId) + p.durationMin };
+  }
   await saveSettings(uid, { pomodoro: make(settings, next, { running: auto, startedAt: auto ? end : new Date(), count, prev }) });
 }
 

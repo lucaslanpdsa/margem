@@ -98,6 +98,8 @@ export interface PomodoroState {
   taskId?: string;
   /** Pomodoros concluídos hoje por tarefa { id: 2 } (o "2/4" da lista), também de `countDate`. */
   perTask?: Record<string, number>;
+  /** Minutos de ciclo concluídos hoje por tarefa (foco + pausa), para o estimado sobreviver a mudar o tamanho do pomodoro. */
+  perTaskMin?: Record<string, number>;
 }
 
 /** Horário de um dia, "HH:mm". */

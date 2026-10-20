@@ -5,7 +5,7 @@ import { useState } from "react";
 import { saveSettings } from "@/lib/db";
 import { todayKey } from "@/lib/dates";
 import { dayItems } from "@/lib/metrics";
-import { countForTask, countToday, isRunning, pausePomodoro, pomodorosFor, selectTask, skipPhase, startPomodoro, switchPhase } from "@/lib/pomodoro";
+import { countForTask, countToday, isRunning, minutesForTask, pausePomodoro, pomodorosFor, selectTask, skipPhase, startPomodoro, switchPhase } from "@/lib/pomodoro";
 import { useStore } from "./store";
 import { pomodoroDisplay, pomodoroLabel, useNow } from "./Timer";
 import { Button, IconButton, Modal, Switch, cx } from "./ui";
@@ -24,7 +24,9 @@ export function FocusView() {
   const brk = phase === "break";
   const running = isRunning(p);
   const paused = !!p && p.pausedLeftMs !== undefined;
-  const pd = p ? pomodoroDisplay(p, now) : null;
+  // Fase esperando o Começar mostra o tempo atual da configuração (mudou de 25 para 50? aparece 50:00 na hora).
+  const shown = p?.waiting ? { ...p, durationMin: phase === "break" ? settings.breakMin : settings.focusMin } : p;
+  const pd = shown ? pomodoroDisplay(shown, now) : null;
   const clock = pd?.text ?? `${String(settings.focusMin).padStart(2, "0")}:00`;
   const done = countToday(p);
   const focusTask = tasks.find((t) => t.id === p?.taskId);
@@ -111,7 +113,7 @@ function FocusTasks() {
     <section className="w-full">
       <div className="mb-2 flex items-baseline justify-between border-b border-line pb-2">
         <h3 className="text-sm font-semibold">Tarefas de hoje</h3>
-        <span className="text-xs text-muted">pomodoros feitos / estimados</span>
+        <span className="text-xs text-muted">feitos / estimados ({settings.focusMin}+{settings.breakMin}min)</span>
       </div>
       <ul className="space-y-1.5">
         {items.map((i) => {
@@ -128,14 +130,15 @@ function FocusTasks() {
               >
                 <span className="min-w-0 flex-1 truncate">{i.task.title}</span>
                 <span className="tabular shrink-0 text-muted">
-                  <b className="font-semibold text-ink">{countForTask(p, i.task.id)}</b>/{pomodorosFor(i.estimateMin, settings.focusMin)}
+                  <b className="font-semibold text-ink">{countForTask(p, i.task.id)}</b>/
+                  {pomodorosFor(i.estimateMin, settings, countForTask(p, i.task.id), minutesForTask(p, i.task.id))}
                 </span>
               </button>
             </li>
           );
         })}
       </ul>
-      <p className="mt-2 text-xs text-muted">Toque para escolher em que está focando. Conta só pomodoros; as horas vêm do ▶ da tarefa.</p>
+      <p className="mt-2 text-xs text-muted">Toque para escolher em que está focando. Estimado = tempo da tarefa ÷ ciclo (foco + pausa). Conta só pomodoros; as horas vêm do ▶ da tarefa.</p>
     </section>
   );
 }
