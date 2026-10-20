@@ -2,11 +2,12 @@
 
 import { todayKey } from "./dates";
 import { saveSettings } from "./db";
-import type { PomodoroState, Settings } from "./types";
+import type { PomoTask, PomodoroState, Settings } from "./types";
 
 /**
  * Pomodoro: um recurso avulso, no estilo do Pomofocus (foco, pausa, pausar, pular, contador do dia).
- * **Não grava tempo.** Pode apontar uma tarefa só para contar pomodoros nela ("2/4"), sem tocar nas horas.
+ * **Não grava tempo.** Tem a própria lista de tarefas (como no Pomofocus), com pomodoros feitos / estimados;
+ * dá para importar as tarefas do app, mas a lista é independente e não mexe nas horas.
  * Quem registra horas é o cronômetro (timer.ts).
  * Fica nas configurações para aparecer igual no computador e no celular.
  */
@@ -18,42 +19,24 @@ const durationOf = (settings: Settings, phase: Phase) => (phase === "focus" ? se
 /** Pomodoros de foco feitos hoje (zera ao virar o dia). */
 export const countToday = (p: PomodoroState | null | undefined, today = todayKey()) => (p && p.countDate === today ? (p.count ?? 0) : 0);
 
-/** Pomodoros feitos hoje numa tarefa. */
-export const countForTask = (p: PomodoroState | null | undefined, taskId: string, today = todayKey()) =>
-  p && p.countDate === today ? (p.perTask?.[taskId] ?? 0) : 0;
-
-/** Minutos de ciclo (foco + pausa) já concluídos hoje numa tarefa. */
-export const minutesForTask = (p: PomodoroState | null | undefined, taskId: string, today = todayKey()) =>
-  p && p.countDate === today ? (p.perTaskMin?.[taskId] ?? 0) : 0;
-
-/**
- * Pomodoros estimados para a tarefa: os já feitos + o que falta do tempo dela dividido pelo ciclo atual (foco + pausa).
- * Ex: 7h com 25+5 = 14. Mudou o tamanho no meio? Só o que falta é recalculado; o feito continua valendo.
- */
-export function pomodorosFor(taskMin: number, settings: Pick<Settings, "focusMin" | "breakMin">, done = 0, coveredMin = 0) {
-  const cycle = Math.max(1, settings.focusMin + settings.breakMin);
-  // Contagens de antes de guardar os minutos: supõe ciclos do tamanho atual.
-  const covered = coveredMin || done * cycle;
-  return Math.max(1, done + Math.ceil(Math.max(0, taskMin - covered) / cycle));
-}
+/** Sugestão de pomodoros para uma tarefa do app: tempo dela ÷ ciclo (foco + pausa). 7h com 25+5 = 14. */
+export const suggestPomodoros = (taskMin: number, settings: Pick<Settings, "focusMin" | "breakMin">) =>
+  Math.max(1, Math.ceil(taskMin / Math.max(1, settings.focusMin + settings.breakMin)));
 
 /**
  * Estado sem campos vazios (o Firestore não aceita undefined).
- * Mantém a tarefa escolhida e as contagens do dia de uma fase para a outra.
+ * Mantém a tarefa escolhida de uma fase para a outra.
  */
 function make(settings: Settings, phase: Phase, opts: { running: boolean; startedAt?: Date; count: number; prev?: PomodoroState | null }): PomodoroState {
-  const today = todayKey();
   const s: PomodoroState = {
     phase,
     startedAt: (opts.startedAt ?? new Date()).toISOString(),
     durationMin: durationOf(settings, phase),
     count: opts.count,
-    countDate: today,
+    countDate: todayKey(),
   };
   if (!opts.running) s.waiting = true;
   if (opts.prev?.taskId) s.taskId = opts.prev.taskId;
-  if (opts.prev?.perTask && opts.prev.countDate === today) s.perTask = opts.prev.perTask;
-  if (opts.prev?.perTaskMin && opts.prev.countDate === today) s.perTaskMin = opts.prev.perTaskMin;
   return s;
 }
 
@@ -115,16 +98,54 @@ export async function finishPhase(uid: string, settings: Settings, p: PomodoroSt
   const auto = next === "break" ? !!settings.autoStartBreaks : !!settings.autoStartFocus;
   const focus = p.phase === "focus";
   const count = countToday(p) + (focus ? 1 : 0);
-  // Foco completo numa tarefa escolhida: +1 nela.
-  const today = todayKey();
-  const fresh = p.countDate === today;
-  const prev: PomodoroState = { ...p, countDate: today, perTask: fresh ? p.perTask : undefined, perTaskMin: fresh ? p.perTaskMin : undefined };
-  if (p.taskId) {
-    // Foco completo: +1 pomodoro. Foco e pausa completos somam minutos de ciclo na tarefa.
-    if (focus) prev.perTask = { ...prev.perTask, [p.taskId]: countForTask(p, p.taskId) + 1 };
-    prev.perTaskMin = { ...prev.perTaskMin, [p.taskId]: minutesForTask(p, p.taskId) + p.durationMin };
+  const pomodoro = make(settings, next, { running: auto, startedAt: auto ? end : new Date(), count, prev: p });
+  // Foco completo com uma tarefa da lista escolhida: +1 nela.
+  const list = settings.pomodoroTasks ?? [];
+  if (focus && p.taskId && list.some((t) => t.id === p.taskId)) {
+    await saveSettings(uid, { pomodoro, pomodoroTasks: list.map((t) => (t.id === p.taskId ? { ...t, done: t.done + 1 } : t)) });
+    return;
   }
-  await saveSettings(uid, { pomodoro: make(settings, next, { running: auto, startedAt: auto ? end : new Date(), count, prev }) });
+  await saveSettings(uid, { pomodoro });
+}
+
+// ---------- Lista de tarefas do pomodoro ----------
+
+const newId = () => `pt-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
+const saveList = (uid: string, list: PomoTask[]) => saveSettings(uid, { pomodoroTasks: list });
+/** Tira campos vazios (o Firestore não aceita undefined). */
+const tidy = (t: PomoTask): PomoTask => Object.fromEntries(Object.entries(t).filter(([, v]) => v !== undefined)) as PomoTask;
+
+export function addPomoTask(uid: string, settings: Settings, title: string, est: number) {
+  const t: PomoTask = { id: newId(), title: title.trim(), est: Math.max(1, est), done: 0 };
+  return saveList(uid, [...(settings.pomodoroTasks ?? []), t]);
+}
+
+export const updatePomoTask = (uid: string, settings: Settings, id: string, patch: Partial<PomoTask>) =>
+  saveList(uid, (settings.pomodoroTasks ?? []).map((t) => (t.id === id ? tidy({ ...t, ...patch }) : t)));
+
+export const removePomoTask = (uid: string, settings: Settings, id: string) => saveList(uid, (settings.pomodoroTasks ?? []).filter((t) => t.id !== id));
+
+/** Traz tarefas do app para a lista, com estimativa sugerida. Não repete as já importadas. Devolve quantas entraram. */
+export async function importTasks(uid: string, settings: Settings, from: { id: string; title: string; minutes: number }[]) {
+  const list = settings.pomodoroTasks ?? [];
+  const have = new Set(list.map((t) => t.fromTaskId).filter(Boolean));
+  const add = from
+    .filter((x) => !have.has(x.id))
+    .map((x): PomoTask => ({ id: newId() + x.id.slice(0, 4), title: x.title, est: suggestPomodoros(x.minutes, settings), done: 0, fromTaskId: x.id }));
+  if (add.length) await saveList(uid, [...list, ...add]);
+  return add.length;
+}
+
+export const clearPomoTasks = (uid: string, settings: Settings, onlyChecked: boolean) =>
+  saveList(uid, onlyChecked ? (settings.pomodoroTasks ?? []).filter((t) => !t.checked) : []);
+
+/** "Pomodoros 1/3 · Termina às 16:25": soma das não concluídas e quando acabam com o ciclo atual. */
+export function listSummary(list: PomoTask[], settings: Pick<Settings, "focusMin" | "breakMin">, now = Date.now()) {
+  const open = list.filter((t) => !t.checked);
+  const done = open.reduce((a, t) => a + Math.min(t.done, t.est), 0);
+  const est = open.reduce((a, t) => a + t.est, 0);
+  const leftMin = Math.max(0, est - done) * (settings.focusMin + settings.breakMin);
+  return { done, est, leftMin, finishAt: new Date(now + leftMin * 60000) };
 }
 
 export function notify(title: string, body: string) {

@@ -113,7 +113,12 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
   if (scenario === "timer") {
     // Cronômetro registrando o estudo e, por cima, um pomodoro marcando o ritmo.
     settings.activeTimer = { taskId: "estudo", startedAt: new Date(now - 23 * 60000).toISOString() };
-    settings.pomodoro = { phase: "focus", startedAt: new Date(now - 9 * 60000).toISOString(), durationMin: 25, taskId: "estudo", count: 2, countDate: t0, perTask: { estudo: 2 }, perTaskMin: { estudo: 60 } };
+    settings.pomodoro = { phase: "focus", startedAt: new Date(now - 9 * 60000).toISOString(), durationMin: 25, taskId: "pt-estudo", count: 2, countDate: t0 };
+    settings.pomodoroTasks = [
+      { id: "pt-estudo", title: "Estudar certificação Claude", est: 3, done: 2, fromTaskId: "estudo" },
+      { id: "pt-ingles", title: "Inglês (Fluency)", est: 2, done: 0, fromTaskId: "ingles" },
+      { id: "pt-ler", title: "Ler capítulo 4", est: 1, done: 1, checked: true },
+    ];
     const live = liveSession(settings.activeTimer, now);
     if (live) ss = [...ss, live];
   }

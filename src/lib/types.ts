@@ -94,12 +94,21 @@ export interface PomodoroState {
   /** Pomodoros de foco concluídos no dia `countDate` (o "#3" da tela). */
   count?: number;
   countDate?: string;
-  /** Tarefa em que está focando (só para mostrar e contar; não registra tempo). */
+  /** Item da lista do pomodoro em que está focando. */
   taskId?: string;
-  /** Pomodoros concluídos hoje por tarefa { id: 2 } (o "2/4" da lista), também de `countDate`. */
-  perTask?: Record<string, number>;
-  /** Minutos de ciclo concluídos hoje por tarefa (foco + pausa), para o estimado sobreviver a mudar o tamanho do pomodoro. */
-  perTaskMin?: Record<string, number>;
+}
+
+/** Tarefa da lista do pomodoro (como no Pomofocus). Separada das tarefas do app: só conta pomodoros. */
+export interface PomoTask {
+  id: string;
+  title: string;
+  /** Pomodoros estimados (definido pela pessoa). */
+  est: number;
+  /** Pomodoros de foco concluídos nela. */
+  done: number;
+  checked?: boolean;
+  /** Tarefa do app de onde veio ("Importar tarefas de hoje"), para não importar duas vezes. */
+  fromTaskId?: string;
 }
 
 /** Horário de um dia, "HH:mm". */
@@ -128,6 +137,8 @@ export interface Settings {
   activeTimer?: ActiveTimer | null;
   /** Pomodoro rodando (só ritmo, não registra). */
   pomodoro?: PomodoroState | null;
+  /** Lista de tarefas do pomodoro. */
+  pomodoroTasks?: PomoTask[];
   /** (Antigo) último modo de timer; o ▶ agora é sempre o cronômetro. */
   lastTimerMode?: "pomodoro" | "stopwatch";
   /** Ao acabar o foco, a pausa começa sozinha. */

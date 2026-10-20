@@ -6,7 +6,7 @@ import { streak, taskWeek, weekHistory } from "./week";
 import { planOf } from "./plan";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession, migrateTimer, setTimerStart } from "./timer";
-import { countForTask, countToday, isRunning, pomodorosFor, remainingMs } from "./pomodoro";
+import { countToday, isRunning, listSummary, remainingMs, suggestPomodoros } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -432,32 +432,23 @@ describe("pomodoro separado do registro", () => {
   });
 });
 
-describe("pomodoros por tarefa (só contagem, sem horas)", () => {
+describe("lista do pomodoro (só contagem, sem horas)", () => {
   const ciclo = { focusMin: 25, breakMin: 5 };
 
-  it("estimado conta o ciclo inteiro (foco + pausa)", () => {
-    expect(pomodorosFor(420, ciclo)).toBe(14); // 7h / 30min
-    expect(pomodorosFor(90, ciclo)).toBe(3);
-    expect(pomodorosFor(20, ciclo)).toBe(1);
+  it("sugestão ao importar usa o ciclo inteiro (foco + pausa)", () => {
+    expect(suggestPomodoros(420, ciclo)).toBe(14); // 7h / 30min
+    expect(suggestPomodoros(20, ciclo)).toBe(1);
   });
 
-  it("mudar o tamanho no meio recalcula só o que falta", () => {
-    // 4 pomodoros de 25+5 (2h) no Trabalho de 7h; passa para 50+10: faltam 5h / 1h = 5.
-    expect(pomodorosFor(420, { focusMin: 50, breakMin: 10 }, 4, 120)).toBe(9);
-  });
-
-  it("contagem antiga sem minutos supõe ciclos do tamanho atual", () => {
-    expect(pomodorosFor(90, ciclo, 2, 0)).toBe(3); // 2 feitos = 1h; falta 30min = 1
-  });
-
-  it("nunca estima menos do que já foi feito", () => {
-    expect(pomodorosFor(60, ciclo, 5, 150)).toBe(5);
-  });
-
-  it("conta só no dia", () => {
-    const p = { phase: "focus" as const, startedAt: "", durationMin: 25, countDate: "2026-10-20", perTask: { estudo: 2 } };
-    expect(countForTask(p, "estudo", "2026-10-20")).toBe(2);
-    expect(countForTask(p, "estudo", "2026-10-21")).toBe(0);
-    expect(countForTask(p, "outra", "2026-10-20")).toBe(0);
+  it("resumo: feitos/estimados das não concluídas e quando acaba", () => {
+    const list = [
+      { id: "a", title: "A", est: 3, done: 1 },
+      { id: "b", title: "B", est: 2, done: 5 }, // passou da estimativa: conta só até ela
+      { id: "c", title: "C", est: 4, done: 0, checked: true }, // concluída: fora
+    ];
+    const now = new Date("2026-10-20T16:00:00").getTime();
+    const s = listSummary(list, ciclo, now);
+    expect([s.done, s.est, s.leftMin]).toEqual([3, 5, 60]);
+    expect(s.finishAt.getHours()).toBe(17);
   });
 });

@@ -199,7 +199,9 @@ Pomodoro avulso, no estilo do Pomofocus. **Não registra tempo e não fala de ta
 | Tela | abas **Foco / Pausa** (trocar zera e deixa a fase pronta) e o **anel que vai se preenchendo** com o relógio (azul no foco, verde na pausa) |
 | Botões | **Começar foco** / **Começar pausa** · **Pausar** · **Continuar**; ⏭ pula para a próxima fase (foco pulado não conta) |
 | Embaixo | "#2 · Hora de focar!" (ou o nome da tarefa escolhida) / "Hora da pausa!", "3 pomodoros hoje", **Zerar** |
-| Tarefas de hoje | as abertas do dia; tocar escolhe em qual está focando (tocar de novo tira). Cada uma mostra **pomodoros feitos / estimados** ("2/3"; estimado = feitos + o que falta do tempo da tarefa ÷ ciclo atual de foco + pausa, então 7h com 25+5 = 14). Só contagem: não registra nem muda horas; zera todo dia |
+| Tarefas (lista do pomodoro) | lista própria, como no Pomofocus: círculo concluir · nome (tocar = focar nesta; aparece embaixo do "#") · **feitos / estimados** · ✎ (nome, pomodoros estimados − +, Apagar com Desfazer). **Adicionar tarefa**; sem itens, também **Importar tarefas de hoje** |
+| ··· da lista | **Importar tarefas de hoje** (as abertas do Dia, estimativa sugerida = tempo que falta ÷ foco + pausa; não repete) · **Limpar concluídas** · **Limpar tudo** (com Desfazer) |
+| Rodapé | "Pomodoros 2/5 · Termina às 18:18 (1h30)" (não concluídas; ciclo atual) |
 | ··· | foco e pausa em minutos (a fase em andamento termina com o tempo antigo; a parada já mostra o novo), início automático, avisos |
 
 O cronômetro (que registra) aparece só na barra flutuante, também nesta tela.

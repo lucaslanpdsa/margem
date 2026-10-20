@@ -7,7 +7,7 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 ### 20/10 — Foco = pomodoro avulso (estilo Pomofocus)
 - O Foco não fala mais de cronômetro nem de registros: abas Foco/Pausa, Começar/Pausar/Continuar, pular, contador "#" do dia, cor muda na pausa.
 - Visual: volta o **anel que vai se preenchendo** (o cartão colorido do Pomofocus foi testado e o dono preferiu o anel).
-- **Pomodoros por tarefa, só contagem** (revisto no mesmo dia, com o exemplo do Pomofocus): no Foco, escolher a tarefa de hoje e ver "2/4" (feitos / estimados; o estimado usa o **ciclo inteiro, foco + pausa**, e guarda os minutos de ciclo já feitos por tarefa, então mudar o tamanho do pomodoro só recalcula o que falta). Não registra, não mexe em horas, meta ou "dá tempo"; zera todo dia. Sem "Finish at" (o topo do Dia já responde).
+- **Lista de tarefas do pomodoro, igual ao Pomofocus** (revisto no mesmo dia, a pedido do dono): lista própria, estimativa em pomodoros definida pela pessoa, feitos contam por foco completo, "Termina às". **Importar tarefas de hoje** traz as do app com sugestão (tempo que falta ÷ foco + pausa); depois disso são independentes. Não registra nem mexe em horas. (Antes, no mesmo dia: contagem automática nas tarefas do app com estimado derivado; trocada porque o estimado precisa ser da pessoa e não pode mudar com o tamanho do pomodoro.)
 - O cronômetro aparece **só na barra flutuante, em todas as telas** (inclusive no Foco), com bolinha vermelha, para não esquecer que está registrando.
 
 ### 20/10 — Pomodoro separado do registro de horas

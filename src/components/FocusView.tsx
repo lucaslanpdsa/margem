@@ -1,14 +1,29 @@
 "use client";
 
-import { Bell, Minus, MoreHorizontal, Pause, Play, Plus, RotateCcw, SkipForward } from "lucide-react";
+import { Bell, Check, Download, Minus, MoreHorizontal, Pause, Pencil, Play, Plus, RotateCcw, SkipForward, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { saveSettings } from "@/lib/db";
-import { todayKey } from "@/lib/dates";
+import { fmtMin, todayKey } from "@/lib/dates";
 import { dayItems } from "@/lib/metrics";
-import { countForTask, countToday, isRunning, minutesForTask, pausePomodoro, pomodorosFor, selectTask, skipPhase, startPomodoro, switchPhase } from "@/lib/pomodoro";
+import {
+  addPomoTask,
+  clearPomoTasks,
+  countToday,
+  importTasks,
+  isRunning,
+  listSummary,
+  pausePomodoro,
+  removePomoTask,
+  selectTask,
+  skipPhase,
+  startPomodoro,
+  switchPhase,
+  updatePomoTask,
+} from "@/lib/pomodoro";
 import { useStore } from "./store";
+import { useToast } from "./toast";
 import { pomodoroDisplay, pomodoroLabel, useNow } from "./Timer";
-import { Button, IconButton, Modal, Switch, cx } from "./ui";
+import { Button, IconButton, Modal, Switch, cx, inputCls } from "./ui";
 
 /**
  * Foco: o pomodoro como recurso avulso, no estilo do Pomofocus.
@@ -16,7 +31,7 @@ import { Button, IconButton, Modal, Switch, cx } from "./ui";
  * O cronômetro (que registra) aparece só na barra flutuante.
  */
 export function FocusView() {
-  const { uid, settings, tasks } = useStore();
+  const { uid, settings } = useStore();
   const now = useNow();
   const p = settings.pomodoro;
   const [menu, setMenu] = useState(false);
@@ -29,7 +44,7 @@ export function FocusView() {
   const pd = shown ? pomodoroDisplay(shown, now) : null;
   const clock = pd?.text ?? `${String(settings.focusMin).padStart(2, "0")}:00`;
   const done = countToday(p);
-  const focusTask = tasks.find((t) => t.id === p?.taskId);
+  const focusTask = (settings.pomodoroTasks ?? []).find((t) => t.id === p?.taskId);
 
   const tab = (value: "focus" | "break", label: string) => (
     <button
@@ -101,45 +116,196 @@ export function FocusView() {
 }
 
 /**
- * Tarefas de hoje no pomodoro, como no Pomofocus: escolher em qual está focando e ver "2/4".
- * Só contagem de pomodoros (foco completo); não registra nem muda horas.
+ * Lista de tarefas do pomodoro, como no Pomofocus: nome, pomodoros feitos / estimados (a pessoa decide),
+ * escolher em qual está focando e "Termina às". Independente das tarefas do app; dá para importar as de hoje.
+ * Só conta pomodoros: não registra nem muda horas.
  */
 function FocusTasks() {
   const { uid, settings, tasks, blocks, sessions } = useStore();
+  const toast = useToast();
+  const now = useNow(60000);
   const p = settings.pomodoro;
-  const items = dayItems(todayKey(), tasks, blocks, sessions).filter((i) => !i.completed && !i.skipped);
-  if (!items.length) return null;
+  const list = settings.pomodoroTasks ?? [];
+  const [form, setForm] = useState<{ id?: string; title: string; est: number } | null>(null);
+  const [menu, setMenu] = useState(false);
+  const sum = listSummary(list, settings, now);
+
+  async function importToday() {
+    setMenu(false);
+    const items = dayItems(todayKey(), tasks, blocks, sessions).filter((i) => !i.completed && !i.skipped);
+    const n = await importTasks(uid, settings, items.map((i) => ({ id: i.task.id, title: i.task.title, minutes: i.remainingMin || i.estimateMin })));
+    toast(n ? `${n === 1 ? "1 tarefa importada" : `${n} tarefas importadas`}. Ajuste os pomodoros se quiser.` : "As tarefas de hoje já estão na lista.", "info");
+  }
+  function save() {
+    if (!form || !form.title.trim()) return;
+    if (form.id) updatePomoTask(uid, settings, form.id, { title: form.title.trim(), est: form.est });
+    else addPomoTask(uid, settings, form.title, form.est);
+    setForm(null);
+  }
+
+  const formBox = (
+    <div className="rounded-xl border border-line bg-surface p-3">
+      <input
+        autoFocus
+        className={inputCls}
+        value={form?.title ?? ""}
+        onChange={(e) => setForm((f) => f && { ...f, title: e.target.value })}
+        onKeyDown={(e) => e.key === "Enter" && save()}
+        placeholder="Em que você vai focar?"
+        aria-label="Nome da tarefa"
+      />
+      <div className="mt-3 flex items-center gap-3">
+        <span className="text-[13px] font-medium">Pomodoros estimados</span>
+        <span className="flex items-center rounded-lg border border-line">
+          <IconButton label="Menos um" type="button" onClick={() => setForm((f) => f && { ...f, est: Math.max(1, f.est - 1) })} className="h-9 w-9 rounded-r-none">
+            <Minus size={14} />
+          </IconButton>
+          <span className="tabular w-8 text-center font-semibold">{form?.est}</span>
+          <IconButton label="Mais um" type="button" onClick={() => setForm((f) => f && { ...f, est: Math.min(99, f.est + 1) })} className="h-9 w-9 rounded-l-none">
+            <Plus size={14} />
+          </IconButton>
+        </span>
+      </div>
+      <div className="mt-3 flex items-center gap-2 border-t border-line pt-3">
+        {form?.id && (
+          <Button
+            size="sm"
+            variant="danger"
+            onClick={() => {
+              const removed = list.find((t) => t.id === form.id);
+              removePomoTask(uid, settings, form.id!);
+              setForm(null);
+              if (removed) toast(`${removed.title} saiu da lista`, { tone: "info", undo: () => saveSettings(uid, { pomodoroTasks: list }) });
+            }}
+          >
+            Apagar
+          </Button>
+        )}
+        <span className="flex-1" />
+        <Button size="sm" variant="ghost" onClick={() => setForm(null)}>
+          Cancelar
+        </Button>
+        <Button size="sm" variant="primary" onClick={save} disabled={!form?.title.trim()}>
+          Salvar
+        </Button>
+      </div>
+    </div>
+  );
+
   return (
     <section className="w-full">
-      <div className="mb-2 flex items-baseline justify-between border-b border-line pb-2">
-        <h3 className="text-sm font-semibold">Tarefas de hoje</h3>
-        <span className="text-xs text-muted">feitos / estimados ({settings.focusMin}+{settings.breakMin}min)</span>
+      <div className="mb-2 flex items-center justify-between border-b border-line pb-2">
+        <h3 className="text-sm font-semibold">Tarefas</h3>
+        <div className="relative">
+          <IconButton label="Opções da lista" onClick={() => setMenu((v) => !v)}>
+            <MoreHorizontal size={16} />
+          </IconButton>
+          {menu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenu(false)} />
+              <div className="absolute right-0 bottom-full z-50 mb-1 w-60 rounded-xl border border-line bg-surface p-1 shadow-xl">
+                <MenuItem onClick={importToday}>
+                  <Download size={15} /> Importar tarefas de hoje
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setMenu(false);
+                    clearPomoTasks(uid, settings, true);
+                  }}
+                >
+                  <Check size={15} /> Limpar concluídas
+                </MenuItem>
+                <MenuItem
+                  onClick={() => {
+                    setMenu(false);
+                    clearPomoTasks(uid, settings, false);
+                    toast("Lista limpa", { tone: "info", undo: () => saveSettings(uid, { pomodoroTasks: list }) });
+                  }}
+                >
+                  <Trash2 size={15} /> Limpar tudo
+                </MenuItem>
+              </div>
+            </>
+          )}
+        </div>
       </div>
+
       <ul className="space-y-1.5">
-        {items.map((i) => {
-          const on = p?.taskId === i.task.id;
-          return (
-            <li key={i.task.id}>
+        {list.map((t) =>
+          form?.id === t.id ? (
+            <li key={t.id}>{formBox}</li>
+          ) : (
+            <li
+              key={t.id}
+              className={cx(
+                "flex items-center gap-2 rounded-xl border bg-surface pr-1 pl-2 transition-colors",
+                p?.taskId === t.id ? "border-todo border-l-4" : "border-line",
+              )}
+            >
               <button
-                onClick={() => selectTask(uid, settings, i.task.id)}
-                aria-pressed={on}
-                className={cx(
-                  "flex w-full items-center gap-3 rounded-xl border bg-surface px-3 py-2.5 text-left text-sm transition-colors",
-                  on ? "border-todo border-l-4 font-semibold" : "border-line hover:border-muted/40",
-                )}
+                onClick={() => updatePomoTask(uid, settings, t.id, { checked: !t.checked })}
+                aria-label={t.checked ? "Desmarcar" : "Concluir"}
+                className={cx("grid h-6 w-6 shrink-0 place-items-center rounded-full border-2", t.checked ? "border-done bg-done text-white" : "border-line hover:border-done")}
               >
-                <span className="min-w-0 flex-1 truncate">{i.task.title}</span>
+                {t.checked && <Check size={13} strokeWidth={3} />}
+              </button>
+              <button onClick={() => selectTask(uid, settings, t.id)} aria-pressed={p?.taskId === t.id} className="flex min-w-0 flex-1 items-center gap-2 py-2.5 text-left text-sm" title="Focar nesta">
+                <span className={cx("min-w-0 flex-1 truncate", p?.taskId === t.id && "font-semibold", t.checked && "text-muted line-through")}>{t.title}</span>
                 <span className="tabular shrink-0 text-muted">
-                  <b className="font-semibold text-ink">{countForTask(p, i.task.id)}</b>/
-                  {pomodorosFor(i.estimateMin, settings, countForTask(p, i.task.id), minutesForTask(p, i.task.id))}
+                  <b className="font-semibold text-ink">{t.done}</b>/{t.est}
                 </span>
               </button>
+              <IconButton label="Editar" onClick={() => setForm({ id: t.id, title: t.title, est: t.est })}>
+                <Pencil size={14} />
+              </IconButton>
             </li>
-          );
-        })}
+          ),
+        )}
       </ul>
-      <p className="mt-2 text-xs text-muted">Toque para escolher em que está focando. Estimado = tempo da tarefa ÷ ciclo (foco + pausa). Conta só pomodoros; as horas vêm do ▶ da tarefa.</p>
+
+      {form && !form.id ? (
+        <div className="mt-1.5">{formBox}</div>
+      ) : (
+        <div className={cx("mt-1.5 grid gap-1.5", list.length === 0 && "sm:grid-cols-2")}>
+          <button
+            onClick={() => setForm({ title: "", est: 1 })}
+            className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-sm font-semibold text-muted hover:border-muted/50 hover:text-ink"
+          >
+            <Plus size={16} /> Adicionar tarefa
+          </button>
+          {list.length === 0 && (
+            <button
+              onClick={importToday}
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-sm font-semibold text-muted hover:border-muted/50 hover:text-ink"
+            >
+              <Download size={16} /> Importar tarefas de hoje
+            </button>
+          )}
+        </div>
+      )}
+
+      {sum.est > 0 && (
+        <p className="mt-3 rounded-xl bg-sunken px-4 py-3 text-center text-sm text-muted">
+          Pomodoros <b className="tabular text-base font-semibold text-ink">{sum.done}</b>/<span className="tabular">{sum.est}</span>
+          {sum.leftMin > 0 && (
+            <>
+              {" "}· Termina às{" "}
+              <b className="tabular text-base font-semibold text-ink">{sum.finishAt.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</b>{" "}
+              <span className="tabular">({fmtMin(sum.leftMin)})</span>
+            </>
+          )}
+        </p>
+      )}
+      <p className="mt-2 text-xs text-muted">Só conta pomodoros. As horas da tarefa vêm do ▶ no Dia.</p>
     </section>
+  );
+}
+
+function MenuItem({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button onClick={onClick} className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-left text-sm font-medium text-ink hover:bg-sunken [&>svg]:text-muted">
+      {children}
+    </button>
   );
 }
 
