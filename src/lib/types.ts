@@ -30,8 +30,6 @@ export interface Task {
   /** Tempo só de um dia, no lugar do normal { "2026-10-16": 360 } (ex: "encurtar hoje"). */
   estimateFor?: Record<string, number>;
   archived?: boolean;
-  /** Pausas do pomodoro contam como tempo feito nesta tarefa (ex: trabalho). Ausente = só o foco conta. */
-  countBreaks?: boolean;
   createdAt: string;
 }
 
@@ -66,19 +64,31 @@ export interface Session {
   note?: string;
 }
 
+/**
+ * Cronômetro rodando: o único timer que registra tempo (vira um registro "sw-…" ao parar).
+ * Campos marcados como antigos vêm de quando o pomodoro também registrava; são convertidos em migrateTimer.
+ */
 export interface ActiveTimer {
-  /** Pomodoro (tempo fixo, com pausa) ou cronômetro (livre). Ausente = pomodoro. */
-  mode?: "pomodoro" | "stopwatch";
-  /** Tarefa ligada; "" = sem tarefa. */
+  /** Tarefa ligada; "" = sem tarefa (versões antigas). */
   taskId: string;
+  startedAt: string; // ISO
+  /** (Antigo) pomodoro ou cronômetro. */
+  mode?: "pomodoro" | "stopwatch";
+  /** (Antigo) fase do pomodoro. */
+  phase?: "focus" | "break";
+  /** (Antigo) duração da fase do pomodoro. */
+  durationMin?: number;
+  /** (Antigo) fase esperando. */
+  waiting?: boolean;
+}
+
+/** Pomodoro: só o ritmo (foco e pausa, com avisos). Não grava tempo. */
+export interface PomodoroState {
   phase: "focus" | "break";
   startedAt: string; // ISO
-  /** Duração da fase no pomodoro; 0 no cronômetro. */
   durationMin: number;
-  /** Fase pronta, esperando a pessoa tocar em começar (início automático desligado). */
+  /** Fase pronta, esperando o toque em começar (início automático desligado). */
   waiting?: boolean;
-  /** Copiado da tarefa ao começar: a pausa também conta como feito. */
-  countBreaks?: boolean;
 }
 
 /** Horário de um dia, "HH:mm". */
@@ -103,14 +113,17 @@ export interface Settings {
   windowOverrides: Record<string, DayWindow | null>;
   focusMin: number;
   breakMin: number;
+  /** Cronômetro rodando (registra). */
   activeTimer?: ActiveTimer | null;
-  /** Último modo de timer usado; o ▶ da tarefa começa nele. */
+  /** Pomodoro rodando (só ritmo, não registra). */
+  pomodoro?: PomodoroState | null;
+  /** (Antigo) último modo de timer; o ▶ agora é sempre o cronômetro. */
   lastTimerMode?: "pomodoro" | "stopwatch";
   /** Ao acabar o foco, a pausa começa sozinha. */
   autoStartBreaks?: boolean;
   /** Ao acabar a pausa, o próximo foco começa sozinho. */
   autoStartFocus?: boolean;
-  /** Sessão sem tarefa esperando a pessoa dizer em que trabalhou. */
+  /** (Antigo) foco sem tarefa esperando "Em que você trabalhou?". */
   pendingAssign?: string | null;
   /** Já passou pela configuração inicial. */
   onboarded?: boolean;

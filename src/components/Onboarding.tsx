@@ -68,7 +68,7 @@ const TABS_HELP = [
   {
     icon: Timer,
     title: "Foco",
-    text: "Pomodoro ou cronômetro em tela cheia, e os registros de hoje. Em ··· você ajusta os tempos e o início automático.",
+    text: "Em cima, o pomodoro: só o ritmo de foco e pausa, não registra. Embaixo, o cronômetro: registra as horas na tarefa. Dá para usar os dois juntos.",
   },
 ];
 
@@ -206,7 +206,7 @@ export function Onboarding() {
   const finish = async (skip = false) => {
     if (!skip && offerRoutine) {
       const workdays = [1, 2, 3, 4, 5];
-      if (routine.work) await addTask(uid, { title: "Trabalho", repeat: "weekdays", weekdays: workdays, estimateMin: routine.workMin, doneBy: "time", countBreaks: true });
+      if (routine.work) await addTask(uid, { title: "Trabalho", repeat: "weekdays", weekdays: workdays, estimateMin: routine.workMin, doneBy: "time" });
       if (routine.study && routine.studyTitle.trim())
         await addTask(uid, { title: routine.studyTitle.trim(), repeat: "weekdays", weekdays: routine.studyDays, estimateMin: routine.studyMin });
     }

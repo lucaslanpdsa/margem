@@ -4,7 +4,7 @@ import { Check, ChevronDown, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { dayName, entryTimes, fmtMin, parseTimeEntry, shiftDay, todayKey } from "@/lib/dates";
 import { addSession, deleteSession, restoreSession, updateSession, watchTaskSessions } from "@/lib/db";
-import { isLive, sessionSource } from "@/lib/pomodoro";
+import { isLive, sessionSource } from "@/lib/timer";
 import { PREVIEW_UID } from "@/lib/preview";
 import type { Session, Task } from "@/lib/types";
 import { useStore } from "./store";

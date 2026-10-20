@@ -276,15 +276,14 @@ function FitSuggestion({ freeMin }: { freeMin: number }) {
   if (!behind || !plan.pro) return null;
   const amount = Math.min(freeMin, behind.week.behindMin);
   if (amount < 15) return null;
-  const pomos = Math.floor(amount / settings.focusMin);
   return (
     <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-done/[0.08] px-3 py-2.5">
       <span className="min-w-0 flex-1 text-[13px]">
         Sobram <b className="tabular font-semibold">{fmtMin(freeMin)}</b> hoje: dá para recuperar{" "}
         <b className="tabular font-semibold">{fmtMin(amount)}</b> de {behind.task.title}
-        {pomos >= 1 && <span className="text-muted"> ({pomos === 1 ? "1 pomodoro" : `${pomos} pomodoros`})</span>}.
+.
       </span>
-      <Button size="sm" variant="primary" onClick={() => timer.start(behind.task.id, settings.lastTimerMode ?? "pomodoro")}>
+      <Button size="sm" variant="primary" onClick={() => timer.start(behind.task.id)}>
         <Play size={12} fill="currentColor" /> Começar
       </Button>
     </div>
@@ -301,7 +300,7 @@ function WhatToDrop({ m, excess }: { m: DayMetrics; excess: number }) {
   const toast = useToast();
   const tomorrow = shiftDay(m.date, 1);
   const t = settings.activeTimer;
-  const runningId = t && t.phase === "focus" && !t.waiting ? t.taskId : null;
+  const runningId = t?.taskId ?? null;
   const candidates = m.items
     // Não sugere tirar de hoje o que você está fazendo agora (encurtar, sim).
     .filter((i) => !i.completed && !i.skipped && !i.outside && i.remainingMin > 0 && (i.task.id !== runningId || isTimeTask(i.task)))

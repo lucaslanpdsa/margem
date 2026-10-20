@@ -4,7 +4,7 @@
  * estudo, inglês, uma tarefa atrasada, uma concluída e uma desativada.
  */
 import { shiftDay, todayKey } from "@/lib/dates";
-import { liveSession } from "@/lib/pomodoro";
+import { liveSession } from "@/lib/timer";
 import { DEFAULT_SETTINGS, type Session, type Settings, type Task } from "@/lib/types";
 
 export { PREVIEW_UID } from "@/lib/preview";
@@ -88,7 +88,6 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     windows: [null, win, win, win, win, win, { start: "09:00", end: "12:00" }],
     scheduleSet: true,
     onboarded: true,
-    lastTimerMode: "stopwatch",
   };
   let ts = tasks(t0);
   let ss = sessions(t0);
@@ -112,7 +111,9 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     settings.onboarded = false;
   }
   if (scenario === "timer") {
-    settings.activeTimer = { mode: "stopwatch", taskId: "estudo", phase: "focus", startedAt: new Date(now - 23 * 60000).toISOString(), durationMin: 0 };
+    // Cronômetro registrando o estudo e, por cima, um pomodoro marcando o ritmo.
+    settings.activeTimer = { taskId: "estudo", startedAt: new Date(now - 23 * 60000).toISOString() };
+    settings.pomodoro = { phase: "focus", startedAt: new Date(now - 9 * 60000).toISOString(), durationMin: 25 };
     const live = liveSession(settings.activeTimer, now);
     if (live) ss = [...ss, live];
   }

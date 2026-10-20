@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { fromKey, shiftDay, todayKey } from "@/lib/dates";
 import { firebaseConfigured } from "@/lib/firebase";
 import { DialogsProvider, useDialogs } from "./dialogs";
-import { AssignDialog, FocusView } from "./FocusView";
+import { FocusView } from "./FocusView";
 import { HelpDialog, HowItWorks, Onboarding } from "./Onboarding";
 import { StoreProvider, useStore } from "./store";
 import { Timer } from "./Timer";
@@ -307,7 +307,6 @@ export function Shell() {
       <SlotAlerts />
       <BillingSync />
       <OfflineNotice />
-      <AssignDialog />
       {settingsReady && !settings.scheduleSet && <Onboarding />}
       {help && <HelpDialog onClose={() => setHelp(false)} />}
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { setTimerStart } from "@/lib/pomodoro";
+import { setTimerStart } from "@/lib/timer";
 import { useStore } from "./store";
 import { cx } from "./ui";
 
@@ -14,7 +14,7 @@ export function TimerStart({ className }: { className?: string }) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState("");
   const [error, setError] = useState("");
-  if (!t || t.waiting || t.phase !== "focus") return null;
+  if (!t) return null;
   const started = hhmm(new Date(t.startedAt));
 
   async function save() {

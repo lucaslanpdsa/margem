@@ -65,8 +65,8 @@ src/components/
   TaskForm.tsx              formulário de criar/editar tarefa
   TasksPage.tsx             aba Tarefas: seu horário, Esta semana, grade "Repetem", "Não repetem" por data + concluídas, desativadas
   ScheduleEditor.tsx        editor do horário semanal e pausas
-  FocusView.tsx             aba Foco (pomodoro/cronômetro), config do pomodoro, "Em que você trabalhou?"
-  Timer.tsx                 motor do timer (sempre montado) + barra flutuante
+  FocusView.tsx             aba Foco: pomodoro (só ritmo) em cima e cartão do cronômetro (registra) embaixo; config do pomodoro
+  Timer.tsx                 motor dos timers (troca de fase do pomodoro) + barra flutuante (cronômetro e pomodoro)
   TimerStart.tsx            "Começou às … · Mudar"
   SlotAlerts.tsx            avisos de início/pausa/fim do horário das tarefas (app aberto)
   toast.tsx                 avisos de rodapé (Desfazer, erro de gravação), "Sem internet", useTimerActions (start/stop com aviso)
@@ -77,7 +77,8 @@ src/lib/
   types.ts                  modelo de dados (Task, Session, Settings, ActiveTimer)
   metrics.ts                contas do dia (pura e testada)
   schedule.ts               horário do dia, horários das tarefas, conflitos, eventos de aviso
-  pomodoro.ts               ciclo do timer, registro ao vivo, ajustar início
+  timer.ts                  cronômetro: único que registra; registro ao vivo, ajustar início, migrar timer antigo
+  pomodoro.ts               pomodoro: só ritmo (fases, avisos), não grava tempo
   db.ts                     leitura/escrita no Firestore; toda escrita passa por write()/saved() (erro vira aviso; na prévia não grava)
   firebase.ts               app, auth e Firestore com cache no aparelho (offline, várias abas)
   preview.ts                PREVIEW_UID da prévia
@@ -91,10 +92,10 @@ src/lib/
 
 ## Modelo de dados (Firestore, `users/{uid}/…`)
 
-- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `archived` (desativada), `countBreaks` (pausas do pomodoro contam; registros `pausa-…`), `createdAt`.
-- `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, `pomo-` pomodoro, outro = manual.
+- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `archived` (desativada), `createdAt`.
+- `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, outro = manual (`pomo-`/`pausa-` são de quando o pomodoro registrava).
 - `billing/{uid}` (fora de `users/`): `status` (`active` | `pending` | `paused` | `cancelled` | `none`), `period`, `paidUntil`, `preapprovalId`, `updatedAt`. **Só o servidor grava** (regras em `firestore.rules`).
-- `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer`, `lastTimerMode`, `pendingAssign`, `scheduleSet`, `onboarded`.
+- `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer` (cronômetro: `taskId`, `startedAt`), `pomodoro` (`phase`, `startedAt`, `durationMin`, `waiting`), `scheduleSet`, `onboarded`. Antigos e ignorados: `lastTimerMode`, `pendingAssign`.
 
 Regras: toda escrita nova vai em `db.ts` usando `write(uid, () => …)` (avisa erro, não trava sem internet, não grava na prévia); ações que tiram ou movem algo mostram `toast(texto, { undo })`; Firestore não aceita `undefined` (use `clean` em `db.ts`); `saveSettings` substitui cada campo enviado por inteiro (`mergeFields`); campos novos precisam ser opcionais e ter migração em `migrate.ts` se mudarem o significado de dados antigos.
 
@@ -102,7 +103,7 @@ Regras: toda escrita nova vai em `db.ts` usando `write(uid, () => …)` (avisa e
 
 Ver [`docs/01-conceitos.md`](docs/01-conceitos.md). Resumo:
 
-- Feito = só registros (incluindo o timer rodando). **O horário da tarefa não conta tempo sozinho** (foi tentado e removido).
+- Feito = só registros (incluindo o cronômetro rodando). **O pomodoro não registra** (é só ritmo). **O horário da tarefa não conta tempo sozinho** (foi tentado e removido).
 - Sobra = tempo do dia − max(feito, já passou) − falta. Tarefas "extra" (horário todo fora do seu horário) ficam fora da conta.
 - Tarefa `doneBy: "time"` conclui quando o registrado chega na meta do dia (`estimateFor[dia] ?? estimateMin`).
 - Registro com menos de 1 minuto não é salvo (o usuário é avisado).

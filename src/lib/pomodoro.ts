@@ -1,175 +1,53 @@
 "use client";
 
-import { doc, setDoc } from "firebase/firestore";
-import { dayKey } from "./dates";
-import { saveSettings, write } from "./db";
-import { db } from "./firebase";
-import type { ActiveTimer, Session, Settings } from "./types";
+import { saveSettings } from "./db";
+import type { PomodoroState, Settings } from "./types";
 
 /**
- * O timer ativo fica salvo como "começou em X" nas configurações,
- * então sobrevive a recarregar a página e aparece igual em outro dispositivo.
- *
- * Pomodoro: foco com tempo fixo, depois pausa. Só o foco conta como feito,
- * a não ser que a tarefa conte as pausas (countBreaks, ex: trabalho): aí a pausa vira um registro "pausa-…" na tarefa.
- * Cronômetro: livre, conta até parar.
- * Sessão sem tarefa: conta como feito no dia e o app pergunta em que a pessoa trabalhou.
+ * Pomodoro: só o ritmo (foco, pausa, avisos), no estilo do Pomofocus. **Não grava tempo.**
+ * Quem registra é o cronômetro (timer.ts), que pode rodar ao mesmo tempo.
+ * Fica nas configurações para aparecer igual no computador e no celular.
  */
 
-export const isStopwatch = (t: ActiveTimer) => t.mode === "stopwatch";
-
-/** Minutos completos desde o início (no pomodoro, no máximo a duração da fase). */
-export function elapsedMin(t: ActiveTimer, now = Date.now()) {
-  const m = Math.floor((now - Date.parse(t.startedAt)) / 60000);
-  return isStopwatch(t) ? m : Math.min(t.durationMin, m);
-}
-
-export const LIVE_SESSION_ID = "ao-vivo";
-
-/**
- * O timer rodando como um registro provisório, para o tempo entrar na conta do dia ao vivo.
- * Conta o foco e, se a tarefa conta as pausas, a pausa (fase esperando, não). Some quando o timer para e vira um registro de verdade.
- */
-export const countsNow = (t: ActiveTimer) => !t.waiting && (t.phase === "focus" || (!!t.countBreaks && !!t.taskId));
-
-export function liveSession(t: ActiveTimer | null | undefined, now = Date.now()): Session | null {
-  if (!t || !countsNow(t)) return null;
-  const minutes = elapsedMin(t, now);
-  if (minutes < 1) return null;
-  return {
-    id: LIVE_SESSION_ID,
-    taskId: t.taskId,
-    date: dayKey(new Date(t.startedAt)),
-    minutes,
-    kind: "pomodoro",
-    startedAt: t.startedAt,
-    endedAt: new Date(now).toISOString(),
-  };
-}
-
-export const isLive = (s: Session) => s.id === LIVE_SESSION_ID;
-
-const SOURCE: Record<string, string> = { sw: "cronômetro", pomo: "pomodoro", pausa: "pausa do pomodoro" };
-/** De onde veio o registro: cronômetro, pomodoro ou manual. */
-export const sessionSource = (s: Session) => (s.kind === "manual" ? "manual" : (SOURCE[s.id.split("-")[0]] ?? "pomodoro"));
-
-/** Grava o tempo. O id vem do início, então gravar duas vezes não duplica. Menos de 1 minuto não grava. */
-async function record(uid: string, t: ActiveTimer, minutes: number, endedAt: Date, prefix: string) {
-  if (minutes < 1) return 0;
-  const startedAt = new Date(t.startedAt);
-  const id = `${prefix}-${startedAt.getTime()}`;
-  await write(uid, () => setDoc(doc(db(), "users", uid, "sessions", id), {
-    taskId: t.taskId,
-    date: dayKey(startedAt),
-    minutes,
-    kind: "pomodoro",
-    startedAt: t.startedAt,
-    endedAt: endedAt.toISOString(),
-  }));
-  // Foco sem tarefa: pergunta depois em que a pessoa trabalhou.
-  if (!t.taskId && t.phase === "focus") await saveSettings(uid, { pendingAssign: id });
-  return minutes;
-}
-
-/** O que aconteceu com o foco encerrado: em que tarefa e quantos minutos foram registrados (0 = nada). */
-export interface Closed {
-  taskId: string;
-  minutes: number;
-}
-
-/** Encerra o que estiver rodando, gravando o tempo que deve contar. Devolve o foco encerrado, se havia. */
-async function closeCurrent(uid: string, settings: Settings, endedAt = new Date()): Promise<Closed | null> {
-  const t = settings.activeTimer;
-  if (!t || !countsNow(t)) return null;
-  const min = elapsedMin(t, endedAt.getTime());
-  // Pausa interrompida (parar ou pular) numa tarefa que conta pausas: grava o que passou dela.
-  if (t.phase === "break") {
-    await record(uid, t, min, endedAt, "pausa");
-    return null;
-  }
-  const minutes = await record(uid, t, min, endedAt, isStopwatch(t) ? "sw" : "pomo");
-  return { taskId: t.taskId, minutes };
-}
-
-export async function startTimer(uid: string, settings: Settings, taskId: string, mode: "pomodoro" | "stopwatch" = "pomodoro", countBreaks = false) {
-  const closed = await closeCurrent(uid, settings);
-  await saveSettings(uid, {
-    lastTimerMode: mode,
-    activeTimer: {
-      mode,
-      taskId,
-      phase: "focus",
-      startedAt: new Date().toISOString(),
-      durationMin: mode === "stopwatch" ? 0 : settings.focusMin,
-      ...(countBreaks && mode === "pomodoro" ? { countBreaks: true } : {}),
-    },
-  });
-  return closed;
-}
-
-/** Atalho usado nas listas de tarefas: começa um pomodoro na tarefa. */
-export const startFocus = (uid: string, settings: Settings, taskId: string) => startTimer(uid, settings, taskId, "pomodoro");
-
-/** Parar agora: o tempo já feito conta. */
-export async function stopTimer(uid: string, settings: Settings) {
-  const closed = await closeCurrent(uid, settings);
-  await saveSettings(uid, { activeTimer: null });
-  return closed;
-}
-
-/** Monta a próxima fase: já rodando ou esperando o toque em começar. */
-const phase = (t: ActiveTimer, settings: Settings, p: "focus" | "break", auto: boolean): ActiveTimer => ({
-  mode: "pomodoro",
-  taskId: t.taskId,
+const phase = (settings: Settings, p: "focus" | "break", auto: boolean, startedAt = new Date()): PomodoroState => ({
   phase: p,
-  startedAt: new Date().toISOString(),
+  startedAt: startedAt.toISOString(),
   durationMin: p === "focus" ? settings.focusMin : settings.breakMin,
   waiting: !auto,
-  ...(t.countBreaks ? { countBreaks: true } : {}),
 });
 
-/** Fim natural de uma fase do pomodoro (chamado pelo timer quando o tempo acaba). */
-export async function finishPhase(uid: string, settings: Settings, t: ActiveTimer) {
-  const endedAt = new Date(Date.parse(t.startedAt) + t.durationMin * 60000);
-  if (t.phase === "focus") {
-    await record(uid, t, t.durationMin, endedAt, "pomo");
-    await saveSettings(uid, { activeTimer: phase(t, settings, "break", !!settings.autoStartBreaks) });
-  } else {
-    if (t.countBreaks && t.taskId) await record(uid, t, t.durationMin, endedAt, "pausa");
-    await saveSettings(uid, { activeTimer: phase(t, settings, "focus", !!settings.autoStartFocus) });
-  }
+/** Tempo que falta na fase, em ms (fase esperando = a fase inteira). */
+export function remainingMs(p: PomodoroState, now = Date.now()) {
+  if (p.waiting) return p.durationMin * 60000;
+  return p.durationMin * 60000 - (now - Date.parse(p.startedAt));
+}
+
+export const startPomodoro = (uid: string, settings: Settings) => saveSettings(uid, { pomodoro: phase(settings, "focus", true) });
+
+export const stopPomodoro = (uid: string) => saveSettings(uid, { pomodoro: null });
+
+/**
+ * Fim natural de uma fase. A próxima começa no fim da anterior (não na hora em que o app foi aberto),
+ * e o id da fase é o início: dois aparelhos abertos chegam ao mesmo resultado.
+ */
+export async function finishPhase(uid: string, settings: Settings, p: PomodoroState) {
+  const end = new Date(Date.parse(p.startedAt) + p.durationMin * 60000);
+  const next = p.phase === "focus" ? "break" : "focus";
+  const auto = next === "break" ? !!settings.autoStartBreaks : !!settings.autoStartFocus;
+  await saveSettings(uid, { pomodoro: phase(settings, next, auto, auto ? end : new Date()) });
 }
 
 /** Começa agora a fase que estava esperando. */
 export async function startWaiting(uid: string, settings: Settings) {
-  const t = settings.activeTimer;
-  if (!t) return;
-  await saveSettings(uid, { activeTimer: phase(t, settings, t.phase, true) });
+  const p = settings.pomodoro;
+  if (p) await saveSettings(uid, { pomodoro: phase(settings, p.phase, true) });
 }
 
-/**
- * Muda a hora em que o foco rodando começou (ex: começou o timer às 10:33, mas estava fazendo desde as 10:00).
- * Só hoje, não no futuro, e não antes de 00:00. Devolve um erro curto ou null.
- */
-export async function setTimerStart(uid: string, settings: Settings, hhmm: string, now = new Date()): Promise<string | null> {
-  const t = settings.activeTimer;
-  if (!t || t.waiting || t.phase !== "focus") return "Nenhum timer rodando.";
-  const [h, m] = hhmm.split(":").map(Number);
-  if (Number.isNaN(h) || Number.isNaN(m)) return "Horário inválido.";
-  const start = new Date(now);
-  start.setHours(h, m, 0, 0);
-  if (start.getTime() > now.getTime()) return "Não dá para começar no futuro.";
-  await saveSettings(uid, { activeTimer: { ...t, startedAt: start.toISOString() } });
-  return null;
-}
+/** Encerra o foco agora e começa a pausa. */
+export const goToBreak = (uid: string, settings: Settings) => saveSettings(uid, { pomodoro: phase(settings, "break", true) });
 
-/** Pula a pausa (rodando ou esperando) e começa o próximo foco. */
-export async function skipBreak(uid: string, settings: Settings) {
-  const t = settings.activeTimer;
-  if (!t) return;
-  await closeCurrent(uid, settings);
-  await saveSettings(uid, { activeTimer: phase(t, settings, "focus", true) });
-}
+/** Pula a pausa e começa o próximo foco. */
+export const skipBreak = (uid: string, settings: Settings) => saveSettings(uid, { pomodoro: phase(settings, "focus", true) });
 
 export function notify(title: string, body: string) {
   try {

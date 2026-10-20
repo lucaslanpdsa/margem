@@ -4,7 +4,7 @@ import { Check, Clock, Play, SkipForward, Square, Target } from "lucide-react";
 import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
 import { toggleDone } from "@/lib/db";
-import { timerDisplay, useNow } from "./Timer";
+import { stopwatchText, useNow } from "./Timer";
 import { useTimerActions, useToast } from "./toast";
 import type { Task } from "@/lib/types";
 import { useDialogs } from "./dialogs";
@@ -32,7 +32,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
   const { logTime } = useDialogs();
   const timer = useTimerActions();
   const toast = useToast();
-  const running = settings.activeTimer?.taskId === task.id && settings.activeTimer.phase === "focus" && !settings.activeTimer.waiting;
+  const running = settings.activeTimer?.taskId === task.id;
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
   const slots = slotsOf(task);
 
@@ -97,13 +97,13 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
       {/* ▶ começa o timer nesta tarefa (no último modo usado); ■ para e registra. */}
       {!completed && !skipped && (
         <button
-          onClick={() => (running ? timer.stop() : timer.start(task.id, settings.lastTimerMode ?? "stopwatch"))}
+          onClick={() => (running ? timer.stop() : timer.start(task.id))}
           className={cx(
             "mr-2 grid h-10 w-10 shrink-0 place-items-center rounded-full transition-colors",
             running ? "bg-todo text-white hover:bg-todo/85" : "border border-line text-muted hover:border-brand hover:bg-brand hover:text-brand-ink",
           )}
           aria-label={running ? "Parar e registrar" : "Começar timer nesta tarefa"}
-          title={running ? "Parar e registrar" : settings.lastTimerMode === "pomodoro" ? "Começar pomodoro" : "Começar cronômetro"}
+          title={running ? "Parar e registrar" : "Começar cronômetro"}
         >
           {running ? <Square size={13} fill="currentColor" /> : <Play size={15} fill="currentColor" className="ml-0.5" />}
         </button>
@@ -118,5 +118,5 @@ function RunningClock() {
   const now = useNow();
   const t = settings.activeTimer;
   if (!t) return null;
-  return <span className="tabular font-semibold text-todo">● {timerDisplay(t, now).text}</span>;
+  return <span className="tabular font-semibold text-todo">● {stopwatchText(t, now)}</span>;
 }

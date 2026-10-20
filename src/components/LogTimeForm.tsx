@@ -5,7 +5,7 @@ import { useState } from "react";
 import { dayName, fmtMin, fromKey, todayKey } from "@/lib/dates";
 import { setDayEstimate, setSkipped, toggleDone, updateTask } from "@/lib/db";
 import { isCompletedOn, isSkippedOn, isTimeTask } from "@/lib/metrics";
-import { timerDisplay, useNow } from "./Timer";
+import { stopwatchText, useNow } from "./Timer";
 import { useTimerActions, useToast } from "./toast";
 import { DayMenu } from "./DayMenu";
 import { AddTime, TaskEntries } from "./TimeEntries";
@@ -32,11 +32,11 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
   // Feito neste dia, com o timer rodando incluído.
   const logged = sessions.filter((s) => s.taskId === task.id && s.date === date).reduce((a, s) => a + s.minutes, 0);
   const t = settings.activeTimer;
-  const running = !!t && t.taskId === task.id && t.phase === "focus" && !t.waiting;
+  const running = !!t && t.taskId === task.id;
   const canStart = !completed && !skipped;
 
-  async function start(mode: "stopwatch" | "pomodoro") {
-    await timer.start(task.id, mode);
+  async function start() {
+    await timer.start(task.id);
     onClose();
   }
   const total = logged;
@@ -141,7 +141,7 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
         <div className="mb-5 flex items-center gap-3 rounded-xl border border-todo/40 bg-todo/[0.05] p-3">
           <TimerIcon size={18} className="shrink-0 text-todo" />
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] text-muted">{t?.mode === "stopwatch" ? "Cronômetro rodando" : "Pomodoro rodando"}</span>
+            <span className="block text-[13px] text-muted">Cronômetro rodando</span>
             <LiveClock />
             <TimerStart className="mt-0.5 block" />
           </span>
@@ -152,21 +152,13 @@ export function LogTimeForm({ task, onClose }: { task: Task; onClose: () => void
       ) : (
         canStart && (
           <>
-            <p className="mb-2 text-[13px] font-medium">Começar agora</p>
-            <div className="mb-5 grid grid-cols-2 gap-2">
-              <button
-                onClick={() => start("stopwatch")}
-                className="flex h-14 items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-brand-ink hover:bg-brand/90"
-              >
-                <Play size={15} fill="currentColor" /> Cronômetro
-              </button>
-              <button
-                onClick={() => start("pomodoro")}
-                className="flex h-14 items-center justify-center gap-2 rounded-xl border border-brand/40 font-semibold text-brand hover:bg-brand/[0.06]"
-              >
-                <TimerIcon size={16} /> Pomodoro {settings.focusMin}min
-              </button>
-            </div>
+            {/* Um botão só: o cronômetro registra. O pomodoro (ritmo) fica no Foco, separado. */}
+            <button
+              onClick={start}
+              className="mb-5 flex h-14 w-full items-center justify-center gap-2 rounded-xl bg-brand font-semibold text-brand-ink hover:bg-brand/90"
+            >
+              <Play size={15} fill="currentColor" /> Começar cronômetro
+            </button>
           </>
         )
       )}
@@ -196,5 +188,5 @@ function LiveClock() {
   const now = useNow();
   const t = settings.activeTimer;
   if (!t) return null;
-  return <span className="tabular block text-xl font-semibold">{timerDisplay(t, now).text}</span>;
+  return <span className="tabular block text-xl font-semibold">{stopwatchText(t, now)}</span>;
 }

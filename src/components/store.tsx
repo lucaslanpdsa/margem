@@ -5,11 +5,11 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { dayKey, fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { SIGNED_IN_KEY } from "@/lib/legal";
-import { deleteUserData, replaceTask, watchBilling, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import { deleteUserData, replaceTask, saveSettings, watchBilling, watchSessions, watchSettings, watchTasks } from "@/lib/db";
 import type { Billing } from "@/lib/plan";
 import { migrateTask } from "@/lib/migrate";
 import { taskTimeBlocks } from "@/lib/schedule";
-import { liveSession } from "@/lib/pomodoro";
+import { liveSession, migrateTimer } from "@/lib/timer";
 import { auth } from "@/lib/firebase";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "@/lib/types";
 
@@ -89,6 +89,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         setTasks(migrated.map((m) => m.task));
       }),
       watchSettings(uid, (s) => {
+        // Timer de quando o pomodoro registrava: vira cronômetro (ou some, se era pausa).
+        const migrated = migrateTimer(s.activeTimer);
+        if (migrated !== undefined) {
+          s = { ...s, activeTimer: migrated };
+          saveSettings(uid, { activeTimer: migrated });
+        }
         setSettings(s);
         setSettingsReady(true);
       }),
@@ -113,7 +119,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   // Timer rodando: o tempo dele entra na conta ao vivo, atualizado a cada 30s.
   const [tick, setTick] = useState(() => Date.now());
-  const running = !!settings.activeTimer && !settings.activeTimer.waiting && settings.activeTimer.phase === "focus";
+  const running = !!settings.activeTimer;
   useEffect(() => {
     if (!running) return;
     const first = setTimeout(() => setTick(Date.now()), 0);

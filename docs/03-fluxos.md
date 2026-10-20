@@ -42,7 +42,7 @@ Formulário: Nome · Uma vez / Repete · dia (Hoje · Amanhã · Outro dia) · Q
 ```mermaid
 flowchart TD
   S[Dia] --> P{Vai fazer agora?}
-  P -- sim --> Play[▶ na tarefa<br/>ou janela › Cronômetro/Pomodoro]
+  P -- sim --> Play[▶ na tarefa<br/>ou janela › Começar cronômetro]
   Play --> Run[Timer rodando<br/>conta ao vivo no dia]
   Run -- esqueci de dar play --> Adj[Começou às… › Mudar]
   Run --> Stop[■ Parar] --> T1[Aviso: 23min registrados em X]
@@ -57,7 +57,8 @@ Regras:
 - O ▶ usa o último modo usado (cronômetro por padrão).
 - Parar com menos de 1 minuto não registra ("Menos de 1 minuto: não foi registrado").
 - Começar timer em outra tarefa encerra e registra o anterior.
-- Foco sem tarefa (só pela aba Foco): ao parar, pergunta "Em que você trabalhou?". Também dá para escolher depois em Registros de hoje › Escolher tarefa.
+- O cronômetro sempre tem uma tarefa. Registros antigos sem tarefa ainda podem ser ligados em Registros de hoje › Escolher tarefa.
+- Quer o ritmo do pomodoro? Use o Foco junto: o pomodoro avisa as pausas e o cronômetro continua registrando.
 - Na janela da tarefa, "Adicionar tempo já feito" fica recolhido num botão.
 - O horário de início ajustado tem que ser de hoje e não pode ser no futuro.
 
@@ -84,13 +85,14 @@ Regras:
 2. **Trazer para hoje** muda a data de todas; abrindo o aviso, **Hoje** traz uma por vez.
 3. Em Tarefas, elas aparecem no grupo **Atrasadas**, com a data em vermelho.
 
-## 3.8 Pomodoro
+## 3.8 Pomodoro (só ritmo, não registra)
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Foco: Começar
-  Foco --> PausaPronta: fim do foco (registra)
-  Foco --> [*]: Parar e registrar
+  [*] --> Foco: Começar foco
+  Foco --> PausaPronta: fim do foco
+  Foco --> Pausa: Ir para a pausa
+  Foco --> [*]: Encerrar
   PausaPronta --> Pausa: Começar pausa
   PausaPronta --> Foco: Pular pausa
   PausaPronta --> [*]: Encerrar
@@ -102,7 +104,8 @@ stateDiagram-v2
 ```
 
 - Com **Pausas automáticas** ligado, "Pausa pronta" vira "Pausa" direto. Com **Início de foco automático**, "Próximo foco" vira "Foco" direto. Os dois vêm desligados.
-- Só o foco conta como feito, a não ser que a tarefa tenha **Contar as pausas nesta tarefa** ligado (Foco, abaixo da tarefa; vale também para o ▶). Aí a pausa vira um registro "pausa do pomodoro" na tarefa e conta ao vivo no dia.
+- **O pomodoro não grava tempo.** Quem registra é o cronômetro, que pode rodar ao mesmo tempo (ex: cronômetro em "Trabalho" das 9h às 12h, com pomodoros por cima; a pausa conta porque o cronômetro não para). Para não contar a pausa, pare o cronômetro nela.
+- Com o app fechado, as fases continuam do ponto certo ao abrir (a próxima começa no fim da anterior); vários aparelhos abertos chegam ao mesmo estado.
 - Avisos (notificação, se permitida, e bipe) no fim do foco e da pausa.
 
 ## 3.9 Horário da tarefa e avisos

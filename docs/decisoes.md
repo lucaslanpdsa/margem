@@ -4,6 +4,12 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 20/10 — Pomodoro separado do registro de horas
+- **O pomodoro não registra mais tempo.** É só o ritmo (foco, pausa, avisos, início automático no estilo Pomofocus). **Quem registra é o cronômetro**, um registro do início ao fim. Os dois podem rodar juntos no Foco.
+- Por quê: cada fase gravando um registro criava muitos caminhos e bugs (app fechado no meio do ciclo, dois aparelhos abertos, registros picados de 25/5min, pausas virando "sem registro").
+- **Substitui** o "Contar as pausas por tarefa" (feito na mesma manhã): com o cronômetro rodando, a pausa conta naturalmente; para não contar, pare o cronômetro na pausa.
+- Saíram: o ▶ "no último modo usado" (agora sempre cronômetro), o botão "Pomodoro" da janela da tarefa, "Em que você trabalhou?" (o cronômetro sempre tem tarefa). Timer antigo em andamento é convertido (foco vira cronômetro; pausa some). Registros antigos de pomodoro ficam como estão.
+
 ### 20/10 — Pausa do pomodoro pode contar, por tarefa
 - Revisto o "só o foco conta" de 16/10: no trabalho do dono a pausa faz parte do expediente.
 - **Por tarefa, não global**: "Trabalho" conta as pausas, "Estudar" não (a meta da semana e a constância continuam honestas). A chave fica no **Foco**, abaixo da tarefa escolhida, e é guardada na tarefa (`countBreaks`), então vale também para o ▶. A configuração inicial já cria "Trabalho" com ela ligada.

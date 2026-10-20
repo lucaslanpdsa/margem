@@ -4,7 +4,7 @@ import { AlertTriangle, Check, Info, WifiOff } from "lucide-react";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { fmtMin } from "@/lib/dates";
 import { onSaveError } from "@/lib/db";
-import { startTimer, stopTimer, type Closed } from "@/lib/pomodoro";
+import { startTimer, stopTimer, type Closed } from "@/lib/timer";
 import { useStore } from "./store";
 import { cx } from "./ui";
 
@@ -104,7 +104,7 @@ export function OfflineNotice() {
   );
 }
 
-/** Começar e parar o timer avisando o que foi registrado (ou que não foi, com menos de 1 minuto). */
+/** Começar e parar o cronômetro avisando o que foi registrado (ou que não foi, com menos de 1 minuto). */
 export function useTimerActions() {
   const { uid, settings, tasks } = useStore();
   const toast = useToast();
@@ -117,9 +117,7 @@ export function useTimerActions() {
   };
 
   return {
-    // A tarefa decide se as pausas do pomodoro contam (escolha feita no Foco).
-    start: async (taskId: string, mode: "pomodoro" | "stopwatch") =>
-      report(await startTimer(uid, settings, taskId, mode, !!tasks.find((t) => t.id === taskId)?.countBreaks)),
+    start: async (taskId: string) => report(await startTimer(uid, settings, taskId)),
     stop: async () => report(await stopTimer(uid, settings)),
   };
 }

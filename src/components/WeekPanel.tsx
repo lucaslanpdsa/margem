@@ -90,7 +90,7 @@ export function WeekPanel() {
 
 /** Constância de uma tarefa: dias seguidos, a semana dia a dia e as últimas semanas. */
 function ConsistencyDialog({ task, onClose }: { task: Task; onClose: () => void }) {
-  const { sessions, date, settings } = useStore();
+  const { sessions, date } = useStore();
   const timer = useTimerActions();
   const today = todayKey();
   const week = taskWeek(task, date, sessions, today);
@@ -147,7 +147,7 @@ function ConsistencyDialog({ task, onClose }: { task: Task; onClose: () => void 
             size="sm"
             variant="secondary"
             onClick={() => {
-              timer.start(task.id, settings.lastTimerMode ?? "pomodoro");
+              timer.start(task.id);
               onClose();
             }}
           >

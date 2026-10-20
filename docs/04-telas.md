@@ -98,7 +98,7 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 
 ![Dia sem tarefas](img/20-dia-vazio.png) ![Não dá tempo](img/19-dia-apertado.png)
 
-**Encaixe** (Pro, no topo do dia, só hoje e quando dá tempo): "Sobram 40min hoje: dá para recuperar 40min de Estudar (1 pomodoro)" · **Começar**. Usa a tarefa mais atrasada na semana que não tem horário fixo.
+**Encaixe** (Pro, no topo do dia, só hoje e quando dá tempo): "Sobram 40min hoje: dá para recuperar 40min de Estudar." · **Começar** (cronômetro). Usa a tarefa mais atrasada na semana que não tem horário fixo.
 
 **Esta semana** (Pro; no computador embaixo do topo do dia, no celular depois das tarefas)
 
@@ -134,7 +134,7 @@ Abre ao tocar numa tarefa no Dia ou em Tarefas.
 | Cabeçalho | nome · **Editar** (abre o formulário) · fechar |
 | Feito hoje / Feito em 18/10 | total do dia aberto, "de X", barra; "Encurtada só neste dia · Voltar ao normal" quando for o caso |
 | Ações (dentro do resumo) | **Pular hoje** / Desfazer pulo (as que repetem) · **Mudar dia** (as de uma vez: Hoje, Amanhã, Próxima segunda, Outro dia) · **Concluir** / Reabrir (só "marco como feita"). Todas com aviso e Desfazer |
-| Começar agora | **Cronômetro** · **Pomodoro 25min** (some se concluída ou pulada) |
+| Começar | **Começar cronômetro** (some se concluída ou pulada). O pomodoro fica no Foco, separado |
 | Timer rodando (no lugar do anterior) | "Cronômetro rodando", relógio, "Começou às 10:16 · Mudar", **Parar** |
 | Adicionar tempo já feito | botão recolhido; aberto: 15m · 30m · 1h · 2h · campo "3h 20m ou 14:00-15:30" + **Adicionar** · Quando: Hoje / Ontem / Outro dia · Nota |
 | Registros | "Total X em N dias"; por dia com total; os 3 dias mais recentes e "Mostrar mais"; tocar num registro edita tempo, dia e nota, com 🗑 para apagar (Desfazer) |
@@ -192,13 +192,21 @@ No computador: horário e semana lado a lado, com a mesma altura; "Repetem" ao l
 
 ![Foco](img/12-foco.png) ![Foco rodando](img/14-foco-rodando.png)
 
-| Estado | Tela |
+Duas coisas independentes na mesma tela:
+
+**Pomodoro** (em cima, só ritmo, não registra): anel e contagem da fase · ··· configurar.
+
+| Estado | Botões |
 |---|---|
-| Parado | Pomodoro / Cronômetro (abre no último modo usado) · relógio · "Pronto para começar" · tarefa (lista própria com as abertas de hoje e quanto falta, ou "Sem tarefa") · no Pomodoro com tarefa: **Contar as pausas nesta tarefa** (guardado na tarefa; também aparece com o timer rodando) · **Começar** |
-| Foco rodando | modo · anel · "Foco" / "Contando" · tarefa · "Começou às … · Mudar" · **Parar e registrar** |
-| Pausa pronta | **Começar pausa** · Encerrar · Pular pausa |
-| Pausa rodando | Encerrar · **Próximo foco** |
+| Parado | **Começar foco** |
+| Foco rodando | Encerrar · Ir para a pausa |
+| Pausa pronta | **Começar pausa** · Pular pausa |
+| Pausa rodando | Encerrar · **Pular pausa** |
 | Próximo foco | **Começar foco** · Encerrar |
+
+Texto: "O pomodoro só marca o ritmo. Quem registra as horas é o cronômetro abaixo."
+
+**Cronômetro · registra as horas** (cartão embaixo): parado = escolher a tarefa (lista com as abertas de hoje e quanto falta) · **Começar cronômetro**; rodando = tempo, tarefa, "Começou às … · Mudar", **Parar**.
 
 Embaixo: "Hoje · Xh registrados" (recolhido), com a mesma lista de "Registros de hoje" do Dia.
 
@@ -212,17 +220,13 @@ Embaixo: "Hoje · Xh registrados" (recolhido), com a mesma lista de "Registros d
 - Início de foco automático · Pausas automáticas (desligados).
 - Avisar quando o tempo acabar (permissão de notificação).
 
-## Em que você trabalhou? (`FocusView.tsx › AssignDialog`)
-
-Depois de um foco sem tarefa: escolha uma das tarefas abertas de hoje ou "Sem tarefa por enquanto". **Salvar**. Também dá para escolher depois em "Registros de hoje" › Escolher tarefa.
-
 ---
 
 ## Elementos globais
 
 | Elemento | Onde | Detalhe |
 |---|---|---|
-| Barra do timer | flutuante e compacta (2 linhas), fora da aba Foco | relógio e tarefa (ou "Pausa") na mesma linha, "Começou às … · Mudar", Parar / Começar / Pular / Encerrar / Próximo conforme o estado; tocar abre Foco |
+| Barra do timer | flutuante, fora da aba Foco | cronômetro: tempo, tarefa, "Começou às … · Mudar", **Parar** · pomodoro (linha menor): "Pomodoro · Foco 15:59", **Começar** (fase pronta) ou **Pular** (pausa); tocar abre Foco |
 | Avisos (toasts) (`toast.tsx`) | rodapé | confirmação (3,5s), com **Desfazer** (6s), ou erro vermelho "Não foi possível salvar" |
 | Sem internet | topo | "Sem internet · salva quando voltar"; as mudanças ficam no aparelho e são enviadas quando a conexão volta |
 | Avisos de horário (`SlotAlerts.tsx`) | com o app aberto | início, pausa entre horários, recomeço e fim; tolerância de 2min; não repete ao recarregar |

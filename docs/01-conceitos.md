@@ -14,8 +14,9 @@
 | **Como termina** | *Marco como feita* (padrão): conclui pelo círculo; terminou antes, o resto volta para o dia. *Cumpro o tempo*: conclui sozinha quando o tempo registrado chega na meta (ex: trabalhar 7h). |
 | **Horário da tarefa** | Opcional, um ou mais trechos (ex: 08:00–11:00 e 14:00–18:00). Serve para a agenda, para os avisos de início e fim e para marcar "extra". **Não conta tempo sozinho.** |
 | **Extra** | Tarefa cujo horário fica todo fora do seu horário (ex: academia às 18:30 com horário até 18:00). Não entra nas contas do dia. |
-| **Registro** | Um pedaço de tempo feito numa tarefa: vem do cronômetro, do pomodoro ou é adicionado à mão. Tem dia, duração, horário (opcional) e nota (opcional). |
-| **Contar as pausas** | Opção da tarefa, ligada no Foco: a pausa do pomodoro entra nas horas dela (ex: trabalho, em que a pausa faz parte do expediente). Desligada, só o foco conta. |
+| **Registro** | Um pedaço de tempo feito numa tarefa: vem do **cronômetro** (um registro do início ao fim) ou é adicionado à mão. Tem dia, duração, horário (opcional) e nota (opcional). Registros antigos podem vir do pomodoro. |
+| **Cronômetro** | O único timer que registra tempo: ▶ na tarefa, janela da tarefa ou Foco. Rodando, conta ao vivo no dia; ao parar, vira um registro. |
+| **Pomodoro** | Só o ritmo de foco e pausa, com avisos (Foco). **Não registra tempo.** Pode rodar junto com o cronômetro. |
 | **Registro sem tarefa** | Foco feito sem escolher tarefa. Conta no dia; o app pergunta depois em que você trabalhou. |
 | **Pular hoje** | Tira uma tarefa que repete só daquele dia. O que já tinha sido feito continua contando. |
 | **Mudar dia** | Muda a data de uma tarefa de uma vez (Hoje, Amanhã, Próxima segunda, Outro dia). |

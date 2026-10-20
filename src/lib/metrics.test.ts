@@ -5,7 +5,8 @@ import { dayMetrics } from "./metrics";
 import { streak, taskWeek, weekHistory } from "./week";
 import { planOf } from "./plan";
 import { migrateTask } from "./migrate";
-import { isLive, liveSession, setTimerStart } from "./pomodoro";
+import { isLive, liveSession, migrateTimer, setTimerStart } from "./timer";
+import { remainingMs } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -233,9 +234,8 @@ describe("timer rodando conta ao vivo", () => {
     expect(m.items.find((i) => i.task.id === "b")!.doneMin).toBe(60);
   });
 
-  it("pausa e fase esperando não contam", () => {
-    expect(liveSession({ ...sw, mode: "pomodoro", phase: "break", durationMin: 5 }, start.getTime() + 3 * 60000)).toBeNull();
-    expect(liveSession({ ...sw, waiting: true }, start.getTime() + 30 * 60000)).toBeNull();
+  it("menos de 1 minuto ainda não conta", () => {
+    expect(liveSession(sw, start.getTime() + 30000)).toBeNull();
   });
 });
 
@@ -398,20 +398,24 @@ describe("plano (grátis ou Pro)", () => {
   });
 });
 
-describe("pausas do pomodoro", () => {
-  const now = new Date("2026-10-20T10:04:00").getTime();
-  const pausa = { mode: "pomodoro" as const, taskId: "trabalho", phase: "break" as const, startedAt: new Date("2026-10-20T10:00:00").toISOString(), durationMin: 5 };
-
-  it("por padrão a pausa não conta", () => {
-    expect(liveSession(pausa, now)).toBeNull();
+describe("pomodoro separado do registro", () => {
+  it("timer antigo: foco do pomodoro vira cronômetro desde o mesmo início; pausa e espera somem", () => {
+    const old = { taskId: "b", startedAt: "2026-10-20T10:00:00.000Z" };
+    expect(migrateTimer({ ...old, mode: "pomodoro", phase: "focus", durationMin: 25 })).toEqual(old);
+    expect(migrateTimer({ ...old, mode: "pomodoro", phase: "break", durationMin: 5 })).toBeNull();
+    expect(migrateTimer({ ...old, mode: "stopwatch", phase: "focus", durationMin: 0, waiting: true })).toBeNull();
+    expect(migrateTimer(old)).toBeUndefined();
+    expect(migrateTimer(null)).toBeUndefined();
   });
 
-  it("tarefa que conta pausas: a pausa entra ao vivo no dia", () => {
-    expect(liveSession({ ...pausa, countBreaks: true }, now)?.minutes).toBe(4);
+  it("o pomodoro não vira registro no dia", () => {
+    // Só o cronômetro (activeTimer) entra ao vivo; o pomodoro fica em settings.pomodoro.
+    expect(liveSession(null)).toBeNull();
   });
 
-  it("pausa esperando ou sem tarefa não conta, mesmo com a opção", () => {
-    expect(liveSession({ ...pausa, countBreaks: true, waiting: true }, now)).toBeNull();
-    expect(liveSession({ ...pausa, countBreaks: true, taskId: "" }, now)).toBeNull();
+  it("tempo que falta na fase; fase esperando mostra a fase inteira", () => {
+    const p = { phase: "focus" as const, startedAt: new Date("2026-10-20T10:00:00").toISOString(), durationMin: 25 };
+    expect(remainingMs(p, new Date("2026-10-20T10:10:00").getTime())).toBe(15 * 60000);
+    expect(remainingMs({ ...p, waiting: true }, new Date("2026-10-20T11:00:00").getTime())).toBe(25 * 60000);
   });
 });
