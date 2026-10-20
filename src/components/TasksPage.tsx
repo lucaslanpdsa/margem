@@ -4,7 +4,7 @@ import { Archive, ArchiveRestore, Check, ChevronDown, Clock, Plus, Search } from
 import { useState } from "react";
 import { WEEKDAY_SHORT, dayName, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addTask, saveSettings, toggleDone, updateTask } from "@/lib/db";
-import { dayMetrics, type DayMetrics } from "@/lib/metrics";
+import { dayMetrics, type DayItem, type DayMetrics } from "@/lib/metrics";
 import { allSlotsOutside, slotsOf, toMin, weekdayCapacity } from "@/lib/schedule";
 import type { DayWindow, Task } from "@/lib/types";
 import { DayMenu } from "./DayMenu";
@@ -326,8 +326,8 @@ function DoneGroup({ tasks }: { tasks: Task[] }) {
 // ---------------- Esta semana ----------------
 
 /**
- * A semana dia a dia: quanto sobra (ou falta) em cada dia, com as tarefas que repetem e as de uma vez.
- * Dias passados mostram o feito. Tocar num dia abre o Dia nele.
+ * A semana dia a dia: quanto sobra (ou falta) em cada dia e, embaixo, as tarefas nos horários delas (calendário no computador, lista no celular).
+ * Dias passados mostram o feito. Tocar num dia abre o Dia nele (no celular, mostra a lista dele).
  */
 function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
   const { settings, tasks, blocks, sessions } = useStore();
@@ -356,7 +356,8 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
         />
       </header>
       {/* Celular: faixa de dias; o dia escolhido mostra as atividades embaixo. Computador: 7 colunas com as atividades. */}
-      <div className="grid grid-cols-7 gap-1 px-2 pb-3 sm:px-4 lg:items-start">
+      <div className={cx(GRID_COLS, "gap-1 px-2 pb-3 sm:px-4")}>
+        <span className="hidden lg:block" />
         {ms.map((m) => {
           const d = fromKey(m.date);
           const past = m.date < today;
@@ -378,13 +379,12 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
                 <span className={cx("text-sm font-semibold", past && "text-muted")}>{d.getDate()}</span>
                 <span className={cx("tabular mt-0.5 text-[11px] font-semibold", !m.window || past ? "text-muted" : late ? "text-over" : "text-done")}>{value}</span>
               </button>
-              <div className="mt-1 hidden lg:block">
-                <DayActivities m={m} compact />
-              </div>
             </div>
           );
         })}
       </div>
+      {/* Computador: calendário com os horários. */}
+      <WeekCalendar ms={ms} now={now} today={today} />
       {/* Celular: atividades do dia escolhido. */}
       {shownMetrics && (
         <div className="border-t border-line px-4 pt-3 pb-4 lg:hidden">
@@ -403,11 +403,138 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
 
 const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
+const GRID_COLS = "grid grid-cols-7 lg:grid-cols-[2.5rem_repeat(7,minmax(0,1fr))]";
+const HOUR_PX = 44;
+
+/** Cor do bloco: concluída, extra (fora do seu horário) ou normal. */
+const itemCls = (i: DayItem) =>
+  i.completed ? "border-done bg-done/[0.08] text-muted" : i.outside ? "border-break bg-break/[0.08]" : "border-todo bg-todo/[0.08]";
+
+interface CalEvent {
+  item: DayItem;
+  start: number;
+  end: number;
+  lane: number;
+  lanes: number;
+}
+
+/** Horários do dia em faixas: o que se sobrepõe divide a largura da coluna. */
+function dayEvents(m: DayMetrics): CalEvent[] {
+  const evs = m.items
+    .filter((i) => !i.skipped)
+    .flatMap((item) => slotsOf(item.task).map((sl) => ({ item, start: toMin(sl.start), end: Math.max(toMin(sl.end), toMin(sl.start) + 15), lane: 0, lanes: 1 })))
+    .sort((a, b) => a.start - b.start || b.end - a.end);
+  let group: CalEvent[] = [];
+  let groupEnd = -1;
+  const close = () => group.forEach((e) => (e.lanes = Math.max(...group.map((g) => g.lane)) + 1));
+  for (const e of evs) {
+    if (e.start >= groupEnd) {
+      close();
+      group = [];
+      groupEnd = -1;
+    }
+    const used = new Set(group.filter((g) => g.end > e.start).map((g) => g.lane));
+    while (used.has(e.lane)) e.lane++;
+    group.push(e);
+    groupEnd = Math.max(groupEnd, e.end);
+  }
+  close();
+  return evs;
+}
+
 /**
- * Atividades de um dia em ordem de horário: nome, horário ou tempo, "extra".
- * Tocar abre o formulário da tarefa (Tarefas é a área de editar; o dia em si abre pelo cabeçalho).
+ * Calendário da semana (só no computador): cada tarefa no horário dela, o seu horário em branco e o resto em cinza.
+ * Tarefas sem horário ficam numa faixa em cima, como "dia inteiro" de um calendário. Tocar abre o formulário da tarefa.
  */
-function DayActivities({ m, compact }: { m: DayMetrics; compact?: boolean }) {
+function WeekCalendar({ ms, now, today }: { ms: DayMetrics[]; now: Date; today: string }) {
+  const { editTask } = useDialogs();
+  const events = ms.map(dayEvents);
+  const untimed = ms.map((m) => m.items.filter((i) => !i.skipped && !slotsOf(i.task).length));
+  // Faixa de horas: do mais cedo ao mais tarde entre o seu horário e as tarefas.
+  const mins = ms.flatMap((m, d) => [...(m.window ? [toMin(m.window.start), toMin(m.window.end)] : []), ...events[d].flatMap((e) => [e.start, e.end])]);
+  if (!mins.length && !untimed.some((u) => u.length)) return null;
+  const from = Math.floor(Math.min(...(mins.length ? mins : [480])) / 60);
+  const to = Math.min(24, Math.ceil(Math.max(...(mins.length ? mins : [1080])) / 60));
+  const hours = Array.from({ length: to - from }, (_, k) => from + k);
+  const y = (min: number) => ((min - from * 60) / 60) * HOUR_PX;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+
+  return (
+    <div className="hidden px-4 pb-4 lg:block">
+      {untimed.some((u) => u.length > 0) && (
+        <div className={cx(GRID_COLS, "gap-1 border-b border-line pb-2")}>
+          <span className="self-center text-[10px] leading-tight text-muted">sem horário</span>
+          {untimed.map((list, d) => (
+            <ul key={ms[d].date} className="min-w-0 space-y-1">
+              {list.map((i) => (
+                <li key={i.task.id}>
+                  <button
+                    onClick={() => editTask(i.task)}
+                    title={`${i.task.title} · ${fmtMin(i.estimateMin)}`}
+                    className={cx("flex w-full items-baseline gap-1 rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] hover:brightness-95", itemCls(i))}
+                  >
+                    <span className={cx("min-w-0 flex-1 truncate font-medium", i.completed && "line-through")}>{i.task.title}</span>
+                    <span className="tabular shrink-0 text-muted">{fmtMin(i.estimateMin)}</span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ))}
+        </div>
+      )}
+      {hours.length > 0 && (
+        <div className={cx(GRID_COLS, "gap-1 pt-2")}>
+          <div className="relative" style={{ height: hours.length * HOUR_PX }}>
+            {hours.map((h) => (
+              <span key={h} className={cx("tabular absolute right-1 text-[10px] text-muted", h > from && "-translate-y-1/2")} style={{ top: y(h * 60) }}>
+                {`${String(h).padStart(2, "0")}:00`}
+              </span>
+            ))}
+          </div>
+          {ms.map((m, d) => (
+            <div key={m.date} className="relative overflow-hidden rounded-lg bg-sunken/60" style={{ height: hours.length * HOUR_PX }}>
+              {/* O seu horário em branco; fora dele, cinza. */}
+              {m.window && <div className="absolute inset-x-0 bg-surface" style={{ top: y(toMin(m.window.start)), height: y(toMin(m.window.end)) - y(toMin(m.window.start)) }} />}
+              {hours.slice(1).map((h) => (
+                <div key={h} className="absolute inset-x-0 border-t border-line/70" style={{ top: y(h * 60) }} />
+              ))}
+              {events[d].map((e, k) => {
+                const h = y(e.end) - y(e.start);
+                const when = `${fmtClock(e.start)}–${fmtClock(e.end)}`;
+                return (
+                  <button
+                    key={k}
+                    onClick={() => editTask(e.item.task)}
+                    title={`${e.item.task.title} · ${when}${e.item.outside ? " · extra (fora do seu horário)" : ""}`}
+                    className={cx("absolute overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-left text-[11px] leading-tight hover:brightness-95", itemCls(e.item))}
+                    style={{ top: y(e.start) + 1, height: h - 2, left: `calc(${(e.lane / e.lanes) * 100}% + 2px)`, width: `calc(${100 / e.lanes}% - 4px)` }}
+                  >
+                    <span className={cx("block truncate font-medium text-ink", e.item.completed && "text-muted line-through")}>{e.item.task.title}</span>
+                    {h >= 30 && <span className="tabular block truncate text-muted">{when}</span>}
+                  </button>
+                );
+              })}
+              {/* Agora. */}
+              {m.date === today && nowMin >= from * 60 && nowMin <= to * 60 && (
+                <div className="pointer-events-none absolute inset-x-0 border-t-2 border-over" style={{ top: y(nowMin) }}>
+                  <span className="absolute -top-[5px] -left-[3px] size-2 rounded-full bg-over" />
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const fmtClock = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(2, "0")}:${String(min % 60).padStart(2, "0")}`;
+
+/**
+ * Atividades de um dia (celular), em ordem de horário: horário, nome, tempo e "extra".
+ * Tocar abre o formulário da tarefa (Tarefas é a área de editar; o dia em si abre por "Abrir o dia").
+ */
+function DayActivities({ m }: { m: DayMetrics }) {
   const { editTask } = useDialogs();
   const items = m.items
     .filter((i) => !i.skipped)
@@ -418,33 +545,25 @@ function DayActivities({ m, compact }: { m: DayMetrics; compact?: boolean }) {
       if (!!sa !== !!sb) return sa ? -1 : 1;
       return a.task.title.localeCompare(b.task.title);
     });
-  if (!items.length) return <p className={cx("text-muted", compact ? "px-1 text-center text-[11px]" : "text-sm")}>{m.window ? "Nada planejado." : "Sem horário."}</p>;
+  if (!items.length) return <p className="text-sm text-muted">{m.window ? "Nada planejado." : "Sem horário."}</p>;
   return (
-    <ul className={compact ? "space-y-1" : "space-y-1.5"}>
+    <ul className="space-y-1.5">
       {items.map((i) => {
         const slots = slotsOf(i.task);
-        const when = slots.length ? slots.map((sl) => `${sl.start}–${sl.end}`).join(", ") : null;
         return (
           <li key={i.task.id}>
             <button
               onClick={() => editTask(i.task)}
-              title={`${i.task.title} · ${when ? `${when} · ` : ""}${fmtMin(i.estimateMin)}${i.outside ? " · extra (fora do seu horário)" : ""}`}
-              className={cx(
-                "w-full rounded-lg border text-left transition-colors hover:border-muted/40",
-                i.outside ? "border-break/30 bg-break/[0.06]" : "border-line bg-surface",
-                compact ? "px-2 py-1.5" : "flex items-center gap-3 px-3 py-2",
-              )}
+              className={cx("flex w-full items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-left transition-colors hover:brightness-95", itemCls(i))}
             >
-              <span className={cx("block min-w-0 font-medium", compact ? "line-clamp-2 text-[11px] leading-snug" : "flex-1 truncate text-sm", i.completed && "text-muted line-through")}>
-                {i.task.title}
+              <span className="tabular w-[5.5rem] shrink-0 text-xs leading-snug text-muted">
+                {slots.length ? slots.map((sl) => <span key={sl.start} className="block">{`${sl.start}–${sl.end}`}</span>) : "sem horário"}
               </span>
-              {/* Nas colunas (computador) só o nome: a ordem já é a do horário e o detalhe está no Dia. */}
-              {!compact && (
-                <span className="tabular block shrink-0 text-xs text-muted">
-                  {when ? `${when} · ${fmtMin(i.estimateMin)}` : fmtMin(i.estimateMin)}
-                  {i.outside && <span className="font-medium text-break"> · extra</span>}
-                </span>
-              )}
+              <span className={cx("min-w-0 flex-1 truncate text-sm font-medium text-ink", i.completed && "text-muted line-through")}>{i.task.title}</span>
+              <span className="tabular shrink-0 text-xs text-muted">
+                {fmtMin(i.estimateMin)}
+                {i.outside && <span className="font-medium text-break"> · extra</span>}
+              </span>
             </button>
           </li>
         );

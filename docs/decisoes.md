@@ -8,6 +8,7 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 - "Esta semana" deixou de ser só números ("-2h37") e mostra **as atividades de cada dia** (colunas no computador; dia escolhido no celular). Assim Tarefas mostra a rotina como a gente pensa nela: "o que tenho na quarta?". Só leitura; mudar continua na grade e nos formulários (arrastar segue descartado).
 - "Seu horário" virou uma linha compacta em cima da semana.
 - Na agenda da semana, **tocar numa atividade abre o formulário da tarefa** (exceção à regra "tocar abre a janela da tarefa": a janela mostra o dia aberto no Dia, não o da coluna, e em Tarefas o objetivo é editar).
+- A semana em Tarefas virou **calendário com horários** no computador (pedido do dono: "devia ser tipo um calendário"). Antes as colunas só tinham nomes e os horários tinham sido tirados; sem horário não dava para ver a rotina. Tarefas sem horário ficam numa faixa em cima, como "dia inteiro".
 
 ### 20/10 — Foco = pomodoro avulso (estilo Pomofocus)
 - O Foco não fala mais de cronômetro nem de registros: abas Foco/Pausa, Começar/Pausar/Continuar, pular, contador "#" do dia, cor muda na pausa.
