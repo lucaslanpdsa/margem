@@ -123,15 +123,16 @@ Todos os registros do dia, de todas as tarefas. Cada linha: tarefa, nota, horár
 - Cada tarefa do dia: feito, **Tudo aqui**, − / + de 15 em 15 min.
 - **Registrar X** cria um registro manual por tarefa, no dia aberto, sem horário (com Desfazer).
 
-## Janela da tarefa (`LogTimeForm.tsx`, `TimeEntries.tsx`)
+## Janela da tarefa (`TaskDialog.tsx`, `TimeEntries.tsx`)
 
 ![Janela da tarefa](img/06-janela-da-tarefa.png)
 
-Abre ao tocar numa tarefa no Dia ou em Tarefas.
+Abre ao tocar numa tarefa no Dia, em Tarefas ou na semana (aí mostra o dia da coluna tocada). **Um lugar só para a tarefa**, como no ClickUp: editar, registrar e ver os registros. Computador: detalhes à esquerda e tempo à direita. Celular: tempo primeiro, "Detalhes da tarefa" embaixo.
 
 | Bloco | Conteúdo |
 |---|---|
-| Cabeçalho | nome · **Editar** (abre o formulário) · fechar |
+| Cabeçalho | nome editável (salva ao sair do campo ou Enter) · fechar |
+| Detalhes | **Quando** (Uma vez: Hoje/Amanhã/Outro dia · Repete: Seg…Dom), **Quanto tempo leva** / **Meta de tempo**, **Horário** (vários, com aviso de conflito), **Como termina**. **Cada campo salva sozinho** (sem "Salvar"); erro aparece embaixo e não grava. Rodapé: **Excluir** (Desfazer) · **Desativar**/Reativar (as que repetem) · "As mudanças são salvas sozinhas." |
 | Feito hoje / Feito em 18/10 | total do dia aberto, "de X", barra; "Encurtada só neste dia · Voltar ao normal" quando for o caso |
 | Ações (dentro do resumo) | **Pular hoje** / Desfazer pulo (as que repetem) · **Mudar dia** (as de uma vez: Hoje, Amanhã, Próxima segunda, Outro dia) · **Concluir** / Reabrir (só "marco como feita"). Todas com aviso e Desfazer |
 | Começar | **Começar cronômetro** (some se concluída ou pulada). O pomodoro fica no Foco, separado |
@@ -141,7 +142,7 @@ Abre ao tocar numa tarefa no Dia ou em Tarefas.
 
 ---
 
-## Formulário da tarefa (`TaskForm.tsx`)
+## Formulário da tarefa (`TaskForm.tsx`, só para criar; editar é na janela da tarefa)
 
 ![Nova tarefa](img/07-nova-tarefa.png) ![Mais opções](img/08-nova-tarefa-mais-opcoes.png) ![Editar](img/09-editar-tarefa.png)
 

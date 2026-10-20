@@ -24,7 +24,7 @@ flowchart LR
    - Sem tempo ("Academia"): abre o formulário para completar.
 2. Ajustar os dias tocando em **Seg…Dom** na linha (não deixa ficar sem nenhum dia).
 3. Ajustar o tempo tocando nele ("1h") e digitando ("1h30"), Enter.
-4. Para horário fixo ou "cumpro o tempo": toque na tarefa › **Editar** › **Mais opções**.
+4. Para horário fixo ou "cumpro o tempo": toque na tarefa e mude em **Horário** ou **Como termina** (salva sozinho).
 5. Conferir **Esta semana** no topo de Tarefas: quanto sobra (verde) ou falta (vermelho) em cada dia, já contando as tarefas de uma vez. Tocar num dia abre o Dia naquela data.
 
 ## 3.3 Criar uma tarefa de uma vez

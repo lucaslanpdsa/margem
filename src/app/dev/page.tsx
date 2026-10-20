@@ -67,9 +67,9 @@ export default function DevPreview() {
 }
 
 function OpenOnLoad({ what, task }: { what: string | null; task?: Task }) {
-  const { logTime, editTask } = useDialogs();
+  const { openTask, editTask } = useDialogs();
   useEffect(() => {
-    if (what === "tarefa" && task) logTime(task);
+    if (what === "tarefa" && task) openTask(task);
     if (what === "editar" && task) editTask(task);
     if (what === "nova") editTask({ repeat: "once", date: todayKey() });
     // Abre uma vez ao carregar.

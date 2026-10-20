@@ -53,16 +53,16 @@ src/components/
   App.tsx                   casca: login, abas (#dia, #tarefas, #foco), barra lateral/inferior, cabeçalho (data abre calendário), esqueleto
   AccountMenu.tsx           menu da conta: notificações, plano/assinatura, Seus dados (baixar, excluir conta), Como funciona, Sair
   store.tsx                 auth + dados em tempo real; migra tarefas antigas; timer rodando vira registro "ao vivo"
-  dialogs.tsx               abre as janelas globais: editTask (formulário) e logTime (janela da tarefa)
+  dialogs.tsx               abre as janelas globais: editTask (sem id = criar; com id = janela) e openTask(task, dia)
   views.tsx                 aba Dia (duas colunas no computador) e "Registros de hoje"
   WeekPanel.tsx             "Esta semana" no Dia (meta, atraso) e janela Constância
   Pro.tsx                   usePlan, assinar, cartão bloqueado do Pro, sincronização da assinatura
   CapacityPanel.tsx         topo do dia: título, linha do tempo, "O que você fez?", "Para dar tempo", Detalhes
   DaySidebar.tsx            lista de tarefas do dia, criação rápida, aviso de atrasadas, concluídas
   TaskRow.tsx               linha da tarefa no Dia (círculo, progresso, ▶/■)
-  LogTimeForm.tsx           janela da tarefa: feito, começar timer, adicionar tempo, registros, pular/mudar dia/concluir
+  TaskDialog.tsx            janela da tarefa (modal único): detalhes editáveis que salvam sozinhos + feito, cronômetro, adicionar tempo, registros, pular/mudar dia/concluir
   TimeEntries.tsx           adicionar tempo (dia e nota); lista de registros única: da tarefa (por dia) e do dia (DayEntries)
-  TaskForm.tsx              formulário de criar/editar tarefa
+  TaskForm.tsx              formulário de criar tarefa (editar é no TaskDialog); conflitos de horário
   TasksPage.tsx             aba Tarefas: seu horário, Esta semana, grade "Repetem", "Não repetem" por data + concluídas, desativadas
   ScheduleEditor.tsx        editor do horário semanal e pausas
   FocusView.tsx             aba Foco: pomodoro avulso estilo Pomofocus (não registra) com lista própria de tarefas (importa as de hoje)

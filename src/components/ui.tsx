@@ -70,14 +70,18 @@ export function Modal({
   children,
   wide,
   action,
+  header,
 }: {
   title: string;
   description?: string;
   onClose: () => void;
   children: ReactNode;
-  wide?: boolean;
+  /** true = médio; "xl" = largo (janela da tarefa, duas colunas no computador). */
+  wide?: boolean | "xl";
   /** Botão extra no cabeçalho, ao lado do fechar (ex: Editar). */
   action?: ReactNode;
+  /** Cabeçalho próprio no lugar do título (ex: nome editável). O título continua como rótulo da janela. */
+  header?: ReactNode;
 }) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -90,17 +94,20 @@ export function Modal({
       <div
         role="dialog"
         aria-modal="true"
+        aria-label={title}
         className={cx(
           "max-h-[92vh] w-full overflow-y-auto rounded-t-2xl border border-line bg-surface shadow-2xl sm:rounded-2xl",
-          wide ? "sm:max-w-2xl" : "sm:max-w-lg",
+          wide === "xl" ? "sm:max-w-4xl" : wide ? "sm:max-w-2xl" : "sm:max-w-lg",
         )}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-4 px-6 pt-5">
-          <div>
-            <h2 className="text-lg font-semibold">{title}</h2>
-            {description && <p className="mt-1 text-sm text-muted">{description}</p>}
-          </div>
+          {header ?? (
+            <div>
+              <h2 className="text-lg font-semibold">{title}</h2>
+              {description && <p className="mt-1 text-sm text-muted">{description}</p>}
+            </div>
+          )}
           <div className="flex shrink-0 items-center gap-1">
             {action}
             <IconButton label="Fechar" onClick={onClose}>

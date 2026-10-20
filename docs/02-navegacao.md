@@ -66,7 +66,7 @@ flowchart TD
 | Quero… | Caminhos |
 |---|---|
 | Criar tarefa | **Nova** · campo "Nova tarefa" no Dia · campos de criação rápida em Tarefas (Repetem / Não repetem) |
-| Editar tarefa | toque na tarefa (Dia ou Tarefas) › **Editar** no cabeçalho da janela |
+| Editar tarefa | toque na tarefa (Dia, Tarefas ou semana): os campos ficam na própria janela e salvam sozinhos |
 | Mudar só o tempo | Tarefas › toque no tempo (ex: "1h") |
 | Mudar só a data | janela da tarefa › **Mudar dia** · Tarefas › toque na data · Dia › aviso de atrasadas › Trazer para hoje · Dia › "Como dar tempo" › Amanhã |
 | Mudar os dias de uma que repete | Tarefas › botões Seg…Dom da linha · formulário |

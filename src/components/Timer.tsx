@@ -49,7 +49,7 @@ export const pomodoroLabel = (p: PomodoroState) =>
  */
 export function Timer({ onFoco, onOpenFocus }: { onFoco?: boolean; onOpenFocus?: () => void }) {
   const { uid, settings, tasks } = useStore();
-  const { logTime } = useDialogs();
+  const { openTask } = useDialogs();
   const t = settings.activeTimer;
   const p = settings.pomodoro;
   const now = useNow();
@@ -87,7 +87,7 @@ export function Timer({ onFoco, onOpenFocus }: { onFoco?: boolean; onOpenFocus?:
               <span className="absolute top-0.5 right-0.5 h-2 w-2 animate-pulse rounded-full bg-over" />
             </span>
             <div className="min-w-0 flex-1">
-              <button onClick={() => task && logTime(task)} className="flex w-full min-w-0 items-baseline gap-2 text-left" title="Abrir a tarefa">
+              <button onClick={() => task && openTask(task)} className="flex w-full min-w-0 items-baseline gap-2 text-left" title="Abrir a tarefa">
                 <span className="tabular shrink-0 text-xl leading-tight font-semibold">{stopwatchText(t, now)}</span>
                 <span className="truncate text-[13px] text-muted">{task?.title ?? "Sem tarefa"}</span>
               </button>

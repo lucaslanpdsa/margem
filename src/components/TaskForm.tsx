@@ -12,7 +12,10 @@ import { Button, Field, IconButton, Modal, Segmented, TimeSelect, cx, inputCls }
 
 export type TaskDraft = Partial<Task>;
 
-/** Nome, quando, quanto tempo e (opcional) horário. Só o que entra na conta do dia. */
+/**
+ * Criar tarefa: nome, quando, quanto tempo e (opcional) horário. Só o que entra na conta do dia.
+ * Editar uma tarefa existente é na janela da tarefa (TaskDialog), que salva cada campo sozinho.
+ */
 export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: () => void }) {
   const { uid, tasks } = useStore();
   const editing = !!initial.id;
@@ -30,10 +33,9 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
   const parsed = parseDuration(estimate);
 
   // Conflitos de horário nas próximas 2 semanas (só avisa; não impede salvar).
-  const conflicts = (() => {
-    if (!slots.length) return [];
-    const draft: Task = {
-      id: initial.id ?? "__nova",
+  const conflicts = slotConflicts(
+    {
+      id: "__nova",
       title,
       repeat,
       date: repeat === "once" ? date || todayKey() : undefined,
@@ -41,24 +43,9 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
       slots,
       estimateMin: parsed ?? 0,
       createdAt: "2000-01-01T00:00:00.000Z",
-    };
-    const days = Array.from({ length: 14 }, (_, i) => shiftDay(todayKey(), i));
-    const others = tasks.filter((t) => t.id !== draft.id && !t.archived);
-    const found = findConflicts(taskTimeBlocks([draft, ...others], days)).filter((c) => c.taskId === draft.id);
-    const byTask = new Map<string, { title: string; days: Set<number>; when: string }>();
-    for (const c of found) {
-      const other = others.find((t) => t.id === c.otherId);
-      if (!other) continue;
-      const hh = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-      const cur = byTask.get(other.id) ?? { title: other.title, days: new Set<number>(), when: `${hh(c.start)}–${hh(c.end)}` };
-      cur.days.add(fromKey(c.date).getDay());
-      byTask.set(other.id, cur);
-    }
-    return [...byTask.values()].map((v) => ({
-      ...v,
-      dayText: repeat === "once" ? "" : ` (${[...v.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")})`,
-    }));
-  })();
+    },
+    tasks,
+  );
 
   // Ao mexer nos horários, o tempo da tarefa vira a soma deles (dá para mudar depois).
   const setSlots = (next: TimeSlot[]) => {
@@ -211,17 +198,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
           </button>
         )}
 
-        {conflicts.length > 0 && (
-          <div className="rounded-lg bg-break/12 px-3 py-2 text-sm text-ink">
-            {conflicts.map((c) => (
-              <p key={c.title}>
-                ⚠ Conflita com <b className="font-semibold">{c.title}</b> das {c.when}
-                {c.dayText}.
-              </p>
-            ))}
-            <p className="mt-0.5 text-xs text-muted">Dá para salvar assim mesmo, se for de propósito.</p>
-          </div>
-        )}
+        <ConflictNote conflicts={conflicts} />
 
         {error && <p className="rounded-lg bg-over/10 px-3 py-2 text-sm text-over">{error}</p>}
 
@@ -256,7 +233,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
 }
 
 /** Pede permissão de notificação, se ainda não foi dada, para os avisos de início e fim do horário. */
-function NotifyPermission() {
+export function NotifyPermission() {
   const [perm, setPerm] = useState(() => (typeof Notification !== "undefined" ? Notification.permission : "unsupported"));
   if (perm !== "default") return null;
   return (
@@ -267,7 +244,7 @@ function NotifyPermission() {
 }
 
 /** Dia da tarefa de uma vez: Hoje e Amanhã com um toque; outro dia pelo calendário. */
-function DayChoice({ value, onChange }: { value: string; onChange: (d: string) => void }) {
+export function DayChoice({ value, onChange }: { value: string; onChange: (d: string) => void }) {
   const today = todayKey();
   const tomorrow = shiftDay(today, 1);
   const other = value !== today && value !== tomorrow;
@@ -299,6 +276,43 @@ function DayChoice({ value, onChange }: { value: string; onChange: (d: string) =
           aria-label="Outro dia"
         />
       </label>
+    </div>
+  );
+}
+
+/** Tarefas com horário que se sobrepõe ao da tarefa nas próximas 2 semanas, com os dias da semana. */
+export function slotConflicts(draft: Task, tasks: Task[]) {
+  if (!slotsOf(draft).length) return [];
+  const days = Array.from({ length: 14 }, (_, i) => shiftDay(todayKey(), i));
+  const others = tasks.filter((t) => t.id !== draft.id && !t.archived);
+  const found = findConflicts(taskTimeBlocks([draft, ...others], days)).filter((c) => c.taskId === draft.id);
+  const byTask = new Map<string, { title: string; days: Set<number>; when: string }>();
+  for (const c of found) {
+    const other = others.find((t) => t.id === c.otherId);
+    if (!other) continue;
+    const hh = (iso: string) => new Date(iso).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const cur = byTask.get(other.id) ?? { title: other.title, days: new Set<number>(), when: `${hh(c.start)}–${hh(c.end)}` };
+    cur.days.add(fromKey(c.date).getDay());
+    byTask.set(other.id, cur);
+  }
+  return [...byTask.values()].map((v) => ({
+    ...v,
+    dayText: draft.repeat === "once" ? "" : ` (${[...v.days].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => WEEKDAY_SHORT[d].toLowerCase()).join(", ")})`,
+  }));
+}
+
+/** Aviso de conflito de horário (só avisa; dá para manter). */
+export function ConflictNote({ conflicts }: { conflicts: ReturnType<typeof slotConflicts> }) {
+  if (!conflicts.length) return null;
+  return (
+    <div className="rounded-lg bg-break/12 px-3 py-2 text-sm text-ink">
+      {conflicts.map((c) => (
+        <p key={c.title}>
+          ⚠ Conflita com <b className="font-semibold">{c.title}</b> das {c.when}
+          {c.dayText}.
+        </p>
+      ))}
+      <p className="mt-0.5 text-xs text-muted">Dá para manter assim, se for de propósito.</p>
     </div>
   );
 }

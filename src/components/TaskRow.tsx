@@ -29,7 +29,7 @@ interface Props {
 
 export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, outside, checkable = true, warning }: Props) {
   const { uid, settings } = useStore();
-  const { logTime } = useDialogs();
+  const { openTask } = useDialogs();
   const timer = useTimerActions();
   const toast = useToast();
   const running = settings.activeTimer?.taskId === task.id;
@@ -69,7 +69,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
       )}
 
       {/* Toque abre a tarefa no dia: registrar tempo, concluir, pular, editar. */}
-      <button className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-2 text-left" onClick={() => logTime(task)}>
+      <button className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-2 text-left" onClick={() => openTask(task)}>
         <span className="min-w-0 flex-1">
           <span className={cx("line-clamp-2 text-sm font-medium", (completed || skipped) && "text-muted line-through")}>{task.title}</span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted">

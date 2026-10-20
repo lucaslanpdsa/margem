@@ -473,7 +473,7 @@ function dayEvents(m: DayMetrics): CalEvent[] {
  * Tarefas sem horário ficam numa faixa em cima, como "dia inteiro" de um calendário. Tocar abre o formulário da tarefa.
  */
 function WeekCalendar({ ms, now, today }: { ms: DayMetrics[]; now: Date; today: string }) {
-  const { editTask } = useDialogs();
+  const { openTask } = useDialogs();
   const events = ms.map(dayEvents);
   const untimed = ms.map((m) => m.items.filter((i) => !i.skipped && !slotsOf(i.task).length));
   // Faixa de horas: do mais cedo ao mais tarde entre o seu horário e as tarefas.
@@ -495,7 +495,7 @@ function WeekCalendar({ ms, now, today }: { ms: DayMetrics[]; now: Date; today: 
               {list.map((i) => (
                 <li key={i.task.id}>
                   <button
-                    onClick={() => editTask(i.task)}
+                    onClick={() => openTask(i.task, ms[d].date)}
                     title={`${i.task.title} · ${fmtMin(i.estimateMin)}`}
                     className={cx("flex w-full items-baseline gap-1 rounded-md border-l-2 px-1.5 py-1 text-left text-[11px] hover:brightness-95", itemCls(i))}
                   >
@@ -530,7 +530,7 @@ function WeekCalendar({ ms, now, today }: { ms: DayMetrics[]; now: Date; today: 
                 return (
                   <button
                     key={k}
-                    onClick={() => editTask(e.item.task)}
+                    onClick={() => openTask(e.item.task, ms[d].date)}
                     title={`${e.item.task.title} · ${when}${e.item.outside ? " · extra (fora do seu horário)" : ""}`}
                     className={cx("absolute overflow-hidden rounded-md border-l-2 px-1.5 py-0.5 text-left text-[11px] leading-tight hover:brightness-95", itemCls(e.item))}
                     style={{ top: y(e.start) + 1, height: h - 2, left: `calc(${(e.lane / e.lanes) * 100}% + 2px)`, width: `calc(${100 / e.lanes}% - 4px)` }}
@@ -561,7 +561,7 @@ const fmtClock = (min: number) => `${String(Math.floor(min / 60) % 24).padStart(
  * Tocar abre o formulário da tarefa (Tarefas é a área de editar; o dia em si abre por "Abrir o dia").
  */
 function DayActivities({ m }: { m: DayMetrics }) {
-  const { editTask } = useDialogs();
+  const { openTask } = useDialogs();
   const items = m.items
     .filter((i) => !i.skipped)
     .sort((a, b) => {
@@ -579,7 +579,7 @@ function DayActivities({ m }: { m: DayMetrics }) {
         return (
           <li key={i.task.id}>
             <button
-              onClick={() => editTask(i.task)}
+              onClick={() => openTask(i.task, m.date)}
               className={cx("flex w-full items-center gap-3 rounded-lg border-l-2 px-3 py-2 text-left transition-colors hover:brightness-95", itemCls(i))}
             >
               <span className="tabular w-[5.5rem] shrink-0 text-xs leading-snug text-muted">
@@ -632,7 +632,7 @@ function PausedCard({ tasks }: { tasks: Task[] }) {
 
 /** Nome (abre a janela da tarefa, igual ao Dia; desativadas abrem a edição) e, embaixo, tempo editável e horários. */
 function TaskName({ task, sub }: { task: Task; sub?: string }) {
-  const { editTask, logTime } = useDialogs();
+  const { editTask, openTask } = useDialogs();
   const { settings } = useStore();
   const slots = slotText(task);
   // Horário fora do seu horário em todos os dias dela: não entra nas contas (ex: academia à noite).
@@ -641,7 +641,7 @@ function TaskName({ task, sub }: { task: Task; sub?: string }) {
   return (
     <div className="min-w-0 flex-1">
       <button
-        onClick={() => (task.archived ? editTask(task) : logTime(task))}
+        onClick={() => (task.archived ? editTask(task) : openTask(task))}
         className="block max-w-full truncate text-left text-sm font-medium hover:text-todo"
         title={task.archived ? "Editar" : "Abrir tarefa"}
       >
