@@ -1,11 +1,11 @@
 "use client";
 
-import { Bell, Minus, MoreHorizontal, Plus, RotateCcw, SkipForward } from "lucide-react";
+import { Bell, Minus, MoreHorizontal, Pause, Play, Plus, RotateCcw, SkipForward } from "lucide-react";
 import { useState } from "react";
 import { saveSettings } from "@/lib/db";
 import { countToday, isRunning, pausePomodoro, skipPhase, startPomodoro, switchPhase } from "@/lib/pomodoro";
 import { useStore } from "./store";
-import { pomodoroDisplay, useNow } from "./Timer";
+import { pomodoroDisplay, pomodoroLabel, useNow } from "./Timer";
 import { Button, IconButton, Modal, Switch, cx } from "./ui";
 
 /**
@@ -21,21 +21,22 @@ export function FocusView() {
   const brk = phase === "break";
   const running = isRunning(p);
   const paused = !!p && p.pausedLeftMs !== undefined;
-  const clock = p ? pomodoroDisplay(p, now).text : `${String(settings.focusMin).padStart(2, "0")}:00`;
+  const pd = p ? pomodoroDisplay(p, now) : null;
+  const clock = pd?.text ?? `${String(settings.focusMin).padStart(2, "0")}:00`;
   const done = countToday(p);
 
   const tab = (value: "focus" | "break", label: string) => (
     <button
       onClick={() => value !== phase || running || paused ? switchPhase(uid, settings, value) : undefined}
       aria-pressed={phase === value}
-      className={cx("rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors", phase === value ? "bg-surface/80 text-ink shadow-sm" : "text-ink/60 hover:text-ink")}
+      className={cx("rounded-lg px-5 py-1.5 text-sm font-semibold transition-colors", phase === value ? "bg-surface text-ink shadow-sm" : "text-muted hover:text-ink")}
     >
       {label}
     </button>
   );
 
   return (
-    <div className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-md flex-col items-center justify-center gap-5 lg:min-h-[calc(100dvh-5rem)]">
+    <div className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-md flex-col items-center justify-center gap-6 lg:min-h-[calc(100dvh-5rem)]">
       <div className="flex w-full items-center justify-between">
         <h2 className="text-lg font-semibold tracking-tight">Pomodoro</h2>
         <IconButton label="Configurar pomodoro" onClick={() => setMenu(true)}>
@@ -43,30 +44,36 @@ export function FocusView() {
         </IconButton>
       </div>
 
-      {/* Cartão no estilo do Pomofocus: a cor muda entre foco e pausa. */}
-      <section className={cx("w-full rounded-3xl px-6 pt-5 pb-7 text-center transition-colors duration-500", brk ? "bg-done/15" : "bg-todo/12")}>
-        <div className="inline-flex gap-1 rounded-xl bg-ink/5 p-1">
-          {tab("focus", "Foco")}
-          {tab("break", "Pausa")}
-        </div>
-        <p className="tabular mt-6 text-[88px] leading-none font-semibold tracking-tight sm:text-[104px]">{clock}</p>
-        <div className="mt-7 flex items-center justify-center gap-3">
-          <button
-            onClick={() => (running ? pausePomodoro(uid, settings) : startPomodoro(uid, settings))}
-            className={cx(
-              "h-14 w-48 rounded-2xl bg-surface text-lg font-bold tracking-wide uppercase shadow-[0_6px_0_var(--line)] transition-transform active:translate-y-1 active:shadow-none",
-              brk ? "text-done" : "text-todo",
-            )}
-          >
-            {running ? "Pausar" : paused ? "Continuar" : "Começar"}
-          </button>
-          {(running || paused) && (
-            <IconButton label={brk ? "Pular pausa" : "Pular para a pausa"} onClick={() => skipPhase(uid, settings)} className="h-12 w-12 text-ink/70">
-              <SkipForward size={22} fill="currentColor" />
-            </IconButton>
+      <div className="inline-flex gap-1 rounded-xl bg-sunken p-1">
+        {tab("focus", "Foco")}
+        {tab("break", "Pausa")}
+      </div>
+
+      {/* O anel vai se preenchendo; azul no foco, verde na pausa. */}
+      <div className={brk ? "text-done" : "text-todo"}>
+        <Ring pct={pd ? pd.pct : 0} size={280}>
+          <span className="tabular text-[72px] leading-none font-semibold tracking-tight text-ink">{clock}</span>
+          <span className="mt-3 text-sm text-muted">{p ? pomodoroLabel(p) : "Pronto para focar"}</span>
+        </Ring>
+      </div>
+
+      <div className="flex w-full items-center justify-center gap-3">
+        <button
+          onClick={() => (running ? pausePomodoro(uid, settings) : startPomodoro(uid, settings))}
+          className={cx(
+            "flex h-14 flex-1 items-center justify-center gap-2 rounded-full text-base font-semibold transition-colors",
+            running ? "border border-line bg-surface text-ink hover:bg-sunken" : "bg-brand text-brand-ink hover:bg-brand/90",
           )}
-        </div>
-      </section>
+        >
+          {running ? <Pause size={16} fill="currentColor" /> : <Play size={15} fill="currentColor" />}
+          {running ? "Pausar" : paused ? "Continuar" : brk ? "Começar pausa" : "Começar foco"}
+        </button>
+        {(running || paused) && (
+          <IconButton label={brk ? "Pular pausa" : "Pular para a pausa"} onClick={() => skipPhase(uid, settings)} className="h-14 w-14 rounded-full border border-line bg-surface">
+            <SkipForward size={20} />
+          </IconButton>
+        )}
+      </div>
 
       <div className="text-center">
         <p className="tabular text-sm text-muted">#{brk ? done : done + 1}</p>
@@ -81,6 +88,35 @@ export function FocusView() {
       )}
 
       {menu && <PomodoroMenu onClose={() => setMenu(false)} />}
+    </div>
+  );
+}
+
+function Ring({ pct, size = 300, children }: { pct: number; size?: number; children: React.ReactNode }) {
+  const stroke = 10;
+  const r = size / 2 - stroke;
+  const c = 2 * Math.PI * r;
+  const fill = pct / 100;
+  const mid = size / 2;
+  return (
+    <div className="relative" style={{ width: size, height: size }}>
+      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
+        <circle cx={mid} cy={mid} r={r} fill="none" stroke="var(--sunken)" strokeWidth={stroke} />
+        <circle
+          cx={mid}
+          cy={mid}
+          r={r}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          strokeDasharray={c}
+          strokeDashoffset={c * (1 - fill)}
+          transform={`rotate(-90 ${mid} ${mid})`}
+          className="transition-[stroke-dashoffset] duration-1000"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
     </div>
   );
 }

@@ -196,8 +196,8 @@ Pomodoro avulso, no estilo do Pomofocus. **Não registra tempo e não fala de ta
 
 | Elemento | Detalhe |
 |---|---|
-| Cartão | abas **Foco / Pausa** (trocar zera e deixa a fase pronta), relógio grande, cor azul no foco e verde na pausa |
-| Botões | **Começar** · **Pausar** · **Continuar**; ⏭ pula para a próxima fase (foco pulado não conta) |
+| Tela | abas **Foco / Pausa** (trocar zera e deixa a fase pronta) e o **anel que vai se preenchendo** com o relógio (azul no foco, verde na pausa) |
+| Botões | **Começar foco** / **Começar pausa** · **Pausar** · **Continuar**; ⏭ pula para a próxima fase (foco pulado não conta) |
 | Embaixo | "#2 · Hora de focar!" / "Hora da pausa!", "3 pomodoros hoje", **Zerar** |
 | ··· | foco e pausa em minutos, início automático, avisos |
 
