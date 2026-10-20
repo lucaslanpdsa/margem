@@ -30,6 +30,8 @@ export interface Task {
   /** Tempo só de um dia, no lugar do normal { "2026-10-16": 360 } (ex: "encurtar hoje"). */
   estimateFor?: Record<string, number>;
   archived?: boolean;
+  /** Pausas do pomodoro contam como tempo feito nesta tarefa (ex: trabalho). Ausente = só o foco conta. */
+  countBreaks?: boolean;
   createdAt: string;
 }
 
@@ -75,6 +77,8 @@ export interface ActiveTimer {
   durationMin: number;
   /** Fase pronta, esperando a pessoa tocar em começar (início automático desligado). */
   waiting?: boolean;
+  /** Copiado da tarefa ao começar: a pausa também conta como feito. */
+  countBreaks?: boolean;
 }
 
 /** Horário de um dia, "HH:mm". */

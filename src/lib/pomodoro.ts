@@ -10,7 +10,8 @@ import type { ActiveTimer, Session, Settings } from "./types";
  * O timer ativo fica salvo como "começou em X" nas configurações,
  * então sobrevive a recarregar a página e aparece igual em outro dispositivo.
  *
- * Pomodoro: foco com tempo fixo, depois pausa. Só o foco conta como feito.
+ * Pomodoro: foco com tempo fixo, depois pausa. Só o foco conta como feito,
+ * a não ser que a tarefa conte as pausas (countBreaks, ex: trabalho): aí a pausa vira um registro "pausa-…" na tarefa.
  * Cronômetro: livre, conta até parar.
  * Sessão sem tarefa: conta como feito no dia e o app pergunta em que a pessoa trabalhou.
  */
@@ -27,10 +28,12 @@ export const LIVE_SESSION_ID = "ao-vivo";
 
 /**
  * O timer rodando como um registro provisório, para o tempo entrar na conta do dia ao vivo.
- * Só o foco conta (pausa e fase esperando, não). Some quando o timer para e vira um registro de verdade.
+ * Conta o foco e, se a tarefa conta as pausas, a pausa (fase esperando, não). Some quando o timer para e vira um registro de verdade.
  */
+export const countsNow = (t: ActiveTimer) => !t.waiting && (t.phase === "focus" || (!!t.countBreaks && !!t.taskId));
+
 export function liveSession(t: ActiveTimer | null | undefined, now = Date.now()): Session | null {
-  if (!t || t.waiting || t.phase !== "focus") return null;
+  if (!t || !countsNow(t)) return null;
   const minutes = elapsedMin(t, now);
   if (minutes < 1) return null;
   return {
@@ -77,13 +80,18 @@ export interface Closed {
 /** Encerra o que estiver rodando, gravando o tempo que deve contar. Devolve o foco encerrado, se havia. */
 async function closeCurrent(uid: string, settings: Settings, endedAt = new Date()): Promise<Closed | null> {
   const t = settings.activeTimer;
-  if (!t || t.waiting || t.phase !== "focus") return null;
+  if (!t || !countsNow(t)) return null;
   const min = elapsedMin(t, endedAt.getTime());
+  // Pausa interrompida (parar ou pular) numa tarefa que conta pausas: grava o que passou dela.
+  if (t.phase === "break") {
+    await record(uid, t, min, endedAt, "pausa");
+    return null;
+  }
   const minutes = await record(uid, t, min, endedAt, isStopwatch(t) ? "sw" : "pomo");
   return { taskId: t.taskId, minutes };
 }
 
-export async function startTimer(uid: string, settings: Settings, taskId: string, mode: "pomodoro" | "stopwatch" = "pomodoro") {
+export async function startTimer(uid: string, settings: Settings, taskId: string, mode: "pomodoro" | "stopwatch" = "pomodoro", countBreaks = false) {
   const closed = await closeCurrent(uid, settings);
   await saveSettings(uid, {
     lastTimerMode: mode,
@@ -93,6 +101,7 @@ export async function startTimer(uid: string, settings: Settings, taskId: string
       phase: "focus",
       startedAt: new Date().toISOString(),
       durationMin: mode === "stopwatch" ? 0 : settings.focusMin,
+      ...(countBreaks && mode === "pomodoro" ? { countBreaks: true } : {}),
     },
   });
   return closed;
@@ -116,6 +125,7 @@ const phase = (t: ActiveTimer, settings: Settings, p: "focus" | "break", auto: b
   startedAt: new Date().toISOString(),
   durationMin: p === "focus" ? settings.focusMin : settings.breakMin,
   waiting: !auto,
+  ...(t.countBreaks ? { countBreaks: true } : {}),
 });
 
 /** Fim natural de uma fase do pomodoro (chamado pelo timer quando o tempo acaba). */
@@ -125,6 +135,7 @@ export async function finishPhase(uid: string, settings: Settings, t: ActiveTime
     await record(uid, t, t.durationMin, endedAt, "pomo");
     await saveSettings(uid, { activeTimer: phase(t, settings, "break", !!settings.autoStartBreaks) });
   } else {
+    if (t.countBreaks && t.taskId) await record(uid, t, t.durationMin, endedAt, "pausa");
     await saveSettings(uid, { activeTimer: phase(t, settings, "focus", !!settings.autoStartFocus) });
   }
 }

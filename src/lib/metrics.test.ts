@@ -397,3 +397,21 @@ describe("plano (grátis ou Pro)", () => {
     expect(planOf({ status: "cancelled", paidUntil: "2026-10-10T00:00:00Z" }, old, now, true).pro).toBe(false);
   });
 });
+
+describe("pausas do pomodoro", () => {
+  const now = new Date("2026-10-20T10:04:00").getTime();
+  const pausa = { mode: "pomodoro" as const, taskId: "trabalho", phase: "break" as const, startedAt: new Date("2026-10-20T10:00:00").toISOString(), durationMin: 5 };
+
+  it("por padrão a pausa não conta", () => {
+    expect(liveSession(pausa, now)).toBeNull();
+  });
+
+  it("tarefa que conta pausas: a pausa entra ao vivo no dia", () => {
+    expect(liveSession({ ...pausa, countBreaks: true }, now)?.minutes).toBe(4);
+  });
+
+  it("pausa esperando ou sem tarefa não conta, mesmo com a opção", () => {
+    expect(liveSession({ ...pausa, countBreaks: true, waiting: true }, now)).toBeNull();
+    expect(liveSession({ ...pausa, countBreaks: true, taskId: "" }, now)).toBeNull();
+  });
+});

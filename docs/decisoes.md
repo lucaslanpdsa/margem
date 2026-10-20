@@ -4,6 +4,11 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 20/10 — Pausa do pomodoro pode contar, por tarefa
+- Revisto o "só o foco conta" de 16/10: no trabalho do dono a pausa faz parte do expediente.
+- **Por tarefa, não global**: "Trabalho" conta as pausas, "Estudar" não (a meta da semana e a constância continuam honestas). A chave fica no **Foco**, abaixo da tarefa escolhida, e é guardada na tarefa (`countBreaks`), então vale também para o ▶. A configuração inicial já cria "Trabalho" com ela ligada.
+- Considerado e não feito (por ora): mostrar a pausa como "Pausa" na barra do dia para tarefas que não contam (hoje ela aparece como "sem registro").
+
 ### 19/10 — Produto pago para quem trabalha e estuda
 - **Público**: quem trabalha e estuda (ver [06](06-publico-alvo.md)); plano em [07](07-plano-assinatura.md).
 - **Meta da semana sem campo novo**: é a soma do planejado nos dias da tarefa. As metas semanais antigas (removidas em 16/10) eram outro tipo de tarefa e confundiam; esta é só um acompanhamento das tarefas que repetem.

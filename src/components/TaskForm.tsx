@@ -92,6 +92,7 @@ export function TaskForm({ initial, onClose }: { initial: TaskDraft; onClose: ()
       skipped: repeat === "weekdays" ? initial.skipped : undefined,
       estimateFor: initial.estimateFor,
       archived: repeat === "weekdays" ? initial.archived : undefined,
+      countBreaks: initial.countBreaks,
     };
     if (editing) await replaceTask(uid, { ...data, id: initial.id!, createdAt: initial.createdAt! });
     else await addTask(uid, data);

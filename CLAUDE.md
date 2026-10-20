@@ -91,7 +91,7 @@ src/lib/
 
 ## Modelo de dados (Firestore, `users/{uid}/…`)
 
-- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `archived` (desativada), `createdAt`.
+- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `archived` (desativada), `countBreaks` (pausas do pomodoro contam; registros `pausa-…`), `createdAt`.
 - `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, `pomo-` pomodoro, outro = manual.
 - `billing/{uid}` (fora de `users/`): `status` (`active` | `pending` | `paused` | `cancelled` | `none`), `period`, `paidUntil`, `preapprovalId`, `updatedAt`. **Só o servidor grava** (regras em `firestore.rules`).
 - `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer`, `lastTimerMode`, `pendingAssign`, `scheduleSet`, `onboarded`.

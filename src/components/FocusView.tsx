@@ -3,7 +3,7 @@
 import { Bell, Check, ChevronDown, Minus, MoreHorizontal, Play, Plus, Square } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
-import { saveSettings, updateSession } from "@/lib/db";
+import { saveSettings, updateSession, updateTask } from "@/lib/db";
 import { dayItems } from "@/lib/metrics";
 import { isStopwatch, skipBreak, startWaiting } from "@/lib/pomodoro";
 import type { Task } from "@/lib/types";
@@ -256,6 +256,9 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
         ) : (
           <TaskSelect value={taskId} onChange={setTaskId} />
         )}
+        {shownMode === "pomodoro" && (running ? runningTask : tasks.find((x) => x.id === taskId)) && (
+          <BreaksToggle task={(running ? runningTask : tasks.find((x) => x.id === taskId))!} />
+        )}
 
         {!t ? (
           <button
@@ -304,6 +307,29 @@ export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
 
       <History />
       {menu && <PomodoroMenu onClose={() => setMenu(false)} />}
+    </div>
+  );
+}
+
+/**
+ * "Contar as pausas": fica no Foco, junto da tarefa, mas a escolha é guardada na tarefa
+ * (vale também para o ▶ da linha). Trabalho costuma contar; estudo, só o foco.
+ */
+function BreaksToggle({ task }: { task: Task }) {
+  const { uid, settings } = useStore();
+  const on = !!task.countBreaks;
+  const set = (v: boolean) => {
+    updateTask(uid, task.id, { countBreaks: v });
+    // Timer rodando nesta tarefa: passa a valer já na próxima pausa.
+    const t = settings.activeTimer;
+    if (t && t.taskId === task.id) saveSettings(uid, { activeTimer: { ...t, countBreaks: v } });
+  };
+  return (
+    <div className="rounded-xl border border-line bg-surface px-4 py-1.5">
+      <Switch label="Contar as pausas nesta tarefa" checked={on} onChange={set} />
+      <p className="pb-1.5 text-xs text-muted">
+        {on ? `A pausa de ${settings.breakMin}min entra nas horas de ${task.title}.` : "Só o foco conta. Ligue para trabalho, em que a pausa faz parte do expediente."}
+      </p>
     </div>
   );
 }

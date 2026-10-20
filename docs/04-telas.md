@@ -194,7 +194,7 @@ No computador: horário e semana lado a lado, com a mesma altura; "Repetem" ao l
 
 | Estado | Tela |
 |---|---|
-| Parado | Pomodoro / Cronômetro (abre no último modo usado) · relógio · "Pronto para começar" · tarefa (lista própria com as abertas de hoje e quanto falta, ou "Sem tarefa") · **Começar** |
+| Parado | Pomodoro / Cronômetro (abre no último modo usado) · relógio · "Pronto para começar" · tarefa (lista própria com as abertas de hoje e quanto falta, ou "Sem tarefa") · no Pomodoro com tarefa: **Contar as pausas nesta tarefa** (guardado na tarefa; também aparece com o timer rodando) · **Começar** |
 | Foco rodando | modo · anel · "Foco" / "Contando" · tarefa · "Começou às … · Mudar" · **Parar e registrar** |
 | Pausa pronta | **Começar pausa** · Encerrar · Pular pausa |
 | Pausa rodando | Encerrar · **Próximo foco** |

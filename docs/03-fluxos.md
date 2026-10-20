@@ -102,7 +102,7 @@ stateDiagram-v2
 ```
 
 - Com **Pausas automáticas** ligado, "Pausa pronta" vira "Pausa" direto. Com **Início de foco automático**, "Próximo foco" vira "Foco" direto. Os dois vêm desligados.
-- Só o foco conta como feito.
+- Só o foco conta como feito, a não ser que a tarefa tenha **Contar as pausas nesta tarefa** ligado (Foco, abaixo da tarefa; vale também para o ▶). Aí a pausa vira um registro "pausa do pomodoro" na tarefa e conta ao vivo no dia.
 - Avisos (notificação, se permitida, e bipe) no fim do foco e da pausa.
 
 ## 3.9 Horário da tarefa e avisos

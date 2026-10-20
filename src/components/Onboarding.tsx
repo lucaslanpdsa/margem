@@ -206,7 +206,7 @@ export function Onboarding() {
   const finish = async (skip = false) => {
     if (!skip && offerRoutine) {
       const workdays = [1, 2, 3, 4, 5];
-      if (routine.work) await addTask(uid, { title: "Trabalho", repeat: "weekdays", weekdays: workdays, estimateMin: routine.workMin, doneBy: "time" });
+      if (routine.work) await addTask(uid, { title: "Trabalho", repeat: "weekdays", weekdays: workdays, estimateMin: routine.workMin, doneBy: "time", countBreaks: true });
       if (routine.study && routine.studyTitle.trim())
         await addTask(uid, { title: routine.studyTitle.trim(), repeat: "weekdays", weekdays: routine.studyDays, estimateMin: routine.studyMin });
     }

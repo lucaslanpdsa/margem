@@ -117,7 +117,9 @@ export function useTimerActions() {
   };
 
   return {
-    start: async (taskId: string, mode: "pomodoro" | "stopwatch") => report(await startTimer(uid, settings, taskId, mode)),
+    // A tarefa decide se as pausas do pomodoro contam (escolha feita no Foco).
+    start: async (taskId: string, mode: "pomodoro" | "stopwatch") =>
+      report(await startTimer(uid, settings, taskId, mode, !!tasks.find((t) => t.id === taskId)?.countBreaks)),
     stop: async () => report(await stopTimer(uid, settings)),
   };
 }
