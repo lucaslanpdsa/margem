@@ -165,14 +165,14 @@ Abre ao tocar numa tarefa no Dia ou em Tarefas.
 
 ![Tarefas](img/10-tarefas.png)
 
-No computador: horário e semana lado a lado, com a mesma altura; "Repetem" ao lado de "Não repetem".
+Horário numa linha e a semana como agenda, na largura toda; no computador, "Repetem" ao lado de "Não repetem".
 
 ![Tarefas no computador](img/18-tarefas-computador.png)
 
 | Bloco | Conteúdo e ações |
 |---|---|
-| Seu horário | resumo com um trecho por linha ("Seg a Sex, 08:00–18:00" / "Sáb, 09:00–12:00" / "Almoço 12:00–13:00") · **Editar** |
-| Esta semana / Próxima | 7 dias com quanto sobra (verde) ou falta (vermelho), contando as que repetem e as de uma vez; dias passados mostram o feito; hoje destacado; "N dias com mais do que cabe"; **tocar abre o Dia** naquela data |
+| Seu horário | uma linha: "Seu horário · Seg a Sex, 08:00–18:00 · Sáb, 09:00–12:00 · Almoço 12:00–13:00 · **Editar**" (no celular o horário desce para a linha de baixo) |
+| Esta semana / Próxima | agenda da semana: 7 dias com quanto sobra (verde) ou falta (vermelho) e **as atividades de cada dia** em ordem de horário (nome, início ou tempo, "extra" em laranja, concluídas riscadas). Computador: 7 colunas; tocar no dia ou numa atividade abre o Dia. Celular: faixa de dias; tocar num dia mostra as atividades dele embaixo (hoje aberto), com **Abrir o dia ›** |
 | Buscar tarefa | filtra pelo nome, sem acentos |
 | Repetem | por linha: nome (abre a janela da tarefa), tempo editável, horário, "meta de tempo", "extra", botões **Seg…Dom** abaixo do nome (ligado = azul claro, desligado = contorno; largura toda no celular). Criação rápida "Nova que repete, ex: Academia 1h" (sem tempo abre o formulário) |
 | Não repetem | grupos Atrasadas, Hoje, Amanhã, Esta semana, Depois; por linha: nome (abre a janela), tempo editável, horário, data (menu: Hoje, Amanhã, Próxima segunda, Outro dia; com Desfazer). **Concluídas · últimos 7 dias** recolhido, com **Reabrir**. Criação rápida "Nova para hoje, ex: Revisar PR 45m" (sem tempo abre o formulário) |

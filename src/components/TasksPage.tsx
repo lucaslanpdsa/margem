@@ -4,7 +4,7 @@ import { Archive, ArchiveRestore, Check, ChevronDown, Clock, Plus, Search } from
 import { useState } from "react";
 import { WEEKDAY_SHORT, dayName, fmtMin, fromKey, parseDuration, parseQuickAdd, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addTask, saveSettings, toggleDone, updateTask } from "@/lib/db";
-import { dayMetrics } from "@/lib/metrics";
+import { dayMetrics, type DayMetrics } from "@/lib/metrics";
 import { allSlotsOutside, slotsOf, toMin, weekdayCapacity } from "@/lib/schedule";
 import type { DayWindow, Task } from "@/lib/types";
 import { DayMenu } from "./DayMenu";
@@ -60,10 +60,10 @@ export function TasksPage({ onOpenDay }: { onOpenDay: (date: string) => void }) 
   const paused = tasks.filter((t) => t.archived && !(t.repeat === "once" && t.completedAt));
 
   return (
-    // No computador: horário e semana lado a lado, e "Repetem" ao lado de "Não repetem".
+    // No computador: "Repetem" ao lado de "Não repetem".
     <div className="mx-auto max-w-3xl space-y-4 lg:max-w-6xl">
-      {/* Mesma altura lado a lado no computador: o horário costuma ser mais baixo que a semana. */}
-      <div className="grid gap-4 lg:grid-cols-2">
+      {/* Horário numa linha e a semana como agenda, na largura toda. */}
+      <div className="space-y-2">
         <ScheduleCard />
         <WeekCard onOpenDay={onOpenDay} />
       </div>
@@ -117,27 +117,22 @@ function ScheduleCard() {
     setEditing(null);
   }
 
+  // Uma linha só, em cima da semana: o horário é contexto, não precisa de cartão próprio.
   return (
-    <section className="flex flex-col rounded-2xl border border-line bg-surface">
+    <section>
       <button
         onClick={() => setEditing({ windows: settings.windows, breaks: settings.breaks })}
-        className="flex w-full flex-1 items-center gap-3 rounded-2xl px-4 py-3.5 text-left hover:bg-sunken/50 sm:px-5"
+        className="flex w-full flex-wrap items-center gap-x-2 gap-y-0.5 rounded-xl border border-line bg-surface px-4 py-2.5 text-left text-[13px] hover:bg-sunken/50"
         title="Mudar seu horário"
       >
-        <Clock size={18} className="shrink-0 text-todo" />
-        <span className="min-w-0 flex-1">
-          <span className="block text-[15px] font-semibold">Seu horário</span>
-          {/* Um trecho por linha, para não quebrar um horário no meio. */}
-          <span className="tabular mt-0.5 block text-[13px] leading-relaxed text-muted">
-            {describeWindows(settings.windows).map((p) => (
-              <span key={p} className="block">
-                {p}
-              </span>
-            ))}
-            {breaks && <span className="block">{breaks}</span>}
-          </span>
+        <Clock size={15} className="shrink-0 text-todo" />
+        <span className="font-semibold">Seu horário</span>
+        {/* No celular o horário desce para a linha de baixo, inteiro. */}
+        <span className="tabular order-last min-w-0 basis-full pl-[23px] text-muted sm:order-none sm:flex-1 sm:basis-auto sm:pl-0">
+          {describeWindows(settings.windows).join(" · ")}
+          {breaks && ` · ${breaks}`}
         </span>
-        <span className="shrink-0 text-[13px] font-medium text-accent">Editar</span>
+        <span className="ml-auto font-medium text-accent sm:ml-0">Editar</span>
       </button>
       {editing && (
         <Modal
@@ -343,6 +338,10 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
   const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now));
   const ahead = ms.filter((m) => m.date >= today && m.window);
   const tight = ahead.filter((m) => m.freeMin < 0).length;
+  // Dia aberto no celular: hoje (ou segunda, na próxima semana) até tocar em outro.
+  const [picked, setPicked] = useState<string | null>(null);
+  const shown = picked && days.includes(picked) ? picked : days.includes(today) ? today : days[0];
+  const shownMetrics = ms.find((m) => m.date === shown);
 
   return (
     <section className="rounded-2xl border border-line bg-surface">
@@ -350,7 +349,7 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
         <div>
           <h2 className="text-[15px] font-semibold">{next ? "Próxima semana" : "Esta semana"}</h2>
           <p className={cx("text-[13px]", tight ? "text-over" : "text-muted")}>
-            {tight ? `${tight === 1 ? "1 dia" : `${tight} dias`} com mais do que cabe` : "Sobra em cada dia. Toque para abrir."}
+            {tight ? `${tight === 1 ? "1 dia" : `${tight} dias`} com mais do que cabe` : "O que você tem em cada dia e quanto sobra."}
           </p>
         </div>
         <Segmented
@@ -362,7 +361,8 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
           ]}
         />
       </header>
-      <div className="grid grid-cols-7 gap-1 px-2 pb-3 sm:px-4">
+      {/* Celular: faixa de dias; o dia escolhido mostra as atividades embaixo. Computador: 7 colunas com as atividades. */}
+      <div className="grid grid-cols-7 gap-1 px-2 pb-3 sm:px-4 lg:items-start">
         {ms.map((m) => {
           const d = fromKey(m.date);
           const past = m.date < today;
@@ -370,23 +370,85 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
           const late = !past && m.freeMin < 0;
           const value = !m.window ? "–" : past ? fmtMin(m.doneMin) : late ? `-${fmtMin(-m.freeMin)}` : fmtMin(m.freeMin);
           return (
-            <button
-              key={m.date}
-              onClick={() => onOpenDay(m.date)}
-              className={cx(
-                "flex min-h-16 flex-col items-center justify-center rounded-xl px-0.5 py-2 transition-colors hover:bg-sunken",
-                isToday && "bg-todo/[0.07] ring-1 ring-todo/40",
-              )}
-              title={!m.window ? "Sem horário" : past ? `${fmtMin(m.doneMin)} feitos` : late ? `${fmtMin(-m.freeMin)} a mais do que cabe` : `Sobram ${fmtMin(m.freeMin)}`}
-            >
-              <span className={cx("text-[11px] font-semibold", isToday ? "text-todo" : "text-muted")}>{WEEKDAY_SHORT[d.getDay()]}</span>
-              <span className={cx("text-sm font-semibold", past && "text-muted")}>{d.getDate()}</span>
-              <span className={cx("tabular mt-0.5 text-[11px] font-semibold", !m.window || past ? "text-muted" : late ? "text-over" : "text-done")}>{value}</span>
-            </button>
+            <div key={m.date} className="min-w-0">
+              <button
+                onClick={() => (isDesktop() ? onOpenDay(m.date) : setPicked(m.date))}
+                className={cx(
+                  "flex min-h-16 w-full flex-col items-center justify-center rounded-xl px-0.5 py-2 transition-colors hover:bg-sunken",
+                  isToday && "bg-todo/[0.07] ring-1 ring-todo/40",
+                  shown === m.date && !isToday && "bg-sunken lg:bg-transparent",
+                )}
+                title={!m.window ? "Sem horário" : past ? `${fmtMin(m.doneMin)} feitos` : late ? `${fmtMin(-m.freeMin)} a mais do que cabe` : `Sobram ${fmtMin(m.freeMin)}`}
+              >
+                <span className={cx("text-[11px] font-semibold", isToday ? "text-todo" : "text-muted")}>{WEEKDAY_SHORT[d.getDay()]}</span>
+                <span className={cx("text-sm font-semibold", past && "text-muted")}>{d.getDate()}</span>
+                <span className={cx("tabular mt-0.5 text-[11px] font-semibold", !m.window || past ? "text-muted" : late ? "text-over" : "text-done")}>{value}</span>
+              </button>
+              <div className="mt-1 hidden lg:block">
+                <DayActivities m={m} compact onOpen={() => onOpenDay(m.date)} />
+              </div>
+            </div>
           );
         })}
       </div>
+      {/* Celular: atividades do dia escolhido. */}
+      {shownMetrics && (
+        <div className="border-t border-line px-4 pt-3 pb-4 lg:hidden">
+          <div className="mb-2 flex items-baseline justify-between">
+            <p className="text-[13px] font-semibold first-letter:uppercase">{dayName(shownMetrics.date).toLowerCase()}</p>
+            <button onClick={() => onOpenDay(shownMetrics.date)} className="text-[13px] font-medium text-accent">
+              Abrir o dia ›
+            </button>
+          </div>
+          <DayActivities m={shownMetrics} onOpen={() => onOpenDay(shownMetrics.date)} />
+        </div>
+      )}
     </section>
+  );
+}
+
+const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
+
+/** Atividades de um dia em ordem de horário: nome, horário ou tempo, "extra". Tocar abre o dia. */
+function DayActivities({ m, compact, onOpen }: { m: DayMetrics; compact?: boolean; onOpen: () => void }) {
+  const items = m.items
+    .filter((i) => !i.skipped)
+    .sort((a, b) => {
+      const sa = slotsOf(a.task)[0]?.start;
+      const sb = slotsOf(b.task)[0]?.start;
+      if (sa && sb) return toMin(sa) - toMin(sb);
+      if (!!sa !== !!sb) return sa ? -1 : 1;
+      return a.task.title.localeCompare(b.task.title);
+    });
+  if (!items.length) return <p className={cx("text-muted", compact ? "px-1 text-center text-[11px]" : "text-sm")}>{m.window ? "Nada planejado." : "Sem horário."}</p>;
+  return (
+    <ul className={compact ? "space-y-1" : "space-y-1.5"}>
+      {items.map((i) => {
+        const slots = slotsOf(i.task);
+        const when = slots.length ? slots.map((sl) => `${sl.start}–${sl.end}`).join(", ") : null;
+        return (
+          <li key={i.task.id}>
+            <button
+              onClick={onOpen}
+              className={cx(
+                "w-full rounded-lg border text-left transition-colors hover:border-muted/40",
+                i.outside ? "border-break/30 bg-break/[0.06]" : "border-line bg-surface",
+                compact ? "px-1.5 py-1" : "flex items-center gap-3 px-3 py-2",
+              )}
+            >
+              <span className={cx("block min-w-0 font-medium", compact ? "line-clamp-2 text-[11px] leading-snug" : "flex-1 truncate text-sm", i.completed && "text-muted line-through")}>
+                {i.task.title}
+              </span>
+              <span className={cx("tabular block text-muted", compact ? "mt-0.5 text-[10px] leading-tight" : "shrink-0 text-xs")}>
+                {compact && when ? slots[0].start : (when ?? fmtMin(i.estimateMin))}
+                {!compact && when && ` · ${fmtMin(i.estimateMin)}`}
+                {i.outside && <span className="font-medium text-break"> · extra</span>}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 

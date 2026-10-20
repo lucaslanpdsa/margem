@@ -4,6 +4,10 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 20/10 — Semana como agenda em Tarefas
+- "Esta semana" deixou de ser só números ("-2h37") e mostra **as atividades de cada dia** (colunas no computador; dia escolhido no celular). Assim Tarefas mostra a rotina como a gente pensa nela: "o que tenho na quarta?". Só leitura; mudar continua na grade e nos formulários (arrastar segue descartado).
+- "Seu horário" virou uma linha compacta em cima da semana.
+
 ### 20/10 — Foco = pomodoro avulso (estilo Pomofocus)
 - O Foco não fala mais de cronômetro nem de registros: abas Foco/Pausa, Começar/Pausar/Continuar, pular, contador "#" do dia, cor muda na pausa.
 - Visual: volta o **anel que vai se preenchendo** (o cartão colorido do Pomofocus foi testado e o dono preferiu o anel).
