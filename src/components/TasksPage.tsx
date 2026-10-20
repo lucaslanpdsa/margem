@@ -340,12 +340,36 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
   const [picked, setPicked] = useState<string | null>(null);
   const shown = picked && days.includes(picked) ? picked : days.includes(today) ? today : days[0];
   const shownMetrics = ms.find((m) => m.date === shown);
+  // Calendário fechado por padrão: a prioridade da tela são as tarefas. A escolha fica lembrada no aparelho.
+  const [cal, setCalState] = useState(() => {
+    try {
+      return localStorage.getItem(CAL_KEY) === "1";
+    } catch {
+      return false;
+    }
+  });
+  const setCal = (v: boolean) => {
+    setCalState(v);
+    try {
+      localStorage.setItem(CAL_KEY, v ? "1" : "0");
+    } catch {
+      /* sem armazenamento: vale só agora */
+    }
+  };
 
   return (
     <section className="rounded-2xl border border-line bg-surface">
       <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2 sm:px-5">
         {/* O número de cada dia já diz se cabe; sem frase de resumo. */}
         <h2 className="text-[15px] font-semibold">{next ? "Próxima semana" : "Esta semana"}</h2>
+        <div className="flex items-center gap-2">
+        <button
+          onClick={() => setCal(!cal)}
+          aria-expanded={cal}
+          className="hidden h-8 items-center gap-1 rounded-lg px-2 text-[13px] font-medium text-muted hover:bg-sunken hover:text-ink lg:inline-flex"
+        >
+          <ChevronDown size={14} className={cx("transition-transform", !cal && "-rotate-90")} /> {cal ? "Esconder horários" : "Ver horários"}
+        </button>
         <Segmented
           value={next ? "next" : "this"}
           onChange={(v) => setNext(v === "next")}
@@ -354,6 +378,7 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
             { value: "next", label: "Próxima" },
           ]}
         />
+        </div>
       </header>
       {/* Celular: faixa de dias; o dia escolhido mostra as atividades embaixo. Computador: 7 colunas com as atividades. */}
       <div className={cx(GRID_COLS, "gap-1 px-2 pb-3 sm:px-4")}>
@@ -384,7 +409,7 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
         })}
       </div>
       {/* Computador: calendário com os horários. */}
-      <WeekCalendar ms={ms} now={now} today={today} />
+      {cal && <WeekCalendar ms={ms} now={now} today={today} />}
       {/* Celular: atividades do dia escolhido. */}
       {shownMetrics && (
         <div className="border-t border-line px-4 pt-3 pb-4 lg:hidden">
@@ -404,7 +429,8 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
 const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
 const GRID_COLS = "grid grid-cols-7 lg:grid-cols-[2.5rem_repeat(7,minmax(0,1fr))]";
-const HOUR_PX = 44;
+const HOUR_PX = 34;
+const CAL_KEY = "margem.semana.horarios";
 
 /** Cor do bloco: concluída, extra (fora do seu horário) ou normal. */
 const itemCls = (i: DayItem) =>
