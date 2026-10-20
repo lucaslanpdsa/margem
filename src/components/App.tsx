@@ -217,7 +217,7 @@ export function Shell() {
         </div>
       </aside>
 
-      <div className={cx("min-w-0 flex-1 px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:pt-7 lg:pb-10", settings.activeTimer && tab !== "foco" && "pb-48 lg:pb-32")}>
+      <div className={cx("min-w-0 flex-1 px-4 pt-4 pb-28 sm:px-6 lg:px-8 lg:pt-7 lg:pb-10", (settings.activeTimer || (settings.pomodoro && !settings.pomodoro.waiting && tab !== "foco")) && "pb-48 lg:pb-32")}>
         <div className="mx-auto max-w-[1400px]">
           <header className={cx("mx-auto mb-5 flex max-w-3xl flex-wrap items-center gap-x-3 gap-y-3 lg:max-w-6xl", tab === "foco" && "sr-only")}>
             <div className="mr-auto">
@@ -303,7 +303,7 @@ export function Shell() {
         ))}
       </nav>
 
-      <Timer hidden={tab === "foco"} onOpen={() => setTab("foco")} />
+      <Timer onFoco={tab === "foco"} onOpenFocus={() => setTab("foco")} />
       <SlotAlerts />
       <BillingSync />
       <OfflineNotice />

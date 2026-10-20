@@ -54,7 +54,6 @@ flowchart TD
     Nova[Nova] --> Form
 
     Foco -- ··· --> Pomo[Configurar pomodoro]
-    Foco -- Começar cronômetro --> Timer
     Foco -- Começar foco --> Pomo2((Pomodoro: só ritmo))
     Timer -- barra flutuante --> Foco
 
@@ -71,8 +70,9 @@ flowchart TD
 | Mudar só o tempo | Tarefas › toque no tempo (ex: "1h") |
 | Mudar só a data | janela da tarefa › **Mudar dia** · Tarefas › toque na data · Dia › aviso de atrasadas › Trazer para hoje · Dia › "Como dar tempo" › Amanhã |
 | Mudar os dias de uma que repete | Tarefas › botões Seg…Dom da linha · formulário |
-| Começar a registrar (cronômetro) | ▶ na linha · janela da tarefa › **Começar cronômetro** · Foco › cartão Cronômetro |
-| Usar o pomodoro (ritmo) | Foco › **Começar foco** (não registra; dá para usar junto com o cronômetro) |
+| Começar a registrar (cronômetro) | ▶ na linha · janela da tarefa › **Começar cronômetro** · Dia › encaixe › Começar |
+| Ver o cronômetro rodando / parar | barra flutuante (em todas as telas) |
+| Usar o pomodoro | aba Foco (avulso, estilo Pomofocus; não registra) |
 | Parar timer | ■ na linha · barra flutuante · janela da tarefa · Foco |
 | Ajustar hora de início do timer | "Começou às… · Mudar" na barra flutuante, janela da tarefa ou Foco |
 | Adicionar tempo já feito | janela da tarefa › Adicionar tempo já feito · Dia › O que você fez? |

@@ -192,23 +192,16 @@ No computador: horário e semana lado a lado, com a mesma altura; "Repetem" ao l
 
 ![Foco](img/12-foco.png) ![Foco rodando](img/14-foco-rodando.png)
 
-Duas coisas independentes na mesma tela:
+Pomodoro avulso, no estilo do Pomofocus. **Não registra tempo e não fala de tarefas.**
 
-**Pomodoro** (em cima, só ritmo, não registra): anel e contagem da fase · ··· configurar.
-
-| Estado | Botões |
+| Elemento | Detalhe |
 |---|---|
-| Parado | **Começar foco** |
-| Foco rodando | Encerrar · Ir para a pausa |
-| Pausa pronta | **Começar pausa** · Pular pausa |
-| Pausa rodando | Encerrar · **Pular pausa** |
-| Próximo foco | **Começar foco** · Encerrar |
+| Cartão | abas **Foco / Pausa** (trocar zera e deixa a fase pronta), relógio grande, cor azul no foco e verde na pausa |
+| Botões | **Começar** · **Pausar** · **Continuar**; ⏭ pula para a próxima fase (foco pulado não conta) |
+| Embaixo | "#2 · Hora de focar!" / "Hora da pausa!", "3 pomodoros hoje", **Zerar** |
+| ··· | foco e pausa em minutos, início automático, avisos |
 
-Texto: "O pomodoro só marca o ritmo. Quem registra as horas é o cronômetro abaixo."
-
-**Cronômetro · registra as horas** (cartão embaixo): parado = escolher a tarefa (lista com as abertas de hoje e quanto falta) · **Começar cronômetro**; rodando = tempo, tarefa, "Começou às … · Mudar", **Parar**.
-
-Embaixo: "Hoje · Xh registrados" (recolhido), com a mesma lista de "Registros de hoje" do Dia.
+O cronômetro (que registra) aparece só na barra flutuante, também nesta tela.
 
 ![Foco no computador](img/24-foco-computador.png)
 
@@ -226,7 +219,7 @@ Embaixo: "Hoje · Xh registrados" (recolhido), com a mesma lista de "Registros d
 
 | Elemento | Onde | Detalhe |
 |---|---|---|
-| Barra do timer | flutuante, fora da aba Foco | cronômetro: tempo, tarefa, "Começou às … · Mudar", **Parar** · pomodoro (linha menor): "Pomodoro · Foco 15:59", **Começar** (fase pronta) ou **Pular** (pausa); tocar abre Foco |
+| Barra do timer | flutuante | **cronômetro** (em todas as telas, com bolinha vermelha piscando): tempo, tarefa, "Começou às … · Mudar", **Parar**; tocar abre a tarefa · **pomodoro** (fora do Foco, rodando ou pausado): "Pomodoro · Foco 15:59", **Continuar** ou **Pular** |
 | Avisos (toasts) (`toast.tsx`) | rodapé | confirmação (3,5s), com **Desfazer** (6s), ou erro vermelho "Não foi possível salvar" |
 | Sem internet | topo | "Sem internet · salva quando voltar"; as mudanças ficam no aparelho e são enviadas quando a conexão volta |
 | Avisos de horário (`SlotAlerts.tsx`) | com o app aberto | início, pausa entre horários, recomeço e fim; tolerância de 2min; não repete ao recarregar |

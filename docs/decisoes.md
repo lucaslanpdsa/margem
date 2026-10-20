@@ -4,6 +4,10 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 20/10 — Foco = pomodoro avulso (estilo Pomofocus)
+- O Foco não fala mais de cronômetro nem de registros: abas Foco/Pausa, Começar/Pausar/Continuar, pular, contador "#" do dia, cor muda na pausa.
+- O cronômetro aparece **só na barra flutuante, em todas as telas** (inclusive no Foco), com bolinha vermelha, para não esquecer que está registrando.
+
 ### 20/10 — Pomodoro separado do registro de horas
 - **O pomodoro não registra mais tempo.** É só o ritmo (foco, pausa, avisos, início automático no estilo Pomofocus). **Quem registra é o cronômetro**, um registro do início ao fim. Os dois podem rodar juntos no Foco.
 - Por quê: cada fase gravando um registro criava muitos caminhos e bugs (app fechado no meio do ciclo, dois aparelhos abertos, registros picados de 25/5min, pausas virando "sem registro").

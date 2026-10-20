@@ -58,7 +58,7 @@ Regras:
 - Parar com menos de 1 minuto não registra ("Menos de 1 minuto: não foi registrado").
 - Começar timer em outra tarefa encerra e registra o anterior.
 - O cronômetro sempre tem uma tarefa. Registros antigos sem tarefa ainda podem ser ligados em Registros de hoje › Escolher tarefa.
-- Quer o ritmo do pomodoro? Use o Foco junto: o pomodoro avisa as pausas e o cronômetro continua registrando.
+- Quer o ritmo do pomodoro? Abra o Foco: o pomodoro é avulso e o cronômetro continua registrando (aparece na barra flutuante).
 - Na janela da tarefa, "Adicionar tempo já feito" fica recolhido num botão.
 - O horário de início ajustado tem que ser de hoje e não pode ser no futuro.
 
@@ -89,18 +89,14 @@ Regras:
 
 ```mermaid
 stateDiagram-v2
-  [*] --> Foco: Começar foco
-  Foco --> PausaPronta: fim do foco
-  Foco --> Pausa: Ir para a pausa
-  Foco --> [*]: Encerrar
-  PausaPronta --> Pausa: Começar pausa
-  PausaPronta --> Foco: Pular pausa
-  PausaPronta --> [*]: Encerrar
-  Pausa --> ProximoFoco: fim da pausa
-  Pausa --> Foco: Próximo foco
-  Pausa --> [*]: Encerrar
-  ProximoFoco --> Foco: Começar foco
-  ProximoFoco --> [*]: Encerrar
+  [*] --> Foco: Começar
+  Foco --> Pausado: Pausar
+  Pausado --> Foco: Continuar
+  Foco --> PausaPronta: fim do foco (#+1)
+  Foco --> PausaPronta: ⏭ pular
+  PausaPronta --> Pausa: Começar
+  Pausa --> ProximoFoco: fim da pausa / ⏭
+  ProximoFoco --> Foco: Começar
 ```
 
 - Com **Pausas automáticas** ligado, "Pausa pronta" vira "Pausa" direto. Com **Início de foco automático**, "Próximo foco" vira "Foco" direto. Os dois vêm desligados.

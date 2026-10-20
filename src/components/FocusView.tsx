@@ -1,102 +1,86 @@
 "use client";
 
-import { Bell, Check, ChevronDown, Minus, MoreHorizontal, Play, Plus, Square, Timer as TimerIcon } from "lucide-react";
+import { Bell, Minus, MoreHorizontal, Plus, RotateCcw, SkipForward } from "lucide-react";
 import { useState } from "react";
-import { fmtMin, todayKey } from "@/lib/dates";
 import { saveSettings } from "@/lib/db";
-import { dayItems } from "@/lib/metrics";
-import { goToBreak, skipBreak, startPomodoro, startWaiting, stopPomodoro } from "@/lib/pomodoro";
-import type { Task } from "@/lib/types";
-import { DayEntries } from "./TimeEntries";
+import { countToday, isRunning, pausePomodoro, skipPhase, startPomodoro, switchPhase } from "@/lib/pomodoro";
 import { useStore } from "./store";
-import { pomodoroDisplay, pomodoroLabel, stopwatchText, useNow } from "./Timer";
-import { Button, IconButton, Modal, Switch, cx, inputCls } from "./ui";
-import { useTimerActions } from "./toast";
-import { TimerStart } from "./TimerStart";
+import { pomodoroDisplay, useNow } from "./Timer";
+import { Button, IconButton, Modal, Switch, cx } from "./ui";
 
-/** Tarefas que fazem sentido escolher hoje: as do dia ainda abertas. */
-export function useTaskOptions() {
-  const { tasks, blocks, sessions } = useStore();
-  const today = todayKey();
-  return dayItems(today, tasks, blocks, sessions)
-    .filter((i) => !i.completed && !i.skipped)
-    .map((i) => ({ task: i.task, hint: `falta ${fmtMin(i.remainingMin)}` }));
-}
+/**
+ * Foco: o pomodoro como recurso avulso, no estilo do Pomofocus.
+ * Não registra tempo e não fala de tarefas; o cronômetro (que registra) aparece só na barra flutuante.
+ */
+export function FocusView() {
+  const { uid, settings } = useStore();
+  const now = useNow();
+  const p = settings.pomodoro;
+  const [menu, setMenu] = useState(false);
+  const phase = p?.phase ?? "focus";
+  const brk = phase === "break";
+  const running = isRunning(p);
+  const paused = !!p && p.pausedLeftMs !== undefined;
+  const clock = p ? pomodoroDisplay(p, now).text : `${String(settings.focusMin).padStart(2, "0")}:00`;
+  const done = countToday(p);
 
-/** Escolha da tarefa do foco: lista própria (com quanto falta) em vez da caixa do navegador. */
-function TaskSelect({ value, onChange, disabled, extra }: { value: string; onChange: (id: string) => void; disabled?: boolean; extra?: Task }) {
-  const options = useTaskOptions();
-  const [open, setOpen] = useState(false);
-  const list = extra && !options.some((o) => o.task.id === extra.id) ? [...options, { task: extra, hint: "" }] : options;
-  const current = list.find((o) => o.task.id === value);
-  const pick = (id: string) => {
-    onChange(id);
-    setOpen(false);
-  };
-  const row = (id: string, title: string, hint: string) => (
-    <li key={id || "none"}>
-      <button
-        type="button"
-        onClick={() => pick(id)}
-        className={cx("flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm hover:bg-sunken", id === value && "bg-todo/[0.08]")}
-      >
-        <span className={cx("min-w-0 flex-1 truncate font-medium", !id && "text-muted")}>{title}</span>
-        {hint && <span className="tabular shrink-0 text-xs text-muted">{hint}</span>}
-        {id === value && <Check size={15} className="shrink-0 text-todo" />}
-      </button>
-    </li>
+  const tab = (value: "focus" | "break", label: string) => (
+    <button
+      onClick={() => value !== phase || running || paused ? switchPhase(uid, settings, value) : undefined}
+      aria-pressed={phase === value}
+      className={cx("rounded-lg px-4 py-1.5 text-sm font-semibold transition-colors", phase === value ? "bg-surface/80 text-ink shadow-sm" : "text-ink/60 hover:text-ink")}
+    >
+      {label}
+    </button>
   );
+
   return (
-    <div className="relative">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        aria-label="Tarefa"
-        className={cx(inputCls, "flex h-11 items-center gap-2 text-left font-medium")}
-      >
-        <span className={cx("min-w-0 flex-1 truncate", !current && "text-muted")}>{current?.task.title ?? "Escolher tarefa"}</span>
-        {current?.hint && <span className="tabular shrink-0 text-xs font-normal text-muted">{current.hint}</span>}
-        <ChevronDown size={16} className={cx("shrink-0 text-muted transition-transform", open && "rotate-180")} />
-      </button>
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <ul className="absolute inset-x-0 bottom-full z-50 mb-1 max-h-72 overflow-y-auto rounded-xl border border-line bg-surface p-1 shadow-xl">
-            {list.map((o) => row(o.task.id, o.task.title, o.hint))}
-          </ul>
-        </>
+    <div className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-md flex-col items-center justify-center gap-5 lg:min-h-[calc(100dvh-5rem)]">
+      <div className="flex w-full items-center justify-between">
+        <h2 className="text-lg font-semibold tracking-tight">Pomodoro</h2>
+        <IconButton label="Configurar pomodoro" onClick={() => setMenu(true)}>
+          <MoreHorizontal size={18} />
+        </IconButton>
+      </div>
+
+      {/* Cartão no estilo do Pomofocus: a cor muda entre foco e pausa. */}
+      <section className={cx("w-full rounded-3xl px-6 pt-5 pb-7 text-center transition-colors duration-500", brk ? "bg-done/15" : "bg-todo/12")}>
+        <div className="inline-flex gap-1 rounded-xl bg-ink/5 p-1">
+          {tab("focus", "Foco")}
+          {tab("break", "Pausa")}
+        </div>
+        <p className="tabular mt-6 text-[88px] leading-none font-semibold tracking-tight sm:text-[104px]">{clock}</p>
+        <div className="mt-7 flex items-center justify-center gap-3">
+          <button
+            onClick={() => (running ? pausePomodoro(uid, settings) : startPomodoro(uid, settings))}
+            className={cx(
+              "h-14 w-48 rounded-2xl bg-surface text-lg font-bold tracking-wide uppercase shadow-[0_6px_0_var(--line)] transition-transform active:translate-y-1 active:shadow-none",
+              brk ? "text-done" : "text-todo",
+            )}
+          >
+            {running ? "Pausar" : paused ? "Continuar" : "Começar"}
+          </button>
+          {(running || paused) && (
+            <IconButton label={brk ? "Pular pausa" : "Pular para a pausa"} onClick={() => skipPhase(uid, settings)} className="h-12 w-12 text-ink/70">
+              <SkipForward size={22} fill="currentColor" />
+            </IconButton>
+          )}
+        </div>
+      </section>
+
+      <div className="text-center">
+        <p className="tabular text-sm text-muted">#{brk ? done : done + 1}</p>
+        <p className="mt-0.5 font-semibold">{brk ? "Hora da pausa!" : "Hora de focar!"}</p>
+        {done > 0 && <p className="mt-1 text-xs text-muted">{done === 1 ? "1 pomodoro hoje" : `${done} pomodoros hoje`}</p>}
+      </div>
+
+      {(running || paused) && (
+        <button onClick={() => switchPhase(uid, settings, "focus")} className="inline-flex items-center gap-1.5 text-[13px] font-medium text-muted hover:text-ink">
+          <RotateCcw size={13} /> Zerar
+        </button>
       )}
-    </div>
-  );
-}
 
-function Ring({ pct, active, size = 300, children }: { pct: number | null; active: boolean; size?: number; children: React.ReactNode }) {
-  const stroke = 10;
-  const r = size / 2 - stroke;
-  const c = 2 * Math.PI * r;
-  const fill = pct === null ? (active ? 1 : 0) : pct / 100;
-  const mid = size / 2;
-  return (
-    <div className="relative" style={{ width: size, height: size }}>
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle cx={mid} cy={mid} r={r} fill="none" stroke="var(--sunken)" strokeWidth={stroke} />
-        <circle
-          cx={mid}
-          cy={mid}
-          r={r}
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          strokeDasharray={c}
-          strokeDashoffset={c * (1 - fill)}
-          transform={`rotate(-90 ${mid} ${mid})`}
-          className="transition-[stroke-dashoffset] duration-1000"
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">{children}</div>
+      {menu && <PomodoroMenu onClose={() => setMenu(false)} />}
     </div>
   );
 }
@@ -167,143 +151,3 @@ function PomodoroMenu({ onClose }: { onClose: () => void }) {
   );
 }
 
-/** "Hoje · Xh registrados": a mesma lista de registros do Dia, recolhida. */
-function History() {
-  const { sessions } = useStore();
-  const today = todayKey();
-  const total = sessions.filter((s) => s.date === today).reduce((a, s) => a + s.minutes, 0);
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="w-full">
-      <button onClick={() => setOpen((v) => !v)} aria-expanded={open} className="mx-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm text-muted hover:bg-sunken hover:text-ink">
-        <ChevronDown size={15} className={cx("transition-transform", !open && "-rotate-90")} />
-        Hoje · <span className="tabular font-semibold text-ink">{fmtMin(total)}</span> registrados
-      </button>
-      {open && (
-        <div className="mt-2 rounded-xl border border-line bg-surface px-4 py-1">
-          <DayEntries date={today} />
-        </div>
-      )}
-    </div>
-  );
-}
-
-/**
- * Foco: duas coisas independentes na mesma tela.
- * - Pomodoro (em cima): só o ritmo de foco e pausa, com avisos. Não registra tempo.
- * - Cronômetro (embaixo): o que registra horas numa tarefa, do início ao fim.
- */
-export function FocusView({ initialTaskId = "" }: { initialTaskId?: string }) {
-  const { uid, settings } = useStore();
-  const now = useNow();
-  const p = settings.pomodoro;
-  const [menu, setMenu] = useState(false);
-  const pd = p ? pomodoroDisplay(p, now) : null;
-  const clock = pd?.text ?? `${String(settings.focusMin).padStart(2, "0")}:00`;
-  const status = p ? pomodoroLabel(p) : "Pronto para começar";
-  const brk = p?.phase === "break";
-
-  return (
-    <div className="mx-auto flex min-h-[calc(100dvh-12rem)] max-w-md flex-col items-center justify-center gap-6 lg:min-h-[calc(100dvh-5rem)]">
-      <div className="relative flex w-full justify-center">
-        <p className="py-1.5 text-sm font-medium text-muted">Pomodoro</p>
-        <div className="absolute top-0 right-0">
-          <IconButton label="Configurar pomodoro" onClick={() => setMenu(true)}>
-            <MoreHorizontal size={18} />
-          </IconButton>
-        </div>
-      </div>
-
-      <div className={brk ? "text-break" : "text-todo"}>
-        <Ring pct={pd ? pd.pct : null} active={!!p && !p.waiting} size={260}>
-          <span className="tabular text-[68px] leading-none font-semibold tracking-tight text-ink">{clock}</span>
-          <span className="mt-3 text-sm text-muted">{status}</span>
-        </Ring>
-      </div>
-
-      {/* Controles do pomodoro, no estilo do Pomofocus. */}
-      <div className="w-full">
-        {!p ? (
-          <button
-            onClick={() => startPomodoro(uid, settings)}
-            className="flex h-14 w-full items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-brand-ink hover:bg-brand/90"
-          >
-            <Play size={15} fill="currentColor" /> Começar foco
-          </button>
-        ) : p.waiting ? (
-          <div className="grid grid-cols-[1fr_auto] gap-2">
-            <button
-              onClick={() => startWaiting(uid, settings)}
-              className="flex h-14 items-center justify-center gap-2 rounded-full bg-brand text-base font-semibold text-brand-ink hover:bg-brand/90"
-            >
-              <Play size={15} fill="currentColor" /> {brk ? "Começar pausa" : "Começar foco"}
-            </button>
-            <button onClick={() => (brk ? skipBreak(uid, settings) : stopPomodoro(uid))} className="h-14 rounded-full border border-line bg-surface px-5 font-semibold hover:bg-sunken">
-              {brk ? "Pular pausa" : "Encerrar"}
-            </button>
-          </div>
-        ) : (
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => stopPomodoro(uid)} className="h-14 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
-              Encerrar
-            </button>
-            {brk ? (
-              <button onClick={() => skipBreak(uid, settings)} className="h-14 rounded-full bg-brand font-semibold text-brand-ink hover:bg-brand/90">
-                Pular pausa
-              </button>
-            ) : (
-              <button onClick={() => goToBreak(uid, settings)} className="h-14 rounded-full border border-line bg-surface font-semibold hover:bg-sunken">
-                Ir para a pausa
-              </button>
-            )}
-          </div>
-        )}
-        <p className="mt-2 text-center text-xs text-muted">O pomodoro só marca o ritmo. Quem registra as horas é o cronômetro abaixo.</p>
-      </div>
-
-      <StopwatchCard initialTaskId={initialTaskId} />
-
-      <History />
-      {menu && <PomodoroMenu onClose={() => setMenu(false)} />}
-    </div>
-  );
-}
-
-/** Cartão do cronômetro no Foco: rodando (tarefa, tempo, Parar) ou escolher a tarefa e começar. */
-function StopwatchCard({ initialTaskId }: { initialTaskId: string }) {
-  const { settings, tasks } = useStore();
-  const timer = useTimerActions();
-  const now = useNow();
-  const t = settings.activeTimer;
-  const [taskId, setTaskId] = useState(initialTaskId);
-  const runningTask = tasks.find((x) => x.id === t?.taskId);
-
-  return (
-    <section className="w-full rounded-2xl border border-line bg-surface p-4">
-      <p className="mb-2 flex items-center gap-1.5 text-[13px] font-medium text-muted">
-        <TimerIcon size={14} /> Cronômetro · registra as horas
-      </p>
-      {t ? (
-        <div className="flex items-center gap-3">
-          <div className="min-w-0 flex-1">
-            <p className="flex items-baseline gap-2">
-              <span className="tabular text-2xl font-semibold">{stopwatchText(t, now)}</span>
-              <span className={cx("truncate text-sm font-medium", !runningTask && "text-muted")}>{runningTask?.title ?? "Sem tarefa"}</span>
-            </p>
-            <TimerStart className="block text-xs" />
-          </div>
-          <Button variant="secondary" onClick={() => timer.stop()}>
-            <Square size={12} fill="currentColor" /> Parar
-          </Button>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <TaskSelect value={taskId} onChange={setTaskId} />
-          <Button variant="primary" className="h-11 w-full" disabled={!taskId} onClick={() => timer.start(taskId)}>
-            <Play size={13} fill="currentColor" /> {taskId ? "Começar cronômetro" : "Escolha a tarefa para começar"}
-          </Button>
-        </div>
-      )}
-    </section>
-  );
-}

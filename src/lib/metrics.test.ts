@@ -6,7 +6,7 @@ import { streak, taskWeek, weekHistory } from "./week";
 import { planOf } from "./plan";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession, migrateTimer, setTimerStart } from "./timer";
-import { remainingMs } from "./pomodoro";
+import { countToday, isRunning, remainingMs } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -411,6 +411,18 @@ describe("pomodoro separado do registro", () => {
   it("o pomodoro não vira registro no dia", () => {
     // Só o cronômetro (activeTimer) entra ao vivo; o pomodoro fica em settings.pomodoro.
     expect(liveSession(null)).toBeNull();
+  });
+
+  it("pausado guarda o que faltava e não está rodando", () => {
+    const p = { phase: "focus" as const, startedAt: new Date("2026-10-20T10:00:00").toISOString(), durationMin: 25, pausedLeftMs: 7 * 60000 };
+    expect(remainingMs(p, new Date("2026-10-20T12:00:00").getTime())).toBe(7 * 60000);
+    expect(isRunning(p)).toBe(false);
+  });
+
+  it("contador do dia zera ao virar o dia", () => {
+    const p = { phase: "focus" as const, startedAt: "", durationMin: 25, count: 3, countDate: "2026-10-20" };
+    expect(countToday(p, "2026-10-20")).toBe(3);
+    expect(countToday(p, "2026-10-21")).toBe(0);
   });
 
   it("tempo que falta na fase; fase esperando mostra a fase inteira", () => {

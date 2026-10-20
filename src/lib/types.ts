@@ -89,6 +89,11 @@ export interface PomodoroState {
   durationMin: number;
   /** Fase pronta, esperando o toque em começar (início automático desligado). */
   waiting?: boolean;
+  /** Pausado no meio: quanto faltava, em ms. */
+  pausedLeftMs?: number;
+  /** Pomodoros de foco concluídos no dia `countDate` (o "#3" da tela). */
+  count?: number;
+  countDate?: string;
 }
 
 /** Horário de um dia, "HH:mm". */

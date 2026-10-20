@@ -68,7 +68,7 @@ const TABS_HELP = [
   {
     icon: Timer,
     title: "Foco",
-    text: "Em cima, o pomodoro: só o ritmo de foco e pausa, não registra. Embaixo, o cronômetro: registra as horas na tarefa. Dá para usar os dois juntos.",
+    text: "Pomodoro avulso, como no Pomofocus: foco, pausa, pausar e pular. Não registra horas; para isso use o ▶ da tarefa (o cronômetro aparece na barrinha embaixo em qualquer tela).",
   },
 ];
 
