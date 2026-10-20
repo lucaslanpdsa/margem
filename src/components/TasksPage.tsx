@@ -336,8 +336,6 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
   const [next, setNext] = useState(false);
   const days = weekDays(next ? shiftDay(today, 7) : today);
   const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now));
-  const ahead = ms.filter((m) => m.date >= today && m.window);
-  const tight = ahead.filter((m) => m.freeMin < 0).length;
   // Dia aberto no celular: hoje (ou segunda, na próxima semana) até tocar em outro.
   const [picked, setPicked] = useState<string | null>(null);
   const shown = picked && days.includes(picked) ? picked : days.includes(today) ? today : days[0];
@@ -346,12 +344,8 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
   return (
     <section className="rounded-2xl border border-line bg-surface">
       <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2 sm:px-5">
-        <div>
-          <h2 className="text-[15px] font-semibold">{next ? "Próxima semana" : "Esta semana"}</h2>
-          <p className={cx("text-[13px]", tight ? "text-over" : "text-muted")}>
-            {tight ? `${tight === 1 ? "1 dia" : `${tight} dias`} com mais do que cabe` : "O que você tem em cada dia e quanto sobra."}
-          </p>
-        </div>
+        {/* O número de cada dia já diz se cabe; sem frase de resumo. */}
+        <h2 className="text-[15px] font-semibold">{next ? "Próxima semana" : "Esta semana"}</h2>
         <Segmented
           value={next ? "next" : "this"}
           onChange={(v) => setNext(v === "next")}
@@ -430,20 +424,23 @@ function DayActivities({ m, compact, onOpen }: { m: DayMetrics; compact?: boolea
           <li key={i.task.id}>
             <button
               onClick={onOpen}
+              title={`${i.task.title} · ${when ? `${when} · ` : ""}${fmtMin(i.estimateMin)}${i.outside ? " · extra (fora do seu horário)" : ""}`}
               className={cx(
                 "w-full rounded-lg border text-left transition-colors hover:border-muted/40",
                 i.outside ? "border-break/30 bg-break/[0.06]" : "border-line bg-surface",
-                compact ? "px-1.5 py-1" : "flex items-center gap-3 px-3 py-2",
+                compact ? "px-2 py-1.5" : "flex items-center gap-3 px-3 py-2",
               )}
             >
               <span className={cx("block min-w-0 font-medium", compact ? "line-clamp-2 text-[11px] leading-snug" : "flex-1 truncate text-sm", i.completed && "text-muted line-through")}>
                 {i.task.title}
               </span>
-              <span className={cx("tabular block text-muted", compact ? "mt-0.5 text-[10px] leading-tight" : "shrink-0 text-xs")}>
-                {compact && when ? slots[0].start : (when ?? fmtMin(i.estimateMin))}
-                {!compact && when && ` · ${fmtMin(i.estimateMin)}`}
-                {i.outside && <span className="font-medium text-break"> · extra</span>}
-              </span>
+              {/* Nas colunas (computador) só o nome: a ordem já é a do horário e o detalhe está no Dia. */}
+              {!compact && (
+                <span className="tabular block shrink-0 text-xs text-muted">
+                  {when ? `${when} · ${fmtMin(i.estimateMin)}` : fmtMin(i.estimateMin)}
+                  {i.outside && <span className="font-medium text-break"> · extra</span>}
+                </span>
+              )}
             </button>
           </li>
         );
