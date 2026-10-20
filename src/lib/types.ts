@@ -139,6 +139,8 @@ export interface Settings {
   pomodoro?: PomodoroState | null;
   /** Lista de tarefas do pomodoro. */
   pomodoroTasks?: PomoTask[];
+  /** Tarefas do app que a pessoa preferiu não importar hoje (ex: academia); zera no dia seguinte. */
+  pomodoroSkip?: { date: string; ids: string[] };
   /** (Antigo) último modo de timer; o ▶ agora é sempre o cronômetro. */
   lastTimerMode?: "pomodoro" | "stopwatch";
   /** Ao acabar o foco, a pausa começa sozinha. */

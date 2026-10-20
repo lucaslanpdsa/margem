@@ -447,6 +447,13 @@ describe("lista do pomodoro (só contagem, sem horas)", () => {
     expect(notImported({ ...settings, pomodoroTasks: [] }, app).map((x) => x.id)).toEqual(["estudo", "ingles"]);
   });
 
+  it("deixadas de fora não aparecem para importar até o dia seguinte", () => {
+    const app = [{ id: "academia" }, { id: "ingles" }];
+    const settings = { ...DEFAULT_SETTINGS, pomodoroSkip: { date: "2026-10-20", ids: ["academia"] } };
+    expect(notImported(settings, app, "2026-10-20").map((x) => x.id)).toEqual(["ingles"]);
+    expect(notImported(settings, app, "2026-10-21").map((x) => x.id)).toEqual(["academia", "ingles"]);
+  });
+
   it("resumo: feitos/estimados das não concluídas e quando acaba", () => {
     const list = [
       { id: "a", title: "A", est: 3, done: 1 },

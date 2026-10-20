@@ -142,17 +142,28 @@ export const updatePomoTask = (uid: string, settings: Settings, id: string, patc
 export const removePomoTask = (uid: string, settings: Settings, id: string) =>
   saveListPicking(uid, settings, (settings.pomodoroTasks ?? []).filter((t) => t.id !== id));
 
-/** Tarefas do app ainda não trazidas para a lista (as apagadas da lista podem voltar). */
-export function notImported<T extends { id: string }>(settings: Settings, from: T[]) {
+/** Ids que a pessoa deixou de fora hoje ("não vou fazer pomodoro na academia"). */
+const skippedToday = (settings: Settings, today = todayKey()) => (settings.pomodoroSkip?.date === today ? settings.pomodoroSkip.ids : []);
+
+/** Tarefas do app ainda não trazidas para a lista e não deixadas de fora hoje (as apagadas da lista podem voltar). */
+export function notImported<T extends { id: string }>(settings: Settings, from: T[], today = todayKey()) {
   const have = new Set((settings.pomodoroTasks ?? []).map((t) => t.fromTaskId).filter(Boolean));
-  return from.filter((x) => !have.has(x.id));
+  const skip = new Set(skippedToday(settings, today));
+  return from.filter((x) => !have.has(x.id) && !skip.has(x.id));
 }
 
-/** Traz tarefas do app para a lista, com estimativa sugerida. Não repete as que já estão. Devolve quantas entraram. */
-export async function importTasks(uid: string, settings: Settings, from: { id: string; title: string; minutes: number }[]) {
-  const add = notImported(settings, from).map(
+/**
+ * Traz as tarefas escolhidas para a lista, com estimativa sugerida; as não escolhidas ficam de fora até amanhã.
+ * Devolve quantas entraram.
+ */
+export async function importTasks(uid: string, settings: Settings, chosen: { id: string; title: string; minutes: number }[], leftOut: string[] = []) {
+  const add = notImported(settings, chosen).map(
     (x): PomoTask => ({ id: newId() + x.id.slice(0, 4), title: x.title, est: suggestPomodoros(x.minutes, settings), done: 0, fromTaskId: x.id }),
   );
+  if (leftOut.length) {
+    const today = todayKey();
+    await saveSettings(uid, { pomodoroSkip: { date: today, ids: [...new Set([...skippedToday(settings, today), ...leftOut])] } });
+  }
   if (add.length) await saveListPicking(uid, settings, [...(settings.pomodoroTasks ?? []), ...add]);
   return add.length;
 }

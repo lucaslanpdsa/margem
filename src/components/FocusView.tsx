@@ -5,6 +5,7 @@ import { useState } from "react";
 import { saveSettings } from "@/lib/db";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { dayItems } from "@/lib/metrics";
+import { dayClock } from "@/lib/schedule";
 import {
   addPomoTask,
   clearPomoTasks,
@@ -18,6 +19,7 @@ import {
   selectTask,
   skipPhase,
   startPomodoro,
+  suggestPomodoros,
   switchPhase,
   updatePomoTask,
 } from "@/lib/pomodoro";
@@ -132,15 +134,18 @@ function FocusTasks() {
   const sum = listSummary(list, settings, now);
 
   // Tarefas abertas de hoje no app, e quais ainda não estão na lista (as apagadas da lista voltam a aparecer aqui).
-  const today = dayItems(todayKey(), tasks, blocks, sessions)
+  // Com o horário do dia, para saber o que é "extra" (fora do seu horário).
+  const day = todayKey();
+  const today = dayItems(day, tasks, blocks, sessions, dayClock(settings, day, new Date(now)).window)
     .filter((i) => !i.completed && !i.skipped)
-    .map((i) => ({ id: i.task.id, title: i.task.title, minutes: i.remainingMin || i.estimateMin }));
-  const pending = notImported(settings, today).length;
+    .map((i) => ({ id: i.task.id, title: i.task.title, minutes: i.remainingMin || i.estimateMin, outside: i.outside }));
+  const candidates = notImported(settings, today);
+  const pending = candidates.length;
+  const [picking, setPicking] = useState(false);
 
-  async function importToday() {
+  function importToday() {
     setMenu(false);
-    const n = await importTasks(uid, settings, today);
-    toast(n ? `${n === 1 ? "1 tarefa importada" : `${n} tarefas importadas`}. Ajuste os pomodoros se quiser.` : "As tarefas de hoje já estão na lista.", "info");
+    setPicking(true);
   }
   function save() {
     if (!form || !form.title.trim()) return;
@@ -306,7 +311,66 @@ function FocusTasks() {
         </p>
       )}
       <p className="mt-2 text-xs text-muted">Só conta pomodoros. As horas da tarefa vêm do ▶ no Dia.</p>
+      {picking && (
+        <ImportDialog
+          candidates={candidates}
+          onClose={() => setPicking(false)}
+          onImport={async (chosen, leftOut) => {
+            setPicking(false);
+            const n = await importTasks(uid, settings, chosen, leftOut);
+            if (n) toast(`${n === 1 ? "1 tarefa importada" : `${n} tarefas importadas`}. Ajuste os pomodoros se quiser.`, "info");
+          }}
+        />
+      )}
     </section>
+  );
+}
+
+type Candidate = { id: string; title: string; minutes: number; outside: boolean };
+
+/**
+ * Escolher quais tarefas de hoje entram na lista do pomodoro. As "extra" (fora do seu horário, ex: academia)
+ * já vêm desmarcadas; as desmarcadas ficam de fora até amanhã.
+ */
+function ImportDialog({ candidates, onClose, onImport }: { candidates: Candidate[]; onClose: () => void; onImport: (chosen: Candidate[], leftOut: string[]) => void }) {
+  const { settings } = useStore();
+  const [on, setOn] = useState<Set<string>>(() => new Set(candidates.filter((c) => !c.outside).map((c) => c.id)));
+  const toggle = (id: string) =>
+    setOn((cur) => {
+      const next = new Set(cur);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  const chosen = candidates.filter((c) => on.has(c.id));
+  return (
+    <Modal title="Importar tarefas de hoje" description="Escolha as que vão para o pomodoro. As desmarcadas ficam de fora até amanhã." onClose={onClose}>
+      <ul className="divide-y divide-line rounded-xl border border-line">
+        {candidates.map((c) => (
+          <li key={c.id}>
+            <label className="flex cursor-pointer items-center gap-3 px-3 py-3 text-sm hover:bg-sunken">
+              <input type="checkbox" checked={on.has(c.id)} onChange={() => toggle(c.id)} className="h-4 w-4 shrink-0 accent-[var(--brand)]" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate font-medium">{c.title}</span>
+                {c.outside && <span className="text-xs text-break">extra · fora do seu horário</span>}
+              </span>
+              <span className="tabular shrink-0 text-xs text-muted">~{suggestPomodoros(c.minutes, settings)} pomodoros</span>
+            </label>
+          </li>
+        ))}
+      </ul>
+      <div className="mt-5 flex justify-end gap-2 border-t border-line pt-4">
+        <Button variant="ghost" onClick={onClose}>
+          Cancelar
+        </Button>
+        <Button
+          variant="primary"
+          onClick={() => onImport(chosen, candidates.filter((c) => !on.has(c.id)).map((c) => c.id))}
+        >
+          {chosen.length ? `Importar ${chosen.length}` : "Deixar todas de fora"}
+        </Button>
+      </div>
+    </Modal>
   );
 }
 
