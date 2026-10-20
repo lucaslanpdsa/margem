@@ -379,7 +379,7 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
                 <span className={cx("tabular mt-0.5 text-[11px] font-semibold", !m.window || past ? "text-muted" : late ? "text-over" : "text-done")}>{value}</span>
               </button>
               <div className="mt-1 hidden lg:block">
-                <DayActivities m={m} compact onOpen={() => onOpenDay(m.date)} />
+                <DayActivities m={m} compact />
               </div>
             </div>
           );
@@ -394,7 +394,7 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
               Abrir o dia ›
             </button>
           </div>
-          <DayActivities m={shownMetrics} onOpen={() => onOpenDay(shownMetrics.date)} />
+          <DayActivities m={shownMetrics} />
         </div>
       )}
     </section>
@@ -403,8 +403,12 @@ function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
 
 const isDesktop = () => typeof window !== "undefined" && window.matchMedia("(min-width: 1024px)").matches;
 
-/** Atividades de um dia em ordem de horário: nome, horário ou tempo, "extra". Tocar abre o dia. */
-function DayActivities({ m, compact, onOpen }: { m: DayMetrics; compact?: boolean; onOpen: () => void }) {
+/**
+ * Atividades de um dia em ordem de horário: nome, horário ou tempo, "extra".
+ * Tocar abre o formulário da tarefa (Tarefas é a área de editar; o dia em si abre pelo cabeçalho).
+ */
+function DayActivities({ m, compact }: { m: DayMetrics; compact?: boolean }) {
+  const { editTask } = useDialogs();
   const items = m.items
     .filter((i) => !i.skipped)
     .sort((a, b) => {
@@ -423,7 +427,7 @@ function DayActivities({ m, compact, onOpen }: { m: DayMetrics; compact?: boolea
         return (
           <li key={i.task.id}>
             <button
-              onClick={onOpen}
+              onClick={() => editTask(i.task)}
               title={`${i.task.title} · ${when ? `${when} · ` : ""}${fmtMin(i.estimateMin)}${i.outside ? " · extra (fora do seu horário)" : ""}`}
               className={cx(
                 "w-full rounded-lg border text-left transition-colors hover:border-muted/40",
