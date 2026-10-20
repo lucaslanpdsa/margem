@@ -6,7 +6,7 @@ import { streak, taskWeek, weekHistory } from "./week";
 import { planOf } from "./plan";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession, migrateTimer, setTimerStart } from "./timer";
-import { countToday, isRunning, remainingMs } from "./pomodoro";
+import { countForTask, countToday, isRunning, pomodorosFor, remainingMs } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -429,5 +429,19 @@ describe("pomodoro separado do registro", () => {
     const p = { phase: "focus" as const, startedAt: new Date("2026-10-20T10:00:00").toISOString(), durationMin: 25 };
     expect(remainingMs(p, new Date("2026-10-20T10:10:00").getTime())).toBe(15 * 60000);
     expect(remainingMs({ ...p, waiting: true }, new Date("2026-10-20T11:00:00").getTime())).toBe(25 * 60000);
+  });
+});
+
+describe("pomodoros por tarefa (só contagem, sem horas)", () => {
+  it("estimativa em pomodoros vem do tempo da tarefa", () => {
+    expect(pomodorosFor(90, 25)).toBe(4);
+    expect(pomodorosFor(20, 25)).toBe(1);
+  });
+
+  it("conta só no dia", () => {
+    const p = { phase: "focus" as const, startedAt: "", durationMin: 25, countDate: "2026-10-20", perTask: { estudo: 2 } };
+    expect(countForTask(p, "estudo", "2026-10-20")).toBe(2);
+    expect(countForTask(p, "estudo", "2026-10-21")).toBe(0);
+    expect(countForTask(p, "outra", "2026-10-20")).toBe(0);
   });
 });

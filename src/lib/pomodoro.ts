@@ -6,7 +6,8 @@ import type { PomodoroState, Settings } from "./types";
 
 /**
  * Pomodoro: um recurso avulso, no estilo do Pomofocus (foco, pausa, pausar, pular, contador do dia).
- * **Não grava tempo e não sabe de tarefas.** Quem registra horas é o cronômetro (timer.ts).
+ * **Não grava tempo.** Pode apontar uma tarefa só para contar pomodoros nela ("2/4"), sem tocar nas horas.
+ * Quem registra horas é o cronômetro (timer.ts).
  * Fica nas configurações para aparecer igual no computador e no celular.
  */
 
@@ -17,16 +18,29 @@ const durationOf = (settings: Settings, phase: Phase) => (phase === "focus" ? se
 /** Pomodoros de foco feitos hoje (zera ao virar o dia). */
 export const countToday = (p: PomodoroState | null | undefined, today = todayKey()) => (p && p.countDate === today ? (p.count ?? 0) : 0);
 
-/** Estado sem campos vazios (o Firestore não aceita undefined). */
-function make(settings: Settings, phase: Phase, opts: { running: boolean; startedAt?: Date; count: number }): PomodoroState {
+/** Pomodoros feitos hoje numa tarefa. */
+export const countForTask = (p: PomodoroState | null | undefined, taskId: string, today = todayKey()) =>
+  p && p.countDate === today ? (p.perTask?.[taskId] ?? 0) : 0;
+
+/** Estimativa em pomodoros a partir do tempo da tarefa (1h30 com foco de 25min = 4). */
+export const pomodorosFor = (minutes: number, focusMin: number) => Math.max(1, Math.ceil(minutes / Math.max(1, focusMin)));
+
+/**
+ * Estado sem campos vazios (o Firestore não aceita undefined).
+ * Mantém a tarefa escolhida e as contagens do dia de uma fase para a outra.
+ */
+function make(settings: Settings, phase: Phase, opts: { running: boolean; startedAt?: Date; count: number; prev?: PomodoroState | null }): PomodoroState {
+  const today = todayKey();
   const s: PomodoroState = {
     phase,
     startedAt: (opts.startedAt ?? new Date()).toISOString(),
     durationMin: durationOf(settings, phase),
     count: opts.count,
-    countDate: todayKey(),
+    countDate: today,
   };
   if (!opts.running) s.waiting = true;
+  if (opts.prev?.taskId) s.taskId = opts.prev.taskId;
+  if (opts.prev?.perTask && opts.prev.countDate === today) s.perTask = opts.prev.perTask;
   return s;
 }
 
@@ -45,9 +59,9 @@ export async function startPomodoro(uid: string, settings: Settings) {
   const count = countToday(p);
   if (p && p.pausedLeftMs !== undefined) {
     const startedAt = new Date(Date.now() - (p.durationMin * 60000 - p.pausedLeftMs));
-    return saveSettings(uid, { pomodoro: { ...make(settings, p.phase, { running: true, startedAt, count }), durationMin: p.durationMin } });
+    return saveSettings(uid, { pomodoro: { ...make(settings, p.phase, { running: true, startedAt, count, prev: p }), durationMin: p.durationMin } });
   }
-  return saveSettings(uid, { pomodoro: make(settings, p?.phase ?? "focus", { running: true, count }) });
+  return saveSettings(uid, { pomodoro: make(settings, p?.phase ?? "focus", { running: true, count, prev: p }) });
 }
 
 export async function pausePomodoro(uid: string, settings: Settings) {
@@ -58,14 +72,23 @@ export async function pausePomodoro(uid: string, settings: Settings) {
 
 /** Trocar de aba (Foco / Pausa): a fase fica pronta, esperando o Começar. */
 export const switchPhase = (uid: string, settings: Settings, phase: Phase) =>
-  saveSettings(uid, { pomodoro: make(settings, phase, { running: false, count: countToday(settings.pomodoro) }) });
+  saveSettings(uid, { pomodoro: make(settings, phase, { running: false, count: countToday(settings.pomodoro), prev: settings.pomodoro }) });
+
+/** Escolher (ou tirar, com o mesmo id) a tarefa em que está focando. Não muda o tempo da fase. */
+export async function selectTask(uid: string, settings: Settings, taskId: string) {
+  const p = settings.pomodoro ?? make(settings, "focus", { running: false, count: 0 });
+  const next: PomodoroState = { ...p };
+  if (p.taskId === taskId) delete next.taskId;
+  else next.taskId = taskId;
+  await saveSettings(uid, { pomodoro: next });
+}
 
 /** Pular para a próxima fase (foco pulado não conta no "#"). Segue o início automático. */
 export async function skipPhase(uid: string, settings: Settings) {
   const p = settings.pomodoro;
   const next: Phase = (p?.phase ?? "focus") === "focus" ? "break" : "focus";
   const auto = next === "break" ? !!settings.autoStartBreaks : !!settings.autoStartFocus;
-  await saveSettings(uid, { pomodoro: make(settings, next, { running: auto, count: countToday(p) }) });
+  await saveSettings(uid, { pomodoro: make(settings, next, { running: auto, count: countToday(p), prev: p }) });
 }
 
 /**
@@ -77,8 +100,12 @@ export async function finishPhase(uid: string, settings: Settings, p: PomodoroSt
   const end = new Date(Date.parse(p.startedAt) + p.durationMin * 60000);
   const next: Phase = p.phase === "focus" ? "break" : "focus";
   const auto = next === "break" ? !!settings.autoStartBreaks : !!settings.autoStartFocus;
-  const count = countToday(p) + (p.phase === "focus" ? 1 : 0);
-  await saveSettings(uid, { pomodoro: make(settings, next, { running: auto, startedAt: auto ? end : new Date(), count }) });
+  const focus = p.phase === "focus";
+  const count = countToday(p) + (focus ? 1 : 0);
+  // Foco completo numa tarefa escolhida: +1 nela.
+  const prev: PomodoroState = { ...p, countDate: todayKey(), perTask: p.countDate === todayKey() ? p.perTask : undefined };
+  if (focus && p.taskId) prev.perTask = { ...(p.countDate === todayKey() ? p.perTask : {}), [p.taskId]: countForTask(p, p.taskId) + 1 };
+  await saveSettings(uid, { pomodoro: make(settings, next, { running: auto, startedAt: auto ? end : new Date(), count, prev }) });
 }
 
 export function notify(title: string, body: string) {

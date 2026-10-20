@@ -3,17 +3,20 @@
 import { Bell, Minus, MoreHorizontal, Pause, Play, Plus, RotateCcw, SkipForward } from "lucide-react";
 import { useState } from "react";
 import { saveSettings } from "@/lib/db";
-import { countToday, isRunning, pausePomodoro, skipPhase, startPomodoro, switchPhase } from "@/lib/pomodoro";
+import { todayKey } from "@/lib/dates";
+import { dayItems } from "@/lib/metrics";
+import { countForTask, countToday, isRunning, pausePomodoro, pomodorosFor, selectTask, skipPhase, startPomodoro, switchPhase } from "@/lib/pomodoro";
 import { useStore } from "./store";
 import { pomodoroDisplay, pomodoroLabel, useNow } from "./Timer";
 import { Button, IconButton, Modal, Switch, cx } from "./ui";
 
 /**
  * Foco: o pomodoro como recurso avulso, no estilo do Pomofocus.
- * Não registra tempo e não fala de tarefas; o cronômetro (que registra) aparece só na barra flutuante.
+ * Não registra tempo. Pode apontar a tarefa em que está focando, só para contar pomodoros nela.
+ * O cronômetro (que registra) aparece só na barra flutuante.
  */
 export function FocusView() {
-  const { uid, settings } = useStore();
+  const { uid, settings, tasks } = useStore();
   const now = useNow();
   const p = settings.pomodoro;
   const [menu, setMenu] = useState(false);
@@ -24,6 +27,7 @@ export function FocusView() {
   const pd = p ? pomodoroDisplay(p, now) : null;
   const clock = pd?.text ?? `${String(settings.focusMin).padStart(2, "0")}:00`;
   const done = countToday(p);
+  const focusTask = tasks.find((t) => t.id === p?.taskId);
 
   const tab = (value: "focus" | "break", label: string) => (
     <button
@@ -77,7 +81,7 @@ export function FocusView() {
 
       <div className="text-center">
         <p className="tabular text-sm text-muted">#{brk ? done : done + 1}</p>
-        <p className="mt-0.5 font-semibold">{brk ? "Hora da pausa!" : "Hora de focar!"}</p>
+        <p className="mt-0.5 font-semibold">{brk ? "Hora da pausa!" : (focusTask?.title ?? "Hora de focar!")}</p>
         {done > 0 && <p className="mt-1 text-xs text-muted">{done === 1 ? "1 pomodoro hoje" : `${done} pomodoros hoje`}</p>}
       </div>
 
@@ -87,8 +91,52 @@ export function FocusView() {
         </button>
       )}
 
+      <FocusTasks />
+
       {menu && <PomodoroMenu onClose={() => setMenu(false)} />}
     </div>
+  );
+}
+
+/**
+ * Tarefas de hoje no pomodoro, como no Pomofocus: escolher em qual está focando e ver "2/4".
+ * Só contagem de pomodoros (foco completo); não registra nem muda horas.
+ */
+function FocusTasks() {
+  const { uid, settings, tasks, blocks, sessions } = useStore();
+  const p = settings.pomodoro;
+  const items = dayItems(todayKey(), tasks, blocks, sessions).filter((i) => !i.completed && !i.skipped);
+  if (!items.length) return null;
+  return (
+    <section className="w-full">
+      <div className="mb-2 flex items-baseline justify-between border-b border-line pb-2">
+        <h3 className="text-sm font-semibold">Tarefas de hoje</h3>
+        <span className="text-xs text-muted">pomodoros feitos / estimados</span>
+      </div>
+      <ul className="space-y-1.5">
+        {items.map((i) => {
+          const on = p?.taskId === i.task.id;
+          return (
+            <li key={i.task.id}>
+              <button
+                onClick={() => selectTask(uid, settings, i.task.id)}
+                aria-pressed={on}
+                className={cx(
+                  "flex w-full items-center gap-3 rounded-xl border bg-surface px-3 py-2.5 text-left text-sm transition-colors",
+                  on ? "border-todo border-l-4 font-semibold" : "border-line hover:border-muted/40",
+                )}
+              >
+                <span className="min-w-0 flex-1 truncate">{i.task.title}</span>
+                <span className="tabular shrink-0 text-muted">
+                  <b className="font-semibold text-ink">{countForTask(p, i.task.id)}</b>/{pomodorosFor(i.estimateMin, settings.focusMin)}
+                </span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+      <p className="mt-2 text-xs text-muted">Toque para escolher em que está focando. Conta só pomodoros; as horas vêm do ▶ da tarefa.</p>
+    </section>
   );
 }
 

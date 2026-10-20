@@ -94,6 +94,10 @@ export interface PomodoroState {
   /** Pomodoros de foco concluídos no dia `countDate` (o "#3" da tela). */
   count?: number;
   countDate?: string;
+  /** Tarefa em que está focando (só para mostrar e contar; não registra tempo). */
+  taskId?: string;
+  /** Pomodoros concluídos hoje por tarefa { id: 2 } (o "2/4" da lista), também de `countDate`. */
+  perTask?: Record<string, number>;
 }
 
 /** Horário de um dia, "HH:mm". */

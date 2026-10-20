@@ -65,7 +65,7 @@ src/components/
   TaskForm.tsx              formulário de criar/editar tarefa
   TasksPage.tsx             aba Tarefas: seu horário, Esta semana, grade "Repetem", "Não repetem" por data + concluídas, desativadas
   ScheduleEditor.tsx        editor do horário semanal e pausas
-  FocusView.tsx             aba Foco: pomodoro avulso estilo Pomofocus (não registra, sem tarefas) e config
+  FocusView.tsx             aba Foco: pomodoro avulso estilo Pomofocus (não registra) e contagem de pomodoros por tarefa de hoje
   Timer.tsx                 motor dos timers (troca de fase do pomodoro) + barra flutuante (cronômetro em todas as telas; pomodoro fora do Foco)
   TimerStart.tsx            "Começou às … · Mudar"
   SlotAlerts.tsx            avisos de início/pausa/fim do horário das tarefas (app aberto)
@@ -95,7 +95,7 @@ src/lib/
 - `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `archived` (desativada), `createdAt`.
 - `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, outro = manual (`pomo-`/`pausa-` são de quando o pomodoro registrava).
 - `billing/{uid}` (fora de `users/`): `status` (`active` | `pending` | `paused` | `cancelled` | `none`), `period`, `paidUntil`, `preapprovalId`, `updatedAt`. **Só o servidor grava** (regras em `firestore.rules`).
-- `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer` (cronômetro: `taskId`, `startedAt`), `pomodoro` (`phase`, `startedAt`, `durationMin`, `waiting`, `pausedLeftMs`, `count`/`countDate`), `scheduleSet`, `onboarded`. Antigos e ignorados: `lastTimerMode`, `pendingAssign`.
+- `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer` (cronômetro: `taskId`, `startedAt`), `pomodoro` (`phase`, `startedAt`, `durationMin`, `waiting`, `pausedLeftMs`, `count`/`countDate`, `taskId` e `perTask` = só contagem de pomodoros, nunca horas), `scheduleSet`, `onboarded`. Antigos e ignorados: `lastTimerMode`, `pendingAssign`.
 
 Regras: toda escrita nova vai em `db.ts` usando `write(uid, () => …)` (avisa erro, não trava sem internet, não grava na prévia); ações que tiram ou movem algo mostram `toast(texto, { undo })`; Firestore não aceita `undefined` (use `clean` em `db.ts`); `saveSettings` substitui cada campo enviado por inteiro (`mergeFields`); campos novos precisam ser opcionais e ter migração em `migrate.ts` se mudarem o significado de dados antigos.
 
