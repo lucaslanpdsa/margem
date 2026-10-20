@@ -16,6 +16,7 @@
 | **Extra** | Tarefa cujo horário fica todo fora do seu horário (ex: academia às 18:30 com horário até 18:00). Não entra nas contas do dia. |
 | **Registro** | Um pedaço de tempo feito numa tarefa: vem do **cronômetro** (um registro do início ao fim) ou é adicionado à mão. Tem dia, duração, horário (opcional) e nota (opcional). Registros antigos podem vir do pomodoro. |
 | **Cronômetro** | O único timer que registra tempo: ▶ na tarefa, janela da tarefa ou Foco. Rodando, conta ao vivo no dia; ao parar, vira um registro. |
+| **Objetivos do dia** | Lista para marcar dentro da tarefa (o que entregar nesse tempo). Por dia nas que repetem; uma só nas de uma vez. **Não têm tempo e não entram em nenhuma conta.** |
 | **Pomodoro** | Só o ritmo de foco e pausa, com avisos (Foco). **Não registra tempo.** Pode rodar junto com o cronômetro. |
 | **Registro sem tarefa** | Foco feito sem escolher tarefa. Conta no dia; o app pergunta depois em que você trabalhou. |
 | **Pular hoje** | Tira uma tarefa que repete só daquele dia. O que já tinha sido feito continua contando. |

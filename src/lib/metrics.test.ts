@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { dayMetrics } from "./metrics";
 import { streak, taskWeek, weekHistory } from "./week";
 import { planOf } from "./plan";
+import { carryOver, goalsFor, goalsKey, nextOccurrence } from "./goals";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession, migrateTimer, setTimerStart } from "./timer";
 import { countToday, isRunning, listSummary, notImported, remainingMs, suggestPomodoros } from "./pomodoro";
@@ -464,5 +465,30 @@ describe("lista do pomodoro (só contagem, sem horas)", () => {
     const s = listSummary(list, ciclo, now);
     expect([s.done, s.est, s.leftMin]).toEqual([3, 5, 60]);
     expect(s.finishAt.getHours()).toBe(17);
+  });
+});
+
+describe("objetivos do dia", () => {
+  const rep: Task = { ...base, id: "r", title: "Trabalho", repeat: "weekdays", weekdays: [1, 3, 5] };
+  const once: Task = { ...base, id: "o", title: "Relatório", repeat: "once", date: D, goals: { _: [{ id: "1", text: "x", done: false }] } };
+  it("repete: por dia; uma vez: lista única, mesmo mudando de dia", () => {
+    expect(goalsKey(rep, D)).toBe(D);
+    expect(goalsFor(once, "2026-10-20")).toHaveLength(1);
+  });
+  it("próximo dia da tarefa (sexta → segunda)", () => {
+    expect(nextOccurrence(rep, D)).toBe("2026-10-19");
+    expect(nextOccurrence(once, D)).toBeNull();
+  });
+  it("levar para o próximo dia: só os não feitos, sem repetir texto", () => {
+    const r = carryOver(
+      [
+        { id: "1", text: "A", done: true },
+        { id: "2", text: "B", done: false },
+        { id: "3", text: "C", done: false },
+      ],
+      [{ id: "4", text: "c ", done: false }],
+    );
+    expect(r.from.map((g) => g.text)).toEqual(["A"]);
+    expect(r.to.map((g) => g.text)).toEqual(["c ", "B"]);
   });
 });

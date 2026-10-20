@@ -12,13 +12,14 @@ import { useTimerActions, useToast } from "./toast";
 import { DayMenu } from "./DayMenu";
 import { AddTime, TaskEntries } from "./TimeEntries";
 import { TimerStart } from "./TimerStart";
+import { Goals } from "./Goals";
 import { ConflictNote, DayChoice, NotifyPermission, slotConflicts } from "./TaskForm";
 import { useStore } from "./store";
 import { Button, IconButton, Modal, Segmented, TimeSelect, cx, inputCls } from "./ui";
 
 /**
  * A janela da tarefa, tudo num lugar só (como no ClickUp): propriedades editáveis à esquerda e,
- * à direita, o tempo do dia (feito, cronômetro, adicionar tempo, registros). Cada campo salva sozinho.
+ * à direita, o dia (feito, cronômetro, objetivos do dia, adicionar tempo, registros). Cada campo salva sozinho.
  * No celular, o tempo vem primeiro (é o uso do dia a dia) e as propriedades embaixo.
  * `day` = o dia de onde foi aberta (o Dia aberto, ou a coluna da semana em Tarefas).
  */
@@ -402,6 +403,8 @@ function DayTime({ task, date, onClose }: { task: Task; date: string; onClose: (
           </button>
         )
       )}
+
+      <Goals task={task} date={date} />
 
       {adding ? (
         <>

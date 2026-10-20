@@ -90,7 +90,7 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 |---|---|
 | Campo "Nova tarefa, ex: Revisar PR 45m" | Enter cria no dia aberto; sem tempo, abre o formulário. Prévia "Enter cria … com 45min" |
 | Aviso de atrasadas | só hoje: "N tarefas ficaram de dias anteriores · Xh" · **Trazer para hoje** (com Desfazer); abrindo, **Hoje** em cada uma |
-| Linha da tarefa | círculo (concluir, com Desfazer) ou alvo (tarefa "cumpro o tempo") · nome (até 2 linhas) · progresso · horário · "● 12:03" se o timer está nela · "extra" · conflito · **▶ / ■** (contorno cinza; azul só com o timer rodando) |
+| Linha da tarefa | círculo (concluir, com Desfazer) ou alvo (tarefa "cumpro o tempo") · nome (até 2 linhas) · progresso · horário · "☑ 1/3" (objetivos do dia) · "● 12:03" se o timer está nela · "extra" · conflito · **▶ / ■** (contorno cinza; azul só com o timer rodando) |
 | Toque na linha | abre a **Janela da tarefa** |
 | Ordem | primeiro as com horário (pela hora), depois as outras (pela criação) |
 | Concluídas / Puladas | recolhido no fim |
@@ -137,6 +137,7 @@ Abre ao tocar numa tarefa no Dia, em Tarefas ou na semana (aí mostra o dia da c
 | Ações (dentro do resumo) | **Pular hoje** / Desfazer pulo (as que repetem) · **Mudar dia** (as de uma vez: Hoje, Amanhã, Próxima segunda, Outro dia) · **Concluir** / Reabrir (só "marco como feita"). Todas com aviso e Desfazer |
 | Começar | **Começar cronômetro** (some se concluída ou pulada). O pomodoro fica no Foco, separado |
 | Timer rodando (no lugar do anterior) | "Cronômetro rodando", relógio, "Começou às 10:16 · Mudar", **Parar** |
+| Objetivos de hoje / de amanhã / Objetivos | lista para marcar o que entregar nesse tempo (ex: tickets, capítulos), "1/3", ✕ remove (Desfazer), campo "Ex: fechar ticket 123, revisar PR" (Enter adiciona). As que repetem têm uma lista por dia; as de uma vez, uma lista só. **Levar os 2 que faltam para amanhã ›** (próximo dia da tarefa, com Desfazer). Sem tempo por objetivo: não entram na conta. Para planejar amanhã: abra a tarefa pela coluna de amanhã em Tarefas › Esta semana |
 | Adicionar tempo já feito | botão recolhido; aberto: 15m · 30m · 1h · 2h · campo "3h 20m ou 14:00-15:30" + **Adicionar** · Quando: Hoje / Ontem / Outro dia · Nota |
 | Registros | "Total X em N dias"; por dia com total; os 3 dias mais recentes e "Mostrar mais"; tocar num registro edita tempo, dia e nota, com 🗑 para apagar (Desfazer) |
 

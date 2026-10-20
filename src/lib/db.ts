@@ -17,7 +17,7 @@ import {
 import { db } from "./firebase";
 import { PREVIEW_UID } from "./preview";
 import type { Billing } from "./plan";
-import { DEFAULT_SETTINGS, type Session, type Settings, type Task } from "./types";
+import { DEFAULT_SETTINGS, type Goal, type Session, type Settings, type Task } from "./types";
 
 const col = (uid: string, name: string) => collection(db(), "users", uid, name);
 
@@ -117,6 +117,10 @@ export function toggleDone(uid: string, task: Task, date: string, done: boolean)
 }
 
 /** Pular (ou desfazer o pulo de) uma tarefa que repete, só neste dia. */
+/** Objetivos de um dia da tarefa (lista vazia apaga o dia). Chave: goalsKey (dia ou "_"). */
+export const setGoals = (uid: string, task: Task, key: string, goals: Goal[]) =>
+  write(uid, () => updateDoc(doc(db(), "users", uid, "tasks", task.id), { [`goals.${key}`]: goals.length ? goals : deleteField() }));
+
 export const setSkipped = (uid: string, task: Task, date: string, skipped: boolean) =>
   write(uid, () => updateDoc(doc(db(), "users", uid, "tasks", task.id), { [`skipped.${date}`]: skipped, [`completions.${date}`]: false }));
 

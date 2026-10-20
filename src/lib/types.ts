@@ -30,7 +30,16 @@ export interface Task {
   /** Tempo só de um dia, no lugar do normal { "2026-10-16": 360 } (ex: "encurtar hoje"). */
   estimateFor?: Record<string, number>;
   archived?: boolean;
+  /** Objetivos do dia { "2026-10-21": [...] } (as que repetem) ou { "_": [...] } (as de uma vez). Ver goals.ts. */
+  goals?: Record<string, Goal[]>;
   createdAt: string;
+}
+
+/** Um objetivo do dia dentro da tarefa. Sem tempo próprio: é só uma lista para marcar. */
+export interface Goal {
+  id: string;
+  text: string;
+  done: boolean;
 }
 
 export interface TimeSlot {

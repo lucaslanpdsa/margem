@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, Clock, Play, SkipForward, Square, Target } from "lucide-react";
+import { Check, Clock, ListChecks, Play, SkipForward, Square, Target } from "lucide-react";
 import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
+import { goalsFor, goalsSummary } from "@/lib/goals";
 import { toggleDone } from "@/lib/db";
 import { stopwatchText, useNow } from "./Timer";
 import { useTimerActions, useToast } from "./toast";
@@ -35,6 +36,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
   const running = settings.activeTimer?.taskId === task.id;
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
   const slots = slotsOf(task);
+  const goals = goalsSummary(goalsFor(task, date));
 
   return (
     <li
@@ -84,6 +86,11 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
             {slots.length > 0 && (
               <span className="tabular inline-flex items-center gap-1 font-medium text-ink">
                 <Clock size={11} /> {slots.map((sl) => `${sl.start}–${sl.end}`).join(", ")}
+              </span>
+            )}
+            {goals.total > 0 && (
+              <span className={cx("tabular inline-flex items-center gap-1 font-medium", goals.done === goals.total ? "text-done" : "text-ink")} title="Objetivos do dia">
+                <ListChecks size={12} /> {goals.done}/{goals.total}
               </span>
             )}
             {running && <RunningClock />}

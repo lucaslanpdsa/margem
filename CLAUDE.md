@@ -62,6 +62,7 @@ src/components/
   TaskRow.tsx               linha da tarefa no Dia (círculo, progresso, ▶/■)
   TaskDialog.tsx            janela da tarefa (modal único): detalhes editáveis que salvam sozinhos + feito, cronômetro, adicionar tempo, registros, pular/mudar dia/concluir
   TimeEntries.tsx           adicionar tempo (dia e nota); lista de registros única: da tarefa (por dia) e do dia (DayEntries)
+  Goals.tsx                 "Objetivos de hoje" na janela da tarefa
   TaskForm.tsx              formulário de criar tarefa (editar é no TaskDialog); conflitos de horário
   TasksPage.tsx             aba Tarefas: seu horário, Esta semana, grade "Repetem", "Não repetem" por data + concluídas, desativadas
   ScheduleEditor.tsx        editor do horário semanal e pausas
@@ -84,6 +85,7 @@ src/lib/
   preview.ts                PREVIEW_UID da prévia
   dates.ts                  chaves de dia, durações ("3h 20m"), intervalos ("14:00-15:30"), nomes de dia
   migrate.ts                conversão de dados antigos (metas semanais)
+  goals.ts                  objetivos do dia: chave, próximo dia da tarefa, levar para amanhã (pura e testada)
   week.ts                   semana da tarefa: meta (soma do planejado), atraso, histórico, dias seguidos (pura e testada)
   plan.ts                   Grátis/Pro a partir de billing e da data da conta (pura e testada)
   legal.ts                  responsável, e-mail de contato, preços, teste de 14 dias
@@ -92,7 +94,7 @@ src/lib/
 
 ## Modelo de dados (Firestore, `users/{uid}/…`)
 
-- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `archived` (desativada), `createdAt`.
+- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `goals` (objetivos do dia `{id, text, done}[]` por dia, ou na chave `"_"` para as de uma vez; ver `goals.ts`), `archived` (desativada), `createdAt`.
 - `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, outro = manual (`pomo-`/`pausa-` são de quando o pomodoro registrava).
 - `billing/{uid}` (fora de `users/`): `status` (`active` | `pending` | `paused` | `cancelled` | `none`), `period`, `paidUntil`, `preapprovalId`, `updatedAt`. **Só o servidor grava** (regras em `firestore.rules`).
 - `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer` (cronômetro: `taskId`, `startedAt`), `pomodoro` (`phase`, `startedAt`, `durationMin`, `waiting`, `pausedLeftMs`, `count`/`countDate`, `taskId` = item da lista em foco), `pomodoroTasks` (lista do pomodoro: `id`, `title`, `est`, `done`, `checked`, `fromTaskId`; só pomodoros, nunca horas), `pomodoroSkip` (`date`, `ids`: tarefas deixadas de fora da importação hoje), `scheduleSet`, `onboarded`. Antigos e ignorados: `lastTimerMode`, `pendingAssign`.

@@ -25,7 +25,8 @@ const win = { start: "08:00", end: "18:00" };
 
 function tasks(t0: string): Task[] {
   return [
-    { id: "trabalho", title: "Trabalho CI&T", repeat: "weekdays", weekdays: [1, 2, 3, 4, 5], estimateMin: 420, doneBy: "time", slots: [{ start: "08:00", end: "11:00" }, { start: "14:00", end: "18:00" }], createdAt: created },
+    { id: "trabalho", title: "Trabalho CI&T", repeat: "weekdays", weekdays: [1, 2, 3, 4, 5], estimateMin: 420, doneBy: "time", slots: [{ start: "08:00", end: "11:00" }, { start: "14:00", end: "18:00" }], createdAt: created,
+      goals: { [t0]: [{ id: "g1", text: "Fechar ticket PAG-412 (redirect)", done: true }, { id: "g2", text: "Revisar PR do módulo de pagamentos", done: false }, { id: "g3", text: "Daily: alinhar deploy de sexta", done: false }] } },
     { id: "academia", title: "Academia", repeat: "weekdays", weekdays: [1, 3, 5], estimateMin: 60, slots: [{ start: "18:30", end: "19:30" }], createdAt: created },
     { id: "estudo", title: "Estudar certificação Claude", repeat: "weekdays", weekdays: [1, 2, 3, 4, 5, 6], estimateMin: 90, createdAt: created },
     { id: "ingles", title: "Inglês (Fluency)", repeat: "weekdays", weekdays: [2, 4], estimateMin: 45, createdAt: created },
