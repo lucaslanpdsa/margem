@@ -6,7 +6,7 @@ import { streak, taskWeek, weekHistory } from "./week";
 import { planOf } from "./plan";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession, migrateTimer, setTimerStart } from "./timer";
-import { countToday, isRunning, listSummary, remainingMs, suggestPomodoros } from "./pomodoro";
+import { countToday, isRunning, listSummary, notImported, remainingMs, suggestPomodoros } from "./pomodoro";
 import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -438,6 +438,13 @@ describe("lista do pomodoro (só contagem, sem horas)", () => {
   it("sugestão ao importar usa o ciclo inteiro (foco + pausa)", () => {
     expect(suggestPomodoros(420, ciclo)).toBe(14); // 7h / 30min
     expect(suggestPomodoros(20, ciclo)).toBe(1);
+  });
+
+  it("tarefa apagada da lista pode ser importada de novo", () => {
+    const app = [{ id: "estudo" }, { id: "ingles" }];
+    const settings = { ...DEFAULT_SETTINGS, pomodoroTasks: [{ id: "p1", title: "Estudo", est: 3, done: 0, fromTaskId: "estudo" }] };
+    expect(notImported(settings, app).map((x) => x.id)).toEqual(["ingles"]);
+    expect(notImported({ ...settings, pomodoroTasks: [] }, app).map((x) => x.id)).toEqual(["estudo", "ingles"]);
   });
 
   it("resumo: feitos/estimados das não concluídas e quando acaba", () => {

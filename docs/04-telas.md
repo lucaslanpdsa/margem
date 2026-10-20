@@ -199,8 +199,8 @@ Pomodoro avulso, no estilo do Pomofocus. **Não registra tempo e não fala de ta
 | Tela | abas **Foco / Pausa** (trocar zera e deixa a fase pronta) e o **anel que vai se preenchendo** com o relógio (azul no foco, verde na pausa) |
 | Botões | **Começar foco** / **Começar pausa** · **Pausar** · **Continuar**; ⏭ pula para a próxima fase (foco pulado não conta) |
 | Embaixo | "#2 · Hora de focar!" (ou o nome da tarefa escolhida) / "Hora da pausa!", "3 pomodoros hoje", **Zerar** |
-| Tarefas (lista do pomodoro) | lista própria, como no Pomofocus: círculo concluir · nome (tocar = focar nesta; aparece embaixo do "#") · **feitos / estimados** · ✎ (nome, pomodoros estimados − +, Apagar com Desfazer). **Adicionar tarefa**; sem itens, também **Importar tarefas de hoje** |
-| ··· da lista | **Importar tarefas de hoje** (as abertas do Dia, estimativa sugerida = tempo que falta ÷ foco + pausa; não repete) · **Limpar concluídas** · **Limpar tudo** (com Desfazer) |
+| Tarefas (lista do pomodoro) | lista própria, como no Pomofocus: círculo concluir · nome (tocar = focar nesta; aparece embaixo do "#") · **feitos / estimados** · ✎ (nome, pomodoros estimados − +, Apagar com Desfazer). **Adicionar tarefa** e, quando há tarefas de hoje fora da lista, **Importar de hoje (N)** ao lado (apagadas da lista podem voltar). Sem nada escolhido, a primeira não concluída vira a do foco; concluir a escolhida passa para a próxima. Feitos acima do estimado ficam em laranja |
+| ··· da lista | **Importar tarefas de hoje (N)** (só quando há algo novo; as abertas do Dia, estimativa sugerida = tempo que falta ÷ foco + pausa; não repete) · **Limpar concluídas** · **Limpar tudo** (com Desfazer) |
 | Rodapé | "Pomodoros 2/5 · Termina às 18:18 (1h30)" (não concluídas; ciclo atual) |
 | ··· | foco e pausa em minutos (a fase em andamento termina com o tempo antigo; a parada já mostra o novo), início automático, avisos |
 

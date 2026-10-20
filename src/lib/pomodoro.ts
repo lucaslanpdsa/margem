@@ -115,24 +115,45 @@ const saveList = (uid: string, list: PomoTask[]) => saveSettings(uid, { pomodoro
 /** Tira campos vazios (o Firestore não aceita undefined). */
 const tidy = (t: PomoTask): PomoTask => Object.fromEntries(Object.entries(t).filter(([, v]) => v !== undefined)) as PomoTask;
 
+/**
+ * Grava a lista e, se nada estiver escolhido para o foco, escolhe a primeira não concluída (como no Pomofocus).
+ * Se a escolhida foi concluída ou apagada, passa para a próxima.
+ */
+async function saveListPicking(uid: string, settings: Settings, list: PomoTask[]) {
+  const p = settings.pomodoro;
+  const current = list.find((t) => t.id === p?.taskId && !t.checked);
+  const pick = current ?? list.find((t) => !t.checked);
+  if ((pick?.id ?? undefined) === p?.taskId) return saveList(uid, list);
+  const base = p ?? make(settings, "focus", { running: false, count: 0 });
+  const pomodoro: PomodoroState = { ...base };
+  if (pick) pomodoro.taskId = pick.id;
+  else delete pomodoro.taskId;
+  return saveSettings(uid, { pomodoroTasks: list, pomodoro });
+}
+
 export function addPomoTask(uid: string, settings: Settings, title: string, est: number) {
   const t: PomoTask = { id: newId(), title: title.trim(), est: Math.max(1, est), done: 0 };
-  return saveList(uid, [...(settings.pomodoroTasks ?? []), t]);
+  return saveListPicking(uid, settings, [...(settings.pomodoroTasks ?? []), t]);
 }
 
 export const updatePomoTask = (uid: string, settings: Settings, id: string, patch: Partial<PomoTask>) =>
-  saveList(uid, (settings.pomodoroTasks ?? []).map((t) => (t.id === id ? tidy({ ...t, ...patch }) : t)));
+  saveListPicking(uid, settings, (settings.pomodoroTasks ?? []).map((t) => (t.id === id ? tidy({ ...t, ...patch }) : t)));
 
-export const removePomoTask = (uid: string, settings: Settings, id: string) => saveList(uid, (settings.pomodoroTasks ?? []).filter((t) => t.id !== id));
+export const removePomoTask = (uid: string, settings: Settings, id: string) =>
+  saveListPicking(uid, settings, (settings.pomodoroTasks ?? []).filter((t) => t.id !== id));
 
-/** Traz tarefas do app para a lista, com estimativa sugerida. Não repete as já importadas. Devolve quantas entraram. */
+/** Tarefas do app ainda não trazidas para a lista (as apagadas da lista podem voltar). */
+export function notImported<T extends { id: string }>(settings: Settings, from: T[]) {
+  const have = new Set((settings.pomodoroTasks ?? []).map((t) => t.fromTaskId).filter(Boolean));
+  return from.filter((x) => !have.has(x.id));
+}
+
+/** Traz tarefas do app para a lista, com estimativa sugerida. Não repete as que já estão. Devolve quantas entraram. */
 export async function importTasks(uid: string, settings: Settings, from: { id: string; title: string; minutes: number }[]) {
-  const list = settings.pomodoroTasks ?? [];
-  const have = new Set(list.map((t) => t.fromTaskId).filter(Boolean));
-  const add = from
-    .filter((x) => !have.has(x.id))
-    .map((x): PomoTask => ({ id: newId() + x.id.slice(0, 4), title: x.title, est: suggestPomodoros(x.minutes, settings), done: 0, fromTaskId: x.id }));
-  if (add.length) await saveList(uid, [...list, ...add]);
+  const add = notImported(settings, from).map(
+    (x): PomoTask => ({ id: newId() + x.id.slice(0, 4), title: x.title, est: suggestPomodoros(x.minutes, settings), done: 0, fromTaskId: x.id }),
+  );
+  if (add.length) await saveListPicking(uid, settings, [...(settings.pomodoroTasks ?? []), ...add]);
   return add.length;
 }
 

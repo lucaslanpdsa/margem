@@ -8,6 +8,7 @@ import { dayItems } from "@/lib/metrics";
 import {
   addPomoTask,
   clearPomoTasks,
+  notImported,
   countToday,
   importTasks,
   isRunning,
@@ -130,10 +131,15 @@ function FocusTasks() {
   const [menu, setMenu] = useState(false);
   const sum = listSummary(list, settings, now);
 
+  // Tarefas abertas de hoje no app, e quais ainda não estão na lista (as apagadas da lista voltam a aparecer aqui).
+  const today = dayItems(todayKey(), tasks, blocks, sessions)
+    .filter((i) => !i.completed && !i.skipped)
+    .map((i) => ({ id: i.task.id, title: i.task.title, minutes: i.remainingMin || i.estimateMin }));
+  const pending = notImported(settings, today).length;
+
   async function importToday() {
     setMenu(false);
-    const items = dayItems(todayKey(), tasks, blocks, sessions).filter((i) => !i.completed && !i.skipped);
-    const n = await importTasks(uid, settings, items.map((i) => ({ id: i.task.id, title: i.task.title, minutes: i.remainingMin || i.estimateMin })));
+    const n = await importTasks(uid, settings, today);
     toast(n ? `${n === 1 ? "1 tarefa importada" : `${n} tarefas importadas`}. Ajuste os pomodoros se quiser.` : "As tarefas de hoje já estão na lista.", "info");
   }
   function save() {
@@ -204,9 +210,11 @@ function FocusTasks() {
             <>
               <div className="fixed inset-0 z-40" onClick={() => setMenu(false)} />
               <div className="absolute right-0 bottom-full z-50 mb-1 w-60 rounded-xl border border-line bg-surface p-1 shadow-xl">
-                <MenuItem onClick={importToday}>
-                  <Download size={15} /> Importar tarefas de hoje
-                </MenuItem>
+                {pending > 0 && (
+                  <MenuItem onClick={importToday}>
+                    <Download size={15} /> Importar tarefas de hoje ({pending})
+                  </MenuItem>
+                )}
                 <MenuItem
                   onClick={() => {
                     setMenu(false);
@@ -251,8 +259,8 @@ function FocusTasks() {
               </button>
               <button onClick={() => selectTask(uid, settings, t.id)} aria-pressed={p?.taskId === t.id} className="flex min-w-0 flex-1 items-center gap-2 py-2.5 text-left text-sm" title="Focar nesta">
                 <span className={cx("min-w-0 flex-1 truncate", p?.taskId === t.id && "font-semibold", t.checked && "text-muted line-through")}>{t.title}</span>
-                <span className="tabular shrink-0 text-muted">
-                  <b className="font-semibold text-ink">{t.done}</b>/{t.est}
+                <span className={cx("tabular shrink-0", t.done > t.est ? "text-break" : "text-muted")} title={t.done > t.est ? "Passou da estimativa" : undefined}>
+                  <b className={cx("font-semibold", t.done > t.est ? "text-break" : "text-ink")}>{t.done}</b>/{t.est}
                 </span>
               </button>
               <IconButton label="Editar" onClick={() => setForm({ id: t.id, title: t.title, est: t.est })}>
@@ -266,19 +274,20 @@ function FocusTasks() {
       {form && !form.id ? (
         <div className="mt-1.5">{formBox}</div>
       ) : (
-        <div className={cx("mt-1.5 grid gap-1.5", list.length === 0 && "sm:grid-cols-2")}>
+        // Os dois caminhos sempre à vista; importar só aparece quando há algo novo de hoje.
+        <div className={cx("mt-1.5 grid gap-1.5", pending > 0 && "grid-cols-2")}>
           <button
             onClick={() => setForm({ title: "", est: 1 })}
-            className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-sm font-semibold text-muted hover:border-muted/50 hover:text-ink"
+            className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line px-2 text-sm font-semibold text-muted hover:border-muted/50 hover:text-ink"
           >
-            <Plus size={16} /> Adicionar tarefa
+            <Plus size={16} className="shrink-0" /> Adicionar tarefa
           </button>
-          {list.length === 0 && (
+          {pending > 0 && (
             <button
               onClick={importToday}
-              className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line text-sm font-semibold text-muted hover:border-muted/50 hover:text-ink"
+              className="flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-dashed border-line px-2 text-sm font-semibold text-muted hover:border-muted/50 hover:text-ink"
             >
-              <Download size={16} /> Importar tarefas de hoje
+              <Download size={16} className="shrink-0" /> Importar de hoje ({pending})
             </button>
           )}
         </div>
