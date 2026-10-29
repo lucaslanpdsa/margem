@@ -21,7 +21,7 @@ export function DayCloser() {
     if (!uid || !dataReady || done.current === today) return;
     done.current = today;
     const now = new Date();
-    for (const d of daysToClose(today, days, settings)) closeDay(uid, d, daySnapshot(dayMetrics(d, settings, tasks, blocks, sessions, now)));
+    for (const d of daysToClose(today, days, settings)) closeDay(uid, d, daySnapshot(dayMetrics(d, settings, tasks, blocks, sessions, now, days[d])));
   }, [uid, dataReady, today, days, settings, tasks, blocks, sessions]);
   return null;
 }

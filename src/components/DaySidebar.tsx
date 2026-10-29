@@ -116,7 +116,8 @@ export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => voi
   );
   // Mesmo "A fazer" do topo do dia, para a previsão bater com ele.
   const room = Math.max(0, m.capacityMin - Math.max(m.doneMin, m.elapsedMin));
-  const proj = projectDay(ordered, settings, date, new Date(now), room, settings.activeTimer?.taskId);
+  // As mesmas pausas da conta do dia (fixas + trabalho do ponto + blocos).
+  const proj = projectDay(ordered, { ...settings, breaks: m.breaks }, date, new Date(now), room, settings.activeTimer?.taskId);
   const open = displayOrder(ordered, proj);
   const ids = ordered.map((i) => i.task.id);
   // As de horário marcado (ainda por vir) e as extra não mudam de lugar: o lugar delas é o horário.

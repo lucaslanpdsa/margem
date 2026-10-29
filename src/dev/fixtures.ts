@@ -9,9 +9,10 @@ import { DEFAULT_SETTINGS, type DayDoc, type Session, type Settings, type Task }
 
 export { PREVIEW_UID } from "@/lib/preview";
 
-export type Scenario = "dia" | "fila" | "leve" | "noite" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
+export type Scenario = "dia" | "ponto" | "fila" | "leve" | "noite" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
 export const SCENARIOS: { id: Scenario; label: string }[] = [
   { id: "dia", label: "Dia normal (com atrasada e sem registro)" },
+  { id: "ponto", label: "Trabalho no ponto (trabalhando desde 13:00)" },
   { id: "fila", label: "Fila montada (ordem escolhida)" },
   { id: "leve", label: "Modo leve (sem registrar tempo), dia já planejado" },
   { id: "noite", label: "Horário de hoje acabou (Fechar o dia)" },
@@ -132,6 +133,19 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     // Fila escolhida: o deploy antes do estudo, e uma tarefa nova (fora da fila) que entra no fim.
     ts = [...ts, { id: "nota", title: "Mandar nota fiscal", repeat: "once", date: t0, estimateMin: 20, createdAt: "2026-10-01T09:00:00.000Z" }];
     days[t0] = { order: ["deploy", "ingles", "estudo"] };
+  }
+  if (scenario === "ponto") {
+    // O Trabalho virou ponto: "Seu dia" 07–23, jornada 7h a partir das 08:00; entrou 08:05, almoço 12:02–13:00.
+    const trab = ts.find((t) => t.id === "trabalho")!;
+    settings.work = { days: [1, 2, 3, 4, 5], dailyMin: trab.estimateMin, start: "08:00", taskId: "trabalho", since: shiftDay(t0, -2) };
+    // Os dois dias de ponto antes de hoje: um com 30 min a mais, outro completo.
+    const on = (d: string, hm: string) => new Date(`${d}T${hm}:00`).toISOString();
+    days[shiftDay(t0, -2)] = { punches: [on(shiftDay(t0, -2), "08:00"), on(shiftDay(t0, -2), "12:00"), on(shiftDay(t0, -2), "13:00"), on(shiftDay(t0, -2), "16:30")], workEnded: true };
+    days[shiftDay(t0, -1)] = { ...days[shiftDay(t0, -1)], punches: [on(shiftDay(t0, -1), "08:00"), on(shiftDay(t0, -1), "12:00"), on(shiftDay(t0, -1), "13:00"), on(shiftDay(t0, -1), "16:00")], workEnded: true };
+    settings.windows = settings.windows.map((w) => (w ? { start: "07:00", end: "23:00" } : null));
+    ts = ts.map((t) => (t.id === "trabalho" ? { ...t, archived: true } : t));
+    const at = (hm: string) => new Date(`${t0}T${hm}:00`).toISOString();
+    days[t0] = { punches: [at("08:05"), at("12:02"), at("13:00")], plannedAt: at("08:06") };
   }
   if (scenario === "leve") {
     settings.trackTime = false;

@@ -1,6 +1,6 @@
 "use client";
 
-import { Bell, BellOff, CircleHelp, Database, LogOut, Sparkles, Timer } from "lucide-react";
+import { Bell, BellOff, Briefcase, CircleHelp, Database, LogOut, Sparkles, Timer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { fromKey } from "@/lib/dates";
@@ -9,6 +9,7 @@ import { tracksTime } from "@/lib/metrics";
 import { LEGAL } from "@/lib/legal";
 import { billingApi, SubscribeDialog, usePlan } from "./Pro";
 import { useStore } from "./store";
+import { WorkSetupDialog } from "./Ponto";
 import { useToast } from "./toast";
 import { Button, Modal, cx } from "./ui";
 
@@ -36,7 +37,7 @@ function Avatar({ size = 28 }: { size?: number }) {
 export function AccountMenu({ onHelp, variant }: { onHelp: () => void; variant: "header" | "sidebar" | "sidebar-collapsed" }) {
   const { user, logout, uid, settings } = useStore();
   const [open, setOpen] = useState(false);
-  const [dialog, setDialog] = useState<"dados" | "assinar" | "assinatura" | null>(null);
+  const [dialog, setDialog] = useState<"dados" | "assinar" | "assinatura" | "ponto" | null>(null);
   const plan = usePlan();
   const show = (d: typeof dialog) => {
     setOpen(false);
@@ -134,6 +135,13 @@ export function AccountMenu({ onHelp, variant }: { onHelp: () => void; variant: 
                 </span>
               </MenuButton>
             )}
+            <MenuButton onClick={() => show("ponto")}>
+              <Briefcase size={17} className={settings.work ? "text-accent" : "text-muted"} />
+              <span className="min-w-0 flex-1">
+                <span className="block">Ponto do trabalho</span>
+                <span className="block text-xs font-normal text-muted">{settings.work ? "Jornada, dias e seu dia" : "Separar o trabalho das tarefas"}</span>
+              </span>
+            </MenuButton>
             <MenuButton onClick={() => show("dados")}>
               <Database size={17} className="text-muted" /> Seus dados
             </MenuButton>
@@ -160,6 +168,7 @@ export function AccountMenu({ onHelp, variant }: { onHelp: () => void; variant: 
         </>
       )}
       {dialog === "dados" && <DataDialog onClose={() => setDialog(null)} />}
+      {dialog === "ponto" && <WorkSetupDialog onClose={() => setDialog(null)} />}
       {dialog === "assinar" && <SubscribeDialog onClose={() => setDialog(null)} />}
       {dialog === "assinatura" && <SubscriptionDialog onClose={() => setDialog(null)} />}
     </div>

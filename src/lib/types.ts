@@ -50,6 +50,24 @@ export interface DayDoc {
   closedAt?: string;
   /** Planejou o dia ("Planejar o dia" › Pronto, ou "Agora não"). */
   plannedAt?: string;
+  /** Ponto: marcações do dia (ISO), alternando entrada e saída. Pausa = saída + entrada. Ver ponto.ts. */
+  punches?: string[];
+  /** Ponto: tocou em "Sair" (encerrou o trabalho do dia). */
+  workEnded?: boolean;
+}
+
+/** Jornada do ponto (meta/settings.work). O trabalho sai das tarefas e vira ponto: entrada, pausas e saída. */
+export interface WorkConfig {
+  /** Dias de trabalho, 0 = domingo. */
+  days: number[];
+  /** Jornada do dia, em minutos (ex: 480 = 8h). */
+  dailyMin: number;
+  /** Entrada habitual "HH:mm", para prever o trabalho antes de bater a entrada. */
+  start: string;
+  /** Tarefa "Trabalho" que virou ponto (desativada): os registros dela não contam como tarefa. */
+  taskId?: string;
+  /** Dia em que o ponto começou: antes dele, dia sem marcação não é falta. */
+  since?: string;
 }
 
 /** Um objetivo do dia dentro da tarefa. Sem tempo próprio: é só uma lista para marcar. */
@@ -175,6 +193,10 @@ export interface Settings {
   autoStartFocus?: boolean;
   /** (Antigo) foco sem tarefa esperando "Em que você trabalhou?". */
   pendingAssign?: string | null;
+  /** Ponto do trabalho. Sem valor = sem ponto (o trabalho pode ser tarefa, como antes). */
+  work?: WorkConfig | null;
+  /** Convite "Separar o trabalho num ponto" dispensado. */
+  pontoOfferDismissed?: boolean;
   /** Registrar tempo (cronômetro, "Sem registro", "O que você fez?"). Sem valor = ligado (contas antigas). */
   trackTime?: boolean;
   /** Já passou pela configuração inicial. */

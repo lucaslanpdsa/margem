@@ -7,6 +7,7 @@ import { dayMetrics, tracksTime } from "@/lib/metrics";
 import { DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
 import { EstimateCard } from "./Estimates";
+import { PontoCard, PontoOffer } from "./Ponto";
 import { DayEntries } from "./TimeEntries";
 import { WeekPanel } from "./WeekPanel";
 import { useNow } from "./Timer";
@@ -16,9 +17,9 @@ import { Panel, cx } from "./ui";
 // ---------------- Dia ----------------
 
 export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
-  const { date, settings, tasks, blocks, sessions } = useStore();
+  const { date, settings, tasks, blocks, sessions, days } = useStore();
   const now = new Date(useNow(60000));
-  const m = dayMetrics(date, settings, tasks, blocks, sessions, now);
+  const m = dayMetrics(date, settings, tasks, blocks, sessions, now, days[date]);
   // Modo leve: a semana e as estimativas são feitas de horas registradas; sem registro, só confundiriam.
   const track = tracksTime(settings);
   const hasRecords = sessions.some((s) => s.date === date);
@@ -27,6 +28,8 @@ export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
     <div className="mx-auto grid max-w-3xl gap-4 lg:max-w-6xl lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:items-start">
       {/* No computador a semana fica embaixo do resumo; no celular, depois das tarefas. */}
       <div className="space-y-4 lg:sticky lg:top-6">
+        <PontoOffer />
+        <PontoCard m={m} />
         <DayBudget m={m} />
         {track && (
           <div className="hidden space-y-4 lg:block">

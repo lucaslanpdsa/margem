@@ -22,6 +22,9 @@
 | **Pular hoje** | Tira uma tarefa que repete só daquele dia. O que já tinha sido feito continua contando. |
 | **Mudar dia** | Muda a data de uma tarefa de uma vez (Hoje, Amanhã, Próxima segunda, Outro dia). |
 | **Desativar tarefa** | Tira uma tarefa que repete de todos os dias, sem apagar o histórico (vai para "Desativadas"). |
+| **Ponto** | Entrada, pausas e saída do trabalho. O trabalhado vem das marcações; o que falta da jornada é previsto (saída prevista) e sai do tempo do dia, sem contar como feito. |
+| **Jornada** | Quanto você trabalha por dia, em que dias e a entrada de costume (menu da conta › Ponto do trabalho). |
+| **Seu dia** | Com ponto, o "Seu horário" vira o tempo disponível do dia inteiro (ex.: 07–23); as tarefas ficam com o que sobra fora do trabalho. |
 | **Depois** | Caixa do que ainda não tem dia (só o título basta). Não entra em nenhuma conta até ir para um dia. |
 | **Lembrete** | Tarefa de uma vez com dia e sem tempo (ex: pagar a luz). Aparece no dia, fora da fila e das contas. |
 | **Bloco reservado** | No modo leve, tarefa "Cumpro o tempo" com horário: o horário dela sai do tempo do dia (como pausa). Não conta como feito nem deve tempo. |

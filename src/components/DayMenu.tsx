@@ -13,14 +13,14 @@ import { cx, inputCls } from "./ui";
  * Negativo = não cabe.
  */
 function useRoomFor(task: Task | undefined) {
-  const { settings, tasks, blocks, sessions } = useStore();
+  const { settings, tasks, blocks, sessions, days } = useStore();
   const now = new Date(useNow(60000));
   if (!task) return null;
   const done = sessions.filter((s) => s.taskId === task.id).reduce((a, s) => a + s.minutes, 0);
   const need = Math.max(0, task.estimateMin - done);
   const others = tasks.filter((t) => t.id !== task.id);
   return (date: string) => {
-    const m = dayMetrics(date, settings, others, blocks, sessions, now);
+    const m = dayMetrics(date, settings, others, blocks, sessions, now, days[date]);
     if (!m.window) return { text: "sem horário", over: true };
     if (m.past) return null;
     const left = m.freeMin - need;

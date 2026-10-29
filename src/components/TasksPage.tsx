@@ -331,12 +331,12 @@ function DoneGroup({ tasks }: { tasks: Task[] }) {
  * Dias passados mostram o feito. Tocar num dia abre o Dia nele (no celular, mostra a lista dele).
  */
 function WeekCard({ onOpenDay }: { onOpenDay: (date: string) => void }) {
-  const { settings, tasks, blocks, sessions } = useStore();
+  const { settings, tasks, blocks, sessions, days: dayDocs } = useStore();
   const now = new Date(useNow(60000));
   const today = todayKey(now);
   const [next, setNext] = useState(false);
   const days = weekDays(next ? shiftDay(today, 7) : today);
-  const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now));
+  const ms = days.map((d) => dayMetrics(d, settings, tasks, blocks, sessions, now, dayDocs[d]));
   // Dia aberto no celular: hoje (ou segunda, na próxima semana) até tocar em outro.
   const [picked, setPicked] = useState<string | null>(null);
   const shown = picked && days.includes(picked) ? picked : days.includes(today) ? today : days[0];

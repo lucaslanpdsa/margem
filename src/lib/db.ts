@@ -175,6 +175,10 @@ export const setDayOrder = (uid: string, date: string, order: string[]) => write
 /** Planejou o dia (ou escolheu "Agora não"): o cartão "Planejar o dia" some até amanhã. */
 export const setDayPlanned = (uid: string, date: string) => write(uid, () => setDoc(dayRef(uid, date), { plannedAt: new Date().toISOString() }, { merge: true }));
 
+/** Ponto: as marcações do dia (ISO, em ordem) e se encerrou o trabalho ("Sair"). */
+export const setPunches = (uid: string, date: string, punches: string[], workEnded = false) =>
+  write(uid, () => setDoc(dayRef(uid, date), { punches: [...punches].sort(), workEnded }, { merge: true }));
+
 /** Fotografia do dia que passou (fechamento). */
 export const closeDay = (uid: string, date: string, snap: Pick<DayDoc, "plannedMin" | "doneMin">) =>
   write(uid, () => setDoc(dayRef(uid, date), { ...snap, closedAt: new Date().toISOString() }, { merge: true }));

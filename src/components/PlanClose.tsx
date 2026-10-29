@@ -7,6 +7,7 @@ import { dayName, fmtMin, shiftDay, todayKey } from "@/lib/dates";
 import { closeDay, deleteTask, moveToDay, moveToLater, replaceTask, restoreTaskPlace, setDayPlanned, setSkipped } from "@/lib/db";
 import { dayMetrics, isReminder, tracksTime, type DayItem, type DayMetrics } from "@/lib/metrics";
 import { orderItems } from "@/lib/queue";
+import { toMin } from "@/lib/schedule";
 import type { Task } from "@/lib/types";
 import { LaterRow, ReminderRow, laterTasks } from "./Later";
 import { useStore } from "./store";
@@ -76,7 +77,7 @@ export function PlanDayDialog({ onClose }: { onClose: () => void }) {
   const toast = useToast();
   const now = new Date(useNow(60000));
   const today = todayKey();
-  const m = dayMetrics(today, settings, tasks, blocks, sessions, now);
+  const m = dayMetrics(today, settings, tasks, blocks, sessions, now, days[today]);
   const v = verdict(m);
   const open = openItems(m, days[today]?.order, blocks);
   const reminders = m.items.filter((i) => isReminder(i.task)).map((i) => i.task);
@@ -161,9 +162,13 @@ export function PlanDayDialog({ onClose }: { onClose: () => void }) {
 /** Cartão da noite: depois do fim do horário, até você fechar o dia. */
 export function CloseDayCard({ m }: { m: DayMetrics }) {
   const { days } = useStore();
+  const now = useNow(60000);
   const [open, setOpen] = useState(false);
   const today = todayKey();
-  if (m.date !== today || !m.window || !m.ended || days[today]?.closedAt) return null;
+  // Uma hora antes do fim do seu dia (ou depois dele): com o "Seu dia" até as 23h, ninguém espera até lá.
+  const nowMin = new Date(now).getHours() * 60 + new Date(now).getMinutes();
+  const late = m.ended || nowMin >= toMin(m.window?.end ?? "24:00") - 60;
+  if (m.date !== today || !m.window || !late || days[today]?.closedAt) return null;
   const left = m.items.filter((i) => !i.completed && !i.skipped && i.task.repeat === "once").length;
   return (
     <div className="mt-4 rounded-xl border border-line bg-sunken px-4 py-3">
@@ -186,12 +191,12 @@ export function CloseDayCard({ m }: { m: DayMetrics }) {
 
 /** O que sobrou de hoje vai para amanhã, Depois ou é excluído; termina mostrando como amanhã começa. */
 export function CloseDayDialog({ onClose }: { onClose: () => void }) {
-  const { uid, tasks, blocks, sessions, settings } = useStore();
+  const { uid, tasks, blocks, sessions, settings, days } = useStore();
   const toast = useToast();
   const now = new Date(useNow(60000));
   const today = todayKey();
   const tomorrow = shiftDay(today, 1);
-  const m = dayMetrics(today, settings, tasks, blocks, sessions, now);
+  const m = dayMetrics(today, settings, tasks, blocks, sessions, now, days[today]);
   // A fotografia é de quando a janela abriu: mover as sobras muda o planejado de hoje.
   const [snap] = useState(() => daySnapshot(m));
   const [counts] = useState(() => {
@@ -199,7 +204,7 @@ export function CloseDayDialog({ onClose }: { onClose: () => void }) {
     return { done: c.filter((i) => i.completed).length, total: c.length };
   });
   const leftovers = m.items.filter((i) => !i.completed && !i.skipped && i.task.repeat === "once").map((i) => i.task);
-  const next = dayMetrics(tomorrow, settings, tasks, blocks, sessions, now);
+  const next = dayMetrics(tomorrow, settings, tasks, blocks, sessions, now, days[tomorrow]);
   const nextTasks = next.items.filter((i) => !i.skipped && !i.outside && !i.block && i.estimateMin > 0);
 
   const send = (t: Task, where: "amanha" | "depois" | "excluir") => {

@@ -1,6 +1,7 @@
 import { todayKey, weekdayOf } from "./dates";
 import { dayClock, mergeBreaks, slotsOf, toMin, windowFor } from "./schedule";
-import type { Block, DayWindow, Session, Settings, Task } from "./types";
+import { hhmm, workDay, type WorkDay } from "./ponto";
+import type { Block, BreakTime, DayDoc, DayWindow, Session, Settings, Task } from "./types";
 
 export interface DayItem {
   task: Task;
@@ -29,6 +30,10 @@ export interface DayMetrics {
   leftMin: number; // quanto do horário ainda resta
   past: boolean; // o dia já acabou
   ended: boolean; // o relógio passou do fim do horário (com blocos, o tempo livre pode acabar antes disso)
+  /** Ponto do dia (marcações + previsão da jornada); null sem ponto ou fora de dia de trabalho. */
+  work: WorkDay | null;
+  /** Pausas valendo no dia: as fixas + blocos reservados + trabalho do ponto (a fila usa as mesmas). */
+  breaks: BreakTime[];
   plannedMin: number; // soma das estimativas do dia
   doneMin: number; // tudo que foi trabalhado no dia
   idleMin: number; // tempo que já passou sem nada registrado
@@ -121,17 +126,24 @@ export function dayMetrics(
   blocks: Block[],
   sessions: Session[],
   now: Date = new Date(),
+  day?: DayDoc,
 ): DayMetrics {
   const window = windowFor(settings, date);
+  // Ponto: o trabalho (marcado + o que falta da jornada) sai do tempo do dia; as tarefas ficam com o resto.
+  const work = workDay(settings.work, date, day, settings.breaks, now);
+  const workBreaks = (work?.intervals ?? []).map(([a, b]) => ({ label: "Trabalho", start: hhmm(a), end: hhmm(b) }));
   const raw = dayItems(date, tasks, blocks, sessions, window);
   // Blocos reservados (modo leve): os horários deles saem do tempo do dia, como pausas.
   const blockIds = new Set(raw.filter((i) => !i.outside && !i.skipped && isBlockTask(i.task, settings)).map((i) => i.task.id));
   const reserved = raw.filter((i) => blockIds.has(i.task.id)).flatMap((i) => slotsOf(i.task).map((s) => ({ label: i.task.title, start: s.start, end: s.end })));
-  const clock = dayClock(reserved.length ? { ...settings, breaks: mergeBreaks([...settings.breaks, ...reserved]) } : settings, date, now);
+  const extra = [...reserved, ...workBreaks];
+  const breaks = extra.length ? mergeBreaks([...settings.breaks, ...extra]) : settings.breaks;
+  const clock = dayClock(extra.length ? { ...settings, breaks } : settings, date, now);
   const items = raw.map((i) => (blockIds.has(i.task.id) ? { ...i, block: true, remainingMin: 0 } : i));
   const inside = items.filter((i) => !i.outside && !i.block);
   // Fora da conta de uso do horário: tarefas marcadas fora do horário e blocos (o tempo deles já saiu do dia).
-  const notCounted = new Set(items.filter((i) => i.outside || i.block).map((i) => i.task.id));
+  // A antiga tarefa "Trabalho" (que virou ponto) também: o trabalho agora vem das marcações.
+  const notCounted = new Set([...items.filter((i) => i.outside || i.block).map((i) => i.task.id), ...(settings.work?.taskId ? [settings.work.taskId] : [])]);
   // Pulada conta só o que chegou a ser feito.
   const plannedMin = inside.reduce((a, i) => a + (i.skipped ? i.doneMin : i.estimateMin), 0);
   const doneMin = sessions.filter((s) => s.date === date && !notCounted.has(s.taskId)).reduce((a, s) => a + s.minutes, 0);
@@ -146,6 +158,8 @@ export function dayMetrics(
     elapsedMin: clock.elapsedMin,
     leftMin: clock.capacityMin - clock.elapsedMin,
     past: clock.past,
+    work,
+    breaks,
     ended: !!clock.window && (date < todayKey(now) || (date === todayKey(now) && now.getHours() * 60 + now.getMinutes() >= toMin(clock.window.end))),
     plannedMin,
     doneMin,

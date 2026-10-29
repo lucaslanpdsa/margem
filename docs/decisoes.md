@@ -4,6 +4,16 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 29/10 (fim da tarde) — Trabalho vira ponto
+- O dono percebeu que misturava a contagem de horas do trabalho com o planejamento de tarefas. **O trabalho deixa de ser tarefa e vira ponto**: entrada, pausas, saída, jornada do dia, **saída prevista** e saldo da semana. As tarefas usam só o tempo **fora** do trabalho. Pesquisa e opções no documento "Margem — Ponto separado das tarefas".
+- **Caminho B (ponto simples)**. Regras da CLT (tolerância, banco de horas com prazo, avisos de intervalo, de hora extra e de 11h entre jornadas) ficaram para depois, só se fizer falta: o ponto do Margem é pessoal, não substitui o da empresa.
+- Marcações são registro, então o "trabalhado" é honesto. O que falta da jornada é **previsto** a partir de agora (ou da entrada habitual), pulando as pausas fixas, e só ocupa o tempo; nunca conta como feito. Dia passado sem saída marcada não inventa horas.
+- **Seu dia** (ex.: 07–23) passa a ser o tempo disponível, com o trabalho dentro; o "Extra" quase some.
+- **Transformar a tarefa "Trabalho" em ponto**: convite uma vez no Dia (ou menu da conta › Ponto do trabalho). Jornada a partir da tarefa, registros com horário viram marcações, cronômetro rodando vira entrada, tarefa desativada, tudo com Desfazer. Os registros antigos dela não contam como tarefa (`work.taskId`), para não contar em dobro.
+- Saldo da semana conta a partir do dia em que o ponto começou (`work.since`).
+- **Entrar** abre o Planejar o dia (se ainda não planejou). "Fechar o dia" aparece 1h antes do fim do seu dia.
+- Janelas (Modal) passaram a abrir no corpo da página: dentro da coluna "grudada" do Dia, ficavam atrás da lista.
+
 ### 29/10 (tarde) — O Margem abre e fecha o dia
 - Diagnóstico com o dono (ele não sentia vontade de usar; o trabalho já está no Jira): o app pedia esforço todo dia (registrar tudo, estimar tudo) e devolvia valor tarde. O centro passa a ser **capturar, planejar e fechar**; o trabalho fica no Jira e entra só como bloco.
 - **Modo leve** (menu da conta › Registrar tempo): sem ▶ (menos nas "Cumpro o tempo"), "Já passou" no lugar de "Sem registro", sem "O que você fez?", "Esta semana", encaixe e estimativas. A conta do dia continua honesta sem registro (relógio + o que falta). Contas novas começam no leve; as antigas, como estavam.

@@ -2,6 +2,7 @@
 
 import { X } from "lucide-react";
 import { useEffect, type ButtonHTMLAttributes, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 export function cx(...c: (string | false | null | undefined)[]) {
   return c.filter(Boolean).join(" ");
@@ -89,7 +90,8 @@ export function Modal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  // No corpo da página: dentro de uma coluna "grudada" (sticky), a janela ficaria presa atrás do resto.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 backdrop-blur-[2px] sm:items-center sm:p-4" onClick={onClose}>
       <div
         role="dialog"
@@ -117,7 +119,8 @@ export function Modal({
         </div>
         <div className="px-6 pt-4 pb-6">{children}</div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 

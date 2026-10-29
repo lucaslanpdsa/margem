@@ -3,7 +3,7 @@
 /**
  * Prévia do app com dados de exemplo, sem login e sem Firebase. Só em desenvolvimento.
  *
-*   /dev?cenario=dia            (dia | fila | leve | noite | apertado | timer | vazio | onboarding | entrar)
+*   /dev?cenario=dia            (dia | ponto | fila | leve | noite | apertado | timer | vazio | onboarding | entrar)
  *   /dev?cenario=dia#tarefas    (aba: #tarefas, #foco)
  *   /dev?abrir=tarefa           (abre uma janela: tarefa | nova | editar)
  *

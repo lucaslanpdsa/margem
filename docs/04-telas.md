@@ -56,6 +56,7 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 
 - Nome e e-mail.
 - **Notificações**: ativadas / "Ativar" / bloqueadas no navegador (com instrução) / não suportadas. É o lugar fixo para ligar os avisos.
+- **Ponto do trabalho**: abre a Jornada do ponto (ou o Transformar em ponto).
 - **Registrar tempo** (chave): ligado = cronômetro em cada tarefa, "Sem registro", "O que você fez?", "Esta semana", encaixe e "Suas estimativas". Desligado (**modo leve**) = só as tarefas "Cumpro o tempo" têm ▶; o topo do Dia mostra "Já passou" no lugar de "Sem registro", e o dia encerrado mostra "4 de 6 tarefas feitas". Contas antigas começam ligadas; contas novas, desligadas. No modo leve, tarefa "Cumpro o tempo" com horário vira **bloco reservado**: na lista, relógio no lugar do círculo, "horário reservado", sem ▶ nem progresso, **Agora** enquanto acontece; no topo, "Xh livres, fora de Trabalho, até as 18:00".
 - **Plano** (só com a cobrança ligada): "Pro grátis · faltam N dias · Assinar", "Plano grátis · Conhecer o Pro" ou "Assinatura Pro · Ver ou cancelar".
 - **Seus dados**: **Baixar arquivo** (tudo da conta em JSON) e **Excluir conta…** (confirmação, pede o Google de novo, apaga tudo e volta para a página de vendas).
@@ -84,6 +85,21 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 | Botões | **O que você fez?** (com 5min ou mais sem registro e alguma tarefa no dia) · **Como dar tempo** (quando não dá tempo) |
 | Como dar tempo | recolhido; abre "Tire X de hoje com um destes:" e até 4 tarefas com **Pular hoje** / **Amanhã** / **Encurtar para X**, cada uma com Desfazer |
 | Detalhes | recolhido; "Seu horário hoje: 08:00–18:00 (9h) · **Mudar**" (início, fim, Salvar, Sem horário, Voltar ao padrão, Cancelar) e a explicação de cada cor, com o total "extra". Em dia sem horário o botão é "Mudar horário deste dia" |
+
+**Ponto** (`Ponto.tsx`; só com ponto ligado, hoje; acima do topo do dia)
+
+| Elemento | Detalhe |
+|---|---|
+| Título | "Jornada de 7h · entrada às 08:00" / "Trabalhando · 6h23 de 7h" / "Em pausa · 4h de 7h" / "Trabalho encerrado · 7h05" / "Hoje não é dia de trabalho" |
+| Linha | "Saída prevista 16:03 · faltam 37min"; encerrado: "Jornada cumprida" ou "30min a mais/a menos que a jornada" |
+| Marcações | "08:05 · 12:02 · 13:00 ✎" abre **Marcações do dia** (Entrada/Saída alternadas, horário, apagar, + Entrada/Saída, "Já encerrei o trabalho hoje", Salvar com Desfazer). Sem marcação: **Esqueci de marcar** |
+| Botões | **Entrar** (abre o Planejar o dia se ainda não planejou) · **Pausar** e **Sair** · **Voltar** e **Encerrar o dia** · encerrado: **Voltar ao trabalho**. Tudo com Desfazer |
+| ⚙ | **Jornada do ponto**: dias, jornada por dia, entrada de costume, Seu dia (início e fim), **Desligar o ponto** |
+| Rodapé | "Semana: 20h54 de 35h · saldo +30min" (saldo só dos dias fechados, desde que o ponto começou) |
+
+**Separe o trabalho num ponto** (convite, uma vez, quando há uma tarefa "Cumpro o tempo" que repete): **Transformar em ponto** abre a mesma janela, com a jornada tirada da tarefa e o Seu dia sugerido em 07–23; **Agora não**.
+
+Com ponto, o topo do dia diz "Xh livres, fora do trabalho, até as 23:00" e a fila começa depois do trabalho (ou antes dele).
 
 **Tarefas de hoje**
 

@@ -12,6 +12,7 @@ import { autoOrder, displayOrder, firstNotFitting, fmtClock, moveInQueue, orderI
 import { MIN_SAMPLES, calibrate, isAccurate, likelyMin, samples } from "./calibration";
 import { daysToClose, planFit } from "./closing";
 import { captureKind, parseCapture } from "./capture";
+import { pontoState, punchesFromSessions, weekWork, workDay, workFromTask } from "./ponto";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -846,5 +847,127 @@ describe("modo leve: 'cumpro o tempo' com horário vira bloco reservado", () => 
 describe("juntar pausas", () => {
   it("junta as que se sobrepõem", () => {
     expect(mergeBreaks([{ label: "a", start: "12:00", end: "13:00" }, { label: "b", start: "12:30", end: "14:00" }, { label: "c", start: "15:00", end: "15:10" }]).map((b) => `${b.start}-${b.end}`)).toEqual(["12:00-14:00", "15:00-15:10"]);
+  });
+});
+
+// ---------- Ponto ----------
+
+describe("ponto", () => {
+  // Sexta: "Seu dia" 07–23 com almoço 12–13; jornada 8h, entrada habitual 08:00.
+  const P = { ...DEFAULT_SETTINGS, windows: [null, null, null, null, null, { start: "07:00", end: "23:00" }, null], breaks: [{ label: "Almoço", start: "12:00", end: "13:00" }], work: { days: [1, 2, 3, 4, 5], dailyMin: 480, start: "08:00" } };
+  const iso = (hm: string, d = D) => new Date(`${d}T${hm}:00`).toISOString();
+  const at = (hm: string, d = D) => new Date(`${d}T${hm}:00`);
+
+  it("estado pelas marcações", () => {
+    expect(pontoState([])).toBe("fora");
+    expect(pontoState([iso("08:00")])).toBe("trabalhando");
+    expect(pontoState([iso("08:00"), iso("12:00")])).toBe("pausa");
+    expect(pontoState([iso("08:00"), iso("17:00")], true)).toBe("encerrado");
+  });
+
+  it("antes da entrada, a jornada é prevista a partir da entrada habitual, pulando o almoço", () => {
+    const w = workDay(P.work, D, undefined, P.breaks, at("07:30"))!;
+    expect(w.state).toBe("fora");
+    expect(w.workedMin).toBe(0);
+    expect(w.exitAt).toBe(17 * 60);
+    expect(w.intervals).toEqual([[480, 720], [780, 1020]]);
+  });
+
+  it("trabalhando: conta até agora e prevê a saída pelo que falta", () => {
+    const w = workDay(P.work, D, { punches: [iso("08:20")] }, P.breaks, at("10:20"))!;
+    expect(w.state).toBe("trabalhando");
+    expect(w.workedMin).toBe(120);
+    expect(w.leftMin).toBe(360);
+    expect(w.exitAt).toBe(17 * 60 + 20); // entrou 20 min depois, sai 20 min depois
+  });
+
+  it("em pausa: o que falta é previsto a partir de agora", () => {
+    const w = workDay(P.work, D, { punches: [iso("08:00"), iso("12:00")] }, P.breaks, at("12:30"))!;
+    expect(w.state).toBe("pausa");
+    expect(w.workedMin).toBe(240);
+    expect(w.predicted).toEqual([[780, 1020]]);
+  });
+
+  it("depois de Sair, nada é previsto, mesmo sem cumprir a jornada", () => {
+    const w = workDay(P.work, D, { punches: [iso("08:00"), iso("12:00"), iso("13:00"), iso("16:00")], workEnded: true }, P.breaks, at("16:30"))!;
+    expect(w.state).toBe("encerrado");
+    expect(w.workedMin).toBe(420);
+    expect(w.leftMin).toBe(0);
+    expect(w.exitAt).toBe(16 * 60);
+  });
+
+  it("dia que não é de trabalho e sem marcação: sem ponto; dia passado: só as marcações", () => {
+    expect(workDay(P.work, "2026-10-17", undefined, P.breaks, at("10:00"))).toBeNull();
+    const past = workDay(P.work, "2026-10-15", { punches: [iso("09:00", "2026-10-15")] }, P.breaks, at("10:00"))!;
+    expect(past.workedMin).toBe(0); // esqueceu de sair: não inventa horas
+    expect(past.predicted).toEqual([]);
+  });
+
+  it("o trabalho sai do tempo do dia: as tarefas ficam com o resto", () => {
+    const x: Task = { ...base, id: "x", title: "Estudar", repeat: "once", date: D, estimateMin: 90 };
+    const m = dayMetrics(D, P, [x], [], [], at("10:20"), { punches: [iso("08:20")] });
+    // Seu dia 07–23 (16h) − almoço 1h = 15h; trabalho 08:20–12:00 e 13:00–17:20 = 8h.
+    expect(m.capacityMin).toBe(900 - 480);
+    // Já passou do tempo livre: 07:00–08:20 = 80 min.
+    expect(m.elapsedMin).toBe(80);
+    expect(m.freeMin).toBe(420 - 80 - 90);
+    expect(m.work?.exitAt).toBe(17 * 60 + 20);
+  });
+
+  it("os registros da antiga tarefa Trabalho não contam em dobro", () => {
+    const Pw = { ...P, work: { ...P.work, taskId: "trab" } };
+    const ss: Session[] = [{ id: "s", taskId: "trab", date: D, minutes: 120, kind: "manual", startedAt: "", endedAt: "" }];
+    expect(dayMetrics(D, Pw, [], [], ss, at("10:20"), { punches: [iso("08:20")] }).doneMin).toBe(0);
+  });
+
+  it("a fila passa por cima do trabalho, e o que não cabe bate com o topo", () => {
+    const ts: Task[] = [
+      { ...base, id: "a", title: "a", repeat: "once", date: D, estimateMin: 60 },
+      { ...base, id: "b", title: "b", repeat: "once", date: D, estimateMin: 120 },
+    ];
+    const m = dayMetrics(D, P, ts, [], [], at("07:30"), undefined);
+    const ordered = orderItems(m.items, ["a", "b"], [], D);
+    const room = Math.max(0, m.capacityMin - Math.max(m.doneMin, m.elapsedMin));
+    const p = projectDay(ordered, { ...P, breaks: m.breaks }, D, at("07:30"), room);
+    const span = (id: string) => `${fmtClock(p.byTask.get(id)!.start)}-${fmtClock(p.byTask.get(id)!.end)}`;
+    expect(span("a")).toBe("07:30-17:30"); // 07:30–08:00 e, depois do trabalho, 17:00–17:30
+    expect(span("b")).toBe("17:30-19:30");
+    expect(p.excessMin).toBe(m.remainingMin - Math.min(m.remainingMin, room));
+  });
+
+  it("semana: trabalhado, jornada e saldo só dos dias fechados", () => {
+    const week = ["2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", D, "2026-10-17", "2026-10-18"];
+    const days = {
+      "2026-10-12": { punches: [iso("08:00", "2026-10-12"), iso("17:30", "2026-10-12")] }, // 9h30 (+1h30)
+      "2026-10-13": { punches: [iso("08:00", "2026-10-13"), iso("15:00", "2026-10-13")] }, // 7h (−1h)
+      [D]: { punches: [iso("08:00")] }, // hoje, aberto
+    };
+    const w = weekWork(P.work, week, days, at("10:00"));
+    expect(w.plannedMin).toBe(5 * 480);
+    expect(w.workedMin).toBe(570 + 420 + 120);
+    // 14 e 15 sem marcação contam como −8h cada.
+    expect(w.balanceMin).toBe(90 - 60 - 480 - 480);
+  });
+
+  it("transformar a tarefa Trabalho: jornada e marcações a partir dela", () => {
+    const t: Task = { ...base, id: "trab", title: "Trabalho", repeat: "weekdays", weekdays: [5, 1, 2], estimateMin: 420, doneBy: "time", slots: [{ start: "14:00", end: "18:00" }, { start: "08:00", end: "11:00" }] };
+    expect(workFromTask(t)).toEqual({ days: [1, 2, 5], dailyMin: 420, start: "08:00", taskId: "trab" });
+    const ss: Session[] = [
+      { id: "1", taskId: "trab", date: D, minutes: 60, kind: "manual", startedAt: iso("08:00"), endedAt: iso("09:00") },
+      { id: "2", taskId: "trab", date: D, minutes: 60, kind: "manual", startedAt: iso("09:00"), endedAt: iso("10:00") },
+      { id: "3", taskId: "trab", date: D, minutes: 30, kind: "manual", startedAt: iso("12:00"), endedAt: iso("12:00") }, // sem horário
+      { id: "4", taskId: "outra", date: D, minutes: 60, kind: "manual", startedAt: iso("13:00"), endedAt: iso("14:00") },
+    ];
+    expect(punchesFromSessions(ss, "trab")).toEqual({ [D]: [iso("08:00"), iso("10:00")] });
+  });
+});
+
+describe("ponto: saldo só depois de começar", () => {
+  it("dia sem marcação antes do ponto não é falta", () => {
+    const work = { days: [1, 2, 3, 4, 5], dailyMin: 480, start: "08:00", since: D };
+    const week = ["2026-10-12", "2026-10-13", "2026-10-14", "2026-10-15", D, "2026-10-17", "2026-10-18"];
+    const at = new Date(`${D}T18:00:00`);
+    const p = [new Date(`${D}T08:00:00`).toISOString(), new Date(`${D}T17:30:00`).toISOString()];
+    expect(weekWork(work, week, { [D]: { punches: p, workEnded: true } }, at).balanceMin).toBe(90);
   });
 });
