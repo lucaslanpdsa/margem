@@ -1,10 +1,11 @@
 "use client";
 
-import { Bell, BellOff, CircleHelp, Database, LogOut, Sparkles } from "lucide-react";
+import { Bell, BellOff, CircleHelp, Database, LogOut, Sparkles, Timer } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { fromKey } from "@/lib/dates";
-import { exportUserData } from "@/lib/db";
+import { exportUserData, saveSettings } from "@/lib/db";
+import { tracksTime } from "@/lib/metrics";
 import { LEGAL } from "@/lib/legal";
 import { billingApi, SubscribeDialog, usePlan } from "./Pro";
 import { useStore } from "./store";
@@ -33,7 +34,7 @@ function Avatar({ size = 28 }: { size?: number }) {
  * É o lugar fixo dessas coisas (antes espalhadas entre Tarefas, Foco e a barra lateral).
  */
 export function AccountMenu({ onHelp, variant }: { onHelp: () => void; variant: "header" | "sidebar" | "sidebar-collapsed" }) {
-  const { user, logout } = useStore();
+  const { user, logout, uid, settings } = useStore();
   const [open, setOpen] = useState(false);
   const [dialog, setDialog] = useState<"dados" | "assinar" | "assinatura" | null>(null);
   const plan = usePlan();
@@ -96,6 +97,27 @@ export function AccountMenu({ onHelp, variant }: { onHelp: () => void; variant: 
                   Ativar
                 </button>
               )}
+            </div>
+
+            {/* Modo leve x registrar tempo: o cronômetro e o que depende dele. */}
+            <div className="flex items-center gap-3 rounded-lg px-2 py-2 text-sm">
+              <Timer size={17} className={tracksTime(settings) ? "text-accent" : "text-muted"} />
+              <span className="min-w-0 flex-1">
+                <span className="block font-medium">Registrar tempo</span>
+                <span className="block text-xs text-muted">
+                  {tracksTime(settings) ? "Cronômetro em cada tarefa, \"Sem registro\" e a semana em horas." : "Desligado: concluir a tarefa já basta para a conta do dia."}
+                </span>
+              </span>
+              <button
+                type="button"
+                role="switch"
+                aria-checked={tracksTime(settings)}
+                aria-label="Registrar tempo"
+                onClick={() => saveSettings(uid, { trackTime: !tracksTime(settings) })}
+                className={cx("relative h-6 w-11 shrink-0 rounded-full transition-colors", tracksTime(settings) ? "bg-brand" : "bg-line")}
+              >
+                <span className={cx("absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform", tracksTime(settings) && "translate-x-5")} />
+              </button>
             </div>
 
             {/* Plano: só aparece com a cobrança ligada. */}

@@ -214,6 +214,8 @@ export function Onboarding() {
       ...(skip ? {} : { windows: schedule.windows, breaks: schedule.breaks }),
       onboarded: true,
       scheduleSet: true,
+      // Conta nova começa no modo leve: registrar tempo é opcional (menu da conta › Registrar tempo).
+      ...(returning ? {} : { trackTime: false }),
     });
   };
 

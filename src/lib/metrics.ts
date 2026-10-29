@@ -35,6 +35,12 @@ export interface DayMetrics {
   items: DayItem[];
 }
 
+/** Lembrete: de uma vez, com dia e sem tempo (ex: pagar a luz). Aparece no dia, não ocupa horas. */
+export const isReminder = (task: Task) => task.repeat === "once" && !task.later && task.estimateMin === 0 && task.doneBy !== "time";
+
+/** Registro de tempo ligado (cronômetro e o que depende dele). Sem valor = ligado, como era antes. */
+export const tracksTime = (settings: { trackTime?: boolean }) => settings.trackTime !== false;
+
 /** Tarefa que termina cumprindo o tempo (e não marcando como feita). */
 export const isTimeTask = (task: Task) => task.doneBy === "time";
 
@@ -66,7 +72,8 @@ export function dayItems(date: string, tasks: Task[], blocks: Block[], sessions:
 
   const items: DayItem[] = [];
   for (const task of tasks) {
-    if (task.archived) continue;
+    // "Depois" não tem dia: só entra quando for puxada para um.
+    if (task.archived || task.later) continue;
     let estimate: number | null = null;
 
     // Avulsa sem dia (versões antigas tinham "caixa de entrada") conta como de hoje.
@@ -137,6 +144,6 @@ export function dayMetrics(
 /** Avulsas atrasadas: dia planejado já passou e não foram concluídas. */
 export function overdue(today: string, tasks: Task[]) {
   return tasks
-    .filter((t) => t.repeat === "once" && !t.archived && !t.completedAt && t.date && t.date < today)
+    .filter((t) => t.repeat === "once" && !t.archived && !t.later && !t.completedAt && t.date && t.date < today)
     .sort((a, b) => a.date!.localeCompare(b.date!));
 }

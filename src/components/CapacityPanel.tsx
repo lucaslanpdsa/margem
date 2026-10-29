@@ -4,7 +4,7 @@ import { ChevronDown, Minus, Play, Plus } from "lucide-react";
 import { useState } from "react";
 import { entryTimes, fmtMin, shiftDay, todayKey } from "@/lib/dates";
 import { addSession, deleteSession, saveSettings, setDayEstimate, setSkipped, updateTask } from "@/lib/db";
-import { isTimeTask, type DayItem, type DayMetrics } from "@/lib/metrics";
+import { isTimeTask, tracksTime, type DayItem, type DayMetrics } from "@/lib/metrics";
 import { slotsOf } from "@/lib/schedule";
 import type { DayWindow } from "@/lib/types";
 import { useStore } from "./store";
@@ -100,6 +100,9 @@ export function DayBudget({ m }: { m: DayMetrics }) {
   const custom = m.date in settings.windowOverrides;
   const late = s.excess > 0;
   const ended = !!m.window && m.leftMin === 0;
+  // Modo leve: sem registro de tempo, a parte que já passou é só "Já passou" (não é cobrança).
+  const track = tracksTime(settings);
+  const idleLabel = track ? "Sem registro" : "Já passou";
 
   async function saveOverride(w: DayWindow | null) {
     await saveSettings(uid, { windowOverrides: { ...settings.windowOverrides, [m.date]: w } });
@@ -119,7 +122,8 @@ export function DayBudget({ m }: { m: DayMetrics }) {
     headline = isToday ? "Hoje sem horário" : "Dia sem horário";
     detail = "Sem horário para tarefas neste dia.";
   } else if (ended) {
-    headline = `${fmtMin(m.doneMin)} feitos`;
+    const counted = m.items.filter((i) => !i.skipped && !i.outside && i.estimateMin > 0);
+    headline = track ? `${fmtMin(m.doneMin)} feitos` : `${counted.filter((i) => i.completed).length} de ${counted.length} tarefas feitas`;
     detail = "Dia encerrado.";
   } else {
     headline = late ? `Não dá tempo: ${fmtMin(s.excess)} a mais` : `Dá tempo: sobram ${fmtMin(m.freeMin)}`;
@@ -129,11 +133,11 @@ export function DayBudget({ m }: { m: DayMetrics }) {
   const where = isToday ? "hoje" : "neste dia";
 
   const tasksToday = m.items.some((i) => !i.skipped && !i.outside);
-  const showFill = !!m.window && s.idle >= 5 && tasksToday;
+  const showFill = track && !!m.window && s.idle >= 5 && tasksToday;
   const showDrop = late && !ended;
   const legend = [
     { swatch: "bg-done", label: "Feito", v: s.done },
-    { swatch: "bg-idle", label: "Sem registro", v: s.idle },
+    { swatch: "bg-idle", label: idleLabel, v: s.idle },
     { swatch: "bg-todo", label: "A fazer", v: s.fits },
     { swatch: "bg-over", label: "Não cabe", v: s.excess },
     { swatch: "hatch", label: "Sobra", v: s.free },
@@ -180,7 +184,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
       )}
 
       {/* Ações: o que dá para fazer com o que a barra mostra. Uma linha só; as sugestões abrem ao tocar. */}
-      {isToday && !late && !ended && m.window && <FitSuggestion freeMin={m.freeMin} />}
+      {track && isToday && !late && !ended && m.window && <FitSuggestion freeMin={m.freeMin} />}
 
       {(showFill || showDrop) && (
         <div className="mt-4 flex flex-wrap items-center gap-2">
@@ -241,8 +245,12 @@ export function DayBudget({ m }: { m: DayMetrics }) {
           )}
           {m.window && (
             <ul className="mt-3 space-y-1.5 text-[13px] text-muted">
-              <Key swatch="bg-done" label="Feito" value={s.done} text="tempo registrado nas tarefas (timer, pomodoro ou à mão)." />
-              <Key swatch="bg-idle" label="Sem registro" value={s.idle} text="tempo do seu horário que já passou sem nada registrado." />
+              {track && <Key swatch="bg-done" label="Feito" value={s.done} text="tempo registrado nas tarefas (timer, pomodoro ou à mão)." />}
+              {track ? (
+                <Key swatch="bg-idle" label="Sem registro" value={s.idle} text="tempo do seu horário que já passou sem nada registrado." />
+              ) : (
+                <Key swatch="bg-idle" label="Já passou" value={s.idle} text="quanto do seu horário o relógio já andou. Concluir uma tarefa tira o tempo dela do que falta." />
+              )}
               <Key swatch="bg-todo" label="A fazer" value={s.fits} text="o que falta das tarefas e ainda cabe até o fim do horário." />
               {s.excess > 0 && <Key swatch="bg-over" label="Não cabe" value={s.excess} text="o que falta e passa do fim do horário." />}
               <Key swatch="hatch" label="Sobra" value={s.free} text="tempo do horário que fica livre depois das tarefas." />

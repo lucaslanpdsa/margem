@@ -51,7 +51,8 @@ export function TasksPage({ onOpenDay }: { onOpenDay: (date: string) => void }) 
 
   const active = tasks.filter((t) => !t.archived);
   const routine = active.filter((t) => t.repeat === "weekdays").sort(byTimeThenTitle);
-  const once = active.filter((t) => t.repeat === "once" && !t.completedAt);
+  // As de "Depois" ficam na aba Depois.
+  const once = active.filter((t) => t.repeat === "once" && !t.completedAt && !t.later);
   // Concluídas nos últimos 7 dias, para reabrir uma concluída por engano.
   const weekAgo = shiftDay(todayKey(), -7);
   const done = active
@@ -723,8 +724,8 @@ function DateChip({ task }: { task: Task }) {
     setOpen(false);
     if (!date || date === task.date) return;
     const before = task.date ?? today;
-    await updateTask(uid, task.id, { date });
-    toast(`${task.title} foi para ${dayName(date).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before }) });
+    await updateTask(uid, task.id, { date, later: false });
+    toast(`${task.title} foi para ${dayName(date).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before, later: !!task.later }) });
   };
 
   return (

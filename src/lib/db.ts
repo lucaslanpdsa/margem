@@ -119,6 +119,17 @@ export function toggleDone(uid: string, task: Task, date: string, done: boolean)
   return write(uid, () => updateDoc(ref, { completedAt: done ? new Date().toISOString() : null, ...est }));
 }
 
+/** Manda para "Depois" (sem dia). O dia antigo fica guardado, sem efeito, para desfazer. */
+export const moveToLater = (uid: string, task: Task) => updateTask(uid, task.id, { later: true });
+
+/** Traz de "Depois" (ou de outro dia) para um dia; com `minutes`, define o tempo (0 = lembrete). */
+export const moveToDay = (uid: string, task: Task, date: string, minutes?: number) =>
+  updateTask(uid, task.id, { date, later: false, ...(minutes !== undefined ? { estimateMin: minutes } : {}) });
+
+/** Volta a tarefa ao que era (desfazer de mover). */
+export const restoreTaskPlace = (uid: string, task: Task) =>
+  updateTask(uid, task.id, { date: task.date, later: !!task.later, estimateMin: task.estimateMin });
+
 /** Pular (ou desfazer o pulo de) uma tarefa que repete, só neste dia. */
 /** Objetivos de um dia da tarefa (lista vazia apaga o dia). Chave: goalsKey (dia ou "_"). */
 export const setGoals = (uid: string, task: Task, key: string, goals: Goal[]) =>
@@ -160,6 +171,9 @@ const dayRef = (uid: string, date: string) => doc(db(), "users", uid, "days", da
 
 /** Fila do dia (ids na ordem). */
 export const setDayOrder = (uid: string, date: string, order: string[]) => write(uid, () => setDoc(dayRef(uid, date), { order }, { merge: true }));
+
+/** Planejou o dia (ou escolheu "Agora não"): o cartão "Planejar o dia" some até amanhã. */
+export const setDayPlanned = (uid: string, date: string) => write(uid, () => setDoc(dayRef(uid, date), { plannedAt: new Date().toISOString() }, { merge: true }));
 
 /** Fotografia do dia que passou (fechamento). */
 export const closeDay = (uid: string, date: string, snap: Pick<DayDoc, "plannedMin" | "doneMin">) =>

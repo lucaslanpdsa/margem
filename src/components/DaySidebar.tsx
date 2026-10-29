@@ -1,10 +1,13 @@
 "use client";
 
-import { CalendarDays, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { CalendarDays, CalendarCheck, ChevronDown, Inbox, Plus, Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { dayName, fmtMin, parseQuickAdd, shiftDay, todayKey } from "@/lib/dates";
-import { addTask, deleteTask, replaceTask, setDayOrder, updateTask } from "@/lib/db";
-import { isTimeTask, overdue, type DayMetrics } from "@/lib/metrics";
+import { dayName, fmtMin, shiftDay, todayKey } from "@/lib/dates";
+import { addTask, deleteTask, moveToLater, replaceTask, restoreTaskPlace, setDayOrder, updateTask } from "@/lib/db";
+import { isReminder, isTimeTask, overdue, tracksTime, type DayMetrics } from "@/lib/metrics";
+import { parseCapture } from "@/lib/capture";
+import { ReminderRow, TimeChips, saveCapture } from "./Later";
+import { CloseDayCard, PlanDayCard, PlanDayDialog } from "./PlanClose";
 import { displayOrder, firstNotFitting, fmtClock, moveInQueue, orderItems, projectDay, type Move } from "@/lib/queue";
 import type { Task } from "@/lib/types";
 import { findConflicts } from "@/lib/schedule";
@@ -18,22 +21,37 @@ import { useNow } from "./Timer";
 import { useToast } from "./toast";
 import { Button, Panel, cx, inputCls } from "./ui";
 
-/** "Revisar PR 45m" + Enter cria direto; sem tempo no fim, abre o formulário. */
+/**
+ * Criação rápida no dia aberto: "Revisar PR 45m" + Enter cria direto. Um dia no fim manda para ele ("amanhã", "sexta").
+ * Sem tempo, aparecem os tempos de um toque, "Lembrete" e "Depois"; Enter abre o formulário completo.
+ */
 export function QuickAdd({ date }: { date: string }) {
   const { uid } = useStore();
   const { editTask } = useDialogs();
+  const toast = useToast();
   const [text, setText] = useState("");
-  const preview = parseQuickAdd(text);
+  const c = parseCapture(text, todayKey());
+  const day = c.date ?? date;
   // Com estimativas suficientes (Pro), a dica de quanto isso costuma virar.
   const cal = useCalibration();
-  const likely = cal && preview.minutes !== null && !isAccurate(cal) ? likelyMin(preview.minutes, cal) : null;
+  const likely = cal && c.minutes !== null && !isAccurate(cal) ? likelyMin(c.minutes, cal) : null;
 
-  async function submit() {
-    const { title, minutes } = parseQuickAdd(text);
-    if (!title) return;
-    if (minutes === null) editTask({ title, date, repeat: "once" });
-    else await addTask(uid, { title, estimateMin: minutes, date, repeat: "once" });
+  async function create(minutes: number) {
+    if (!c.title) return;
+    const id = await addTask(uid, { title: c.title, estimateMin: minutes, date: day, repeat: "once" });
+    if (day !== date || minutes === 0) toast(minutes === 0 ? `Lembrete: ${c.title}` : `${c.title} foi para ${dayName(day).toLowerCase()}`, { tone: "info", undo: () => deleteTask(uid, id) });
     setText("");
+  }
+  async function later() {
+    if (!c.title) return;
+    const id = await saveCapture(uid, { title: c.title, minutes: null, date: null });
+    toast(`${c.title} foi para Depois`, { tone: "info", undo: () => deleteTask(uid, id) });
+    setText("");
+  }
+  function submit() {
+    if (!c.title) return;
+    if (c.minutes !== null) create(c.minutes);
+    else editTask({ title: c.title, date: day, repeat: "once" });
   }
 
   return (
@@ -53,11 +71,21 @@ export function QuickAdd({ date }: { date: string }) {
           aria-label="Nova tarefa"
         />
       </div>
-      {text && (
+      {text && c.minutes !== null && (
         <p className="mt-1.5 text-xs text-muted">
-          {preview.minutes !== null ? `Enter cria "${preview.title}" com ${fmtMin(preview.minutes)}.` : "Coloque o tempo no fim (45m, 1h30) ou aperte Enter para mais opções."}
-          {likely !== null && likely !== preview.minutes && ` Costuma levar ~${fmtMin(likely)}.`}
+          Enter cria &quot;{c.title}&quot; com {fmtMin(c.minutes)}
+          {day !== date ? ` ${dayName(day).toLowerCase()}` : ""}.{likely !== null && likely !== c.minutes && ` Costuma levar ~${fmtMin(likely)}.`}
         </p>
+      )}
+      {text && c.minutes === null && c.title && (
+        <div className="mt-2">
+          <p className="mb-1.5 text-xs text-muted">{day !== date ? `${dayName(day)} · quanto tempo?` : "Quanto tempo?"} Enter abre mais opções.</p>
+          <TimeChips onPick={create}>
+            <button type="button" onClick={later} className="inline-flex h-8 items-center gap-1 rounded-full border border-line px-2.5 text-[13px] font-medium text-muted hover:text-ink">
+              <Inbox size={13} /> Depois
+            </button>
+          </TimeChips>
+        </div>
       )}
     </form>
   );
@@ -78,8 +106,10 @@ export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => voi
   const [mine, setMine] = useState<{ date: string; ids: string[]; base: string } | null>(null);
   const order = mine && mine.date === date && mine.base === storedKey ? mine.ids : stored;
 
+  // Lembretes não ocupam horas: ficam numa lista própria, fora da fila.
+  const reminders = m.items.filter((i) => isReminder(i.task)).map((i) => i.task);
   const ordered = orderItems(
-    m.items.filter((i) => !i.completed && !i.skipped),
+    m.items.filter((i) => !i.completed && !i.skipped && !isReminder(i.task)),
     order,
     blocks,
     date,
@@ -113,7 +143,8 @@ export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => voi
   const [dragging, setDragging] = useState<string | null>(null);
   const [over, setOver] = useState<string | null>(null);
 
-  const done = m.items.filter((i) => i.completed || i.skipped);
+  const done = m.items.filter((i) => (i.completed || i.skipped) && !isReminder(i.task));
+  const [planning, setPlanning] = useState(false);
   const skippedCount = done.filter((i) => i.skipped).length;
   const conflicts = findConflicts(blocks.filter((b) => b.date === date));
   const conflictText = (id: string) => {
@@ -137,10 +168,28 @@ export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => voi
 
   return (
     <Panel className="p-5">
-      <h2 className="mb-3 text-[15px] font-semibold">{isToday ? "Tarefas de hoje" : "Tarefas do dia"}</h2>
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h2 className="text-[15px] font-semibold">{isToday ? "Tarefas de hoje" : "Tarefas do dia"}</h2>
+        {isToday && days[date]?.plannedAt && (
+          <Button size="sm" variant="ghost" onClick={() => setPlanning(true)}>
+            <CalendarCheck size={14} /> Planejar
+          </Button>
+        )}
+      </div>
+      {planning && <PlanDayDialog onClose={() => setPlanning(false)} />}
       <QuickAdd date={date} />
 
+      <PlanDayCard m={m} />
+      <CloseDayCard m={m} />
       {late.length > 0 && <DayClosing tasks={late} date={date} />}
+
+      {reminders.length > 0 && (
+        <ul className="mt-4 rounded-xl border border-line px-2 py-1">
+          {reminders.map((t) => (
+            <ReminderRow key={t.id} task={t} />
+          ))}
+        </ul>
+      )}
 
       <ul className="mt-4 space-y-1.5">
         {open.map((i, idx) => {
@@ -276,7 +325,7 @@ function FragmentWithDivider({ divider, isToday, excessMin, children }: { divide
  * com o resumo de ontem. Só tarefas de uma vez: as que repetem não acumulam (o atraso delas fica em "Esta semana").
  */
 function DayClosing({ tasks, date }: { tasks: Task[]; date: string }) {
-  const { uid, days, sessions } = useStore();
+  const { uid, days, sessions, settings } = useStore();
   // Poucas tarefas: já aberto, para decidir de uma vez.
   const [open, setOpen] = useState(tasks.length <= 3);
   const [moving, setMoving] = useState<string | null>(null);
@@ -284,7 +333,8 @@ function DayClosing({ tasks, date }: { tasks: Task[]; date: string }) {
   const left = (t: Task) => Math.max(0, t.estimateMin - sessions.filter((s) => s.taskId === t.id).reduce((a, s) => a + s.minutes, 0));
   const total = tasks.reduce((a, t) => a + left(t), 0);
   const y = days[shiftDay(date, -1)];
-  const yesterday = y?.closedAt && (y.plannedMin ?? 0) > 0 ? y : null;
+  // Em horas só faz sentido com registro de tempo (no modo leve o "feito" seria sempre zero).
+  const yesterday = tracksTime(settings) && y?.closedAt && (y.plannedMin ?? 0) > 0 ? y : null;
 
   const moveTo = (list: Task[], to: string) => {
     const before = list.map((t) => [t.id, t.date] as const);
@@ -317,7 +367,7 @@ function DayClosing({ tasks, date }: { tasks: Task[]; date: string }) {
           {yesterday && (
             <p className="mb-1.5 text-xs text-muted">
               Ontem: planejado <b className="tabular font-semibold text-ink">{fmtMin(yesterday.plannedMin!)}</b>, feito{" "}
-              <b className="tabular font-semibold text-ink">{fmtMin(yesterday.doneMin ?? 0)}</b>. Decida o que fazer com o que sobrou:
+              <b className="tabular font-semibold text-ink">{fmtMin(yesterday.doneMin ?? 0)}</b>. Decida para onde vai o que sobrou:
             </p>
           )}
           <ul className="space-y-1">
@@ -344,6 +394,17 @@ function DayClosing({ tasks, date }: { tasks: Task[]; date: string }) {
                     />
                   )}
                 </div>
+                <button
+                  onClick={() => {
+                    moveToLater(uid, t);
+                    toast(`${t.title} foi para Depois`, { tone: "info", undo: () => restoreTaskPlace(uid, t) });
+                  }}
+                  className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface hover:text-ink"
+                  aria-label={`${t.title} para Depois`}
+                  title="Depois"
+                >
+                  <Inbox size={15} />
+                </button>
                 <button onClick={() => remove(t)} className="grid h-8 w-8 shrink-0 place-items-center rounded-lg text-muted hover:bg-surface hover:text-over" aria-label={`Excluir ${t.title}`} title="Excluir">
                   <Trash2 size={15} />
                 </button>

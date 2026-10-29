@@ -2,18 +2,19 @@
 
 ## Estrutura
 
-São **3 abas** e um botão de criar:
+São **4 abas** e um botão de criar:
 
 | | Celular (barra de baixo) | Computador (barra lateral) |
 |---|---|---|
 | **Dia** | 1º item | 1º item |
-| **Tarefas** | 2º item | 2º item |
+| **Depois** (capturar, caixa e lembretes) | 2º item | 2º item |
 | **Nova** (criar tarefa) | 3º item | botão azul no topo |
-| **Foco** | 4º item | 3º item |
+| **Tarefas** | 4º item | 3º item |
+| **Foco** | 5º item | 4º item |
 | Menu da conta (notificações, Como funciona, Sair) | avatar no cabeçalho | nome no rodapé da barra |
 | Recolher barra | – | rodapé da barra |
 
-Endereços: `/` página de vendas (quem já entrou vai direto para o app), `/app` o app, `/privacidade`, `/termos`. A aba fica no endereço (`/app#tarefas`, `/app#foco`). Recarregar mantém a aba e o "voltar" do celular volta para a aba anterior. O dia escolhido na tela Dia volta para hoje ao recarregar.
+Endereços: `/` página de vendas (quem já entrou vai direto para o app), `/app` o app, `/privacidade`, `/termos`. A aba fica no endereço (`/app#depois`, `/app#tarefas`, `/app#foco`). Recarregar mantém a aba e o "voltar" do celular volta para a aba anterior. O dia escolhido na tela Dia volta para hoje ao recarregar.
 
 Por cima de tudo podem aparecer:
 

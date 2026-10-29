@@ -4,6 +4,15 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 29/10 (tarde) — O Margem abre e fecha o dia
+- Diagnóstico com o dono (ele não sentia vontade de usar; o trabalho já está no Jira): o app pedia esforço todo dia (registrar tudo, estimar tudo) e devolvia valor tarde. O centro passa a ser **capturar, planejar e fechar**; o trabalho fica no Jira e entra só como bloco.
+- **Modo leve** (menu da conta › Registrar tempo): sem ▶ (menos nas "Cumpro o tempo"), "Já passou" no lugar de "Sem registro", sem "O que você fez?", "Esta semana", encaixe e estimativas. A conta do dia continua honesta sem registro (relógio + o que falta). Contas novas começam no leve; as antigas, como estavam. **Pendente**: no modo leve, uma tarefa "Cumpro o tempo" (ex: Trabalho 7h) sem cronômetro continua devendo as 7h o dia todo.
+- **Revisto: caixa de entrada** (removida em 16/10) volta como **Depois**, com um momento certo (o planejar) e fora de todas as contas. **Lembrete** = de uma vez com dia e sem tempo.
+- **Revisto: criar sem tempo**. Antes abria o formulário (19/10). Agora o tempo só é pedido quando a tarefa entra num dia, num toque (15min/30min/1h/2h ou Lembrete); Enter ainda abre o formulário.
+- **Captura em uma linha** entende dia e tempo no fim: hoje, amanhã, depois de amanhã, dia da semana (o próximo, nunca hoje), "dia 10", "15/11", "1h".
+- **Planejar o dia** (cartão até planejar ou "Agora não") e **Fechar o dia** (cartão depois do horário). O fechamento da manhã continua para quem não fechou à noite, agora com **Depois**.
+- Ficaram para depois de 2 semanas de uso: avisos com o app fechado, áreas e revisão de domingo, projetos longos, Jira. Sinal para seguir: planejou o dia em 8 de 14 dias.
+
 ### 29/10 — Fila do dia, previsão, estimativas e fechamento
 - **Fila do dia** (pedido do dono: "ter uma fila ajuda muito a organizar os dias"): a lista "Tarefas de hoje" ganhou ordem escolhida e **horário previsto** em cada tarefa, com **Agora** na primeira e a linha **Não cabe hoje**. Não é a "sugestão do que fazer agora" removida em 16/10: a ordem é sempre da pessoa, o app nunca reordena.
 - Mover: menu **⋮** (Fazer agora, Subir, Descer) no celular e arrastar no computador (arrastar continua descartado na semana).

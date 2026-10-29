@@ -7,6 +7,7 @@ import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
 import { goalsFor, goalsSummary } from "@/lib/goals";
 import { toggleDone } from "@/lib/db";
+import { tracksTime } from "@/lib/metrics";
 import { stopwatchText, useNow } from "./Timer";
 import { useTimerActions, useToast } from "./toast";
 import type { Task } from "@/lib/types";
@@ -51,6 +52,8 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
   const timer = useTimerActions();
   const toast = useToast();
   const running = settings.activeTimer?.taskId === task.id;
+  // Modo leve: só as tarefas "cumpro o tempo" precisam do cronômetro (e a que já está rodando).
+  const showPlay = tracksTime(settings) || task.doneBy === "time" || running;
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
   const slots = slotsOf(task);
   const goals = goalsSummary(goalsFor(task, date));
@@ -145,7 +148,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
 
       {/* Mudar de lugar na fila. */}
       {onMove && (
-        <div className="relative -mr-1">
+        <div className={cx("relative", showPlay ? "-mr-1" : "mr-1.5")}>
           <button
             onClick={() => setMenu((v) => !v)}
             className="grid h-10 w-7 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-ink"
@@ -183,7 +186,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
       )}
 
       {/* ▶ começa o timer nesta tarefa (no último modo usado); ■ para e registra. */}
-      {!completed && !skipped && (
+      {!completed && !skipped && showPlay && (
         <button
           onClick={() => (running ? timer.stop() : timer.start(task.id))}
           className={cx(

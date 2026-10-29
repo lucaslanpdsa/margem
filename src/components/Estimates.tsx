@@ -3,7 +3,7 @@
 import { Gauge } from "lucide-react";
 import { fmtMin, shiftDay, todayKey } from "@/lib/dates";
 import { calibrate, estKey, fmtFactor, isAccurate, samples, type Calibration } from "@/lib/calibration";
-import { isTimeTask } from "@/lib/metrics";
+import { isTimeTask, tracksTime } from "@/lib/metrics";
 import type { Task } from "@/lib/types";
 import { usePlan } from "./Pro";
 import { useStore } from "./store";
@@ -14,9 +14,9 @@ const DAYS = 28;
 
 /** Fator de estimado vs. realizado (Pro). null enquanto não há tarefas suficientes ou no grátis. */
 export function useCalibration(): Calibration | null {
-  const { tasks, sessions } = useStore();
+  const { tasks, sessions, settings } = useStore();
   const plan = usePlan();
-  if (!plan.pro) return null;
+  if (!plan.pro || !tracksTime(settings)) return null;
   const c = calibrate(samples(tasks, sessions, shiftDay(todayKey(), -DAYS)));
   return c.ready ? c : null;
 }

@@ -3,7 +3,7 @@
 import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
-import { dayMetrics } from "@/lib/metrics";
+import { dayMetrics, tracksTime } from "@/lib/metrics";
 import { DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
 import { EstimateCard } from "./Estimates";
@@ -19,24 +19,31 @@ export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
   const { date, settings, tasks, blocks, sessions } = useStore();
   const now = new Date(useNow(60000));
   const m = dayMetrics(date, settings, tasks, blocks, sessions, now);
+  // Modo leve: a semana e as estimativas são feitas de horas registradas; sem registro, só confundiriam.
+  const track = tracksTime(settings);
+  const hasRecords = sessions.some((s) => s.date === date);
   // No computador, duas colunas: o resumo do dia fica parado à esquerda e as tarefas rolam à direita.
   return (
     <div className="mx-auto grid max-w-3xl gap-4 lg:max-w-6xl lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)] lg:items-start">
       {/* No computador a semana fica embaixo do resumo; no celular, depois das tarefas. */}
       <div className="space-y-4 lg:sticky lg:top-6">
         <DayBudget m={m} />
-        <div className="hidden space-y-4 lg:block">
-          <WeekPanel />
-          <EstimateCard />
-        </div>
+        {track && (
+          <div className="hidden space-y-4 lg:block">
+            <WeekPanel />
+            <EstimateCard />
+          </div>
+        )}
       </div>
       <div className="min-w-0 space-y-4">
         <DayLists m={m} onGoTasks={onGoTasks} />
-        <div className="space-y-4 lg:hidden">
-          <WeekPanel />
-          <EstimateCard />
-        </div>
-        <DayRecords date={date} />
+        {track && (
+          <div className="space-y-4 lg:hidden">
+            <WeekPanel />
+            <EstimateCard />
+          </div>
+        )}
+        {(track || hasRecords) && <DayRecords date={date} />}
       </div>
     </div>
   );

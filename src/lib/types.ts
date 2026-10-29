@@ -35,6 +35,8 @@ export interface Task {
   /** Tempo estimado no momento em que foi concluída pelo círculo { "2026-10-21": 45 } ou { "_": 45 } (de uma vez).
    *  Fotografia para comparar estimado e realizado (calibration.ts): a estimativa pode mudar depois. */
   estAtDone?: Record<string, number>;
+  /** "once" sem dia, na caixa "Depois" (capturada só com o título). Não entra em nenhum dia nem conta. */
+  later?: boolean;
   createdAt: string;
 }
 
@@ -46,6 +48,8 @@ export interface DayDoc {
   plannedMin?: number;
   doneMin?: number;
   closedAt?: string;
+  /** Planejou o dia ("Planejar o dia" › Pronto, ou "Agora não"). */
+  plannedAt?: string;
 }
 
 /** Um objetivo do dia dentro da tarefa. Sem tempo próprio: é só uma lista para marcar. */
@@ -171,6 +175,8 @@ export interface Settings {
   autoStartFocus?: boolean;
   /** (Antigo) foco sem tarefa esperando "Em que você trabalhou?". */
   pendingAssign?: string | null;
+  /** Registrar tempo (cronômetro, "Sem registro", "O que você fez?"). Sem valor = ligado (contas antigas). */
+  trackTime?: boolean;
   /** Já passou pela configuração inicial. */
   onboarded?: boolean;
   /** Já definiu o horário do dia (configuração nova, por horário). */

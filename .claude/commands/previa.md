@@ -7,7 +7,7 @@ Objetivo: ver a interface sem login, com dados de exemplo, e mostrar ao dono.
 
 1. Suba o servidor em segundo plano: `npx next dev -p 3130` e espere `http://localhost:3130/dev` responder 200.
 2. Endereços da prévia (`src/app/dev/page.tsx`, dados em `src/dev/fixtures.ts`):
-   - `/dev?cenario=dia` (padrão) · `fila` · `apertado` · `timer` · `vazio` · `onboarding` · `entrar`
+   - `/dev?cenario=dia` (padrão) · `fila` · `leve` · `noite` · `apertado` · `timer` · `vazio` · `onboarding` · `entrar`
    - aba pelo hash: `#tarefas`, `#foco`
    - janela aberta: `?abrir=tarefa` · `nova` · `editar`
 3. Capturas:

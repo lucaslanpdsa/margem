@@ -48,7 +48,7 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 | Título e data | "Hoje" / dia da semana; **tocar na data abre o calendário** (só no Dia) | igual |
 | Setas ‹ › e **Hoje** | no Dia | no Dia |
 | Menu da conta | avatar no canto do cabeçalho | nome no rodapé da barra lateral |
-| Abas | barra de baixo: Dia · Tarefas · **Nova** · Foco | barra lateral: **Nova tarefa** · Dia · Tarefas · Foco · Recolher |
+| Abas | barra de baixo: Dia · Depois · **Nova** · Tarefas · Foco | barra lateral: **Nova tarefa** · Dia · Depois · Tarefas · Foco · Recolher |
 
 **Menu da conta**
 
@@ -56,6 +56,7 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 
 - Nome e e-mail.
 - **Notificações**: ativadas / "Ativar" / bloqueadas no navegador (com instrução) / não suportadas. É o lugar fixo para ligar os avisos.
+- **Registrar tempo** (chave): ligado = cronômetro em cada tarefa, "Sem registro", "O que você fez?", "Esta semana", encaixe e "Suas estimativas". Desligado (**modo leve**) = só as tarefas "Cumpro o tempo" têm ▶; o topo do Dia mostra "Já passou" no lugar de "Sem registro", e o dia encerrado mostra "4 de 6 tarefas feitas". Contas antigas começam ligadas; contas novas, desligadas.
 - **Plano** (só com a cobrança ligada): "Pro grátis · faltam N dias · Assinar", "Plano grátis · Conhecer o Pro" ou "Assinatura Pro · Ver ou cancelar".
 - **Seus dados**: **Baixar arquivo** (tudo da conta em JSON) e **Excluir conta…** (confirmação, pede o Google de novo, apaga tudo e volta para a página de vendas).
 - **Como funciona**, **Sair** e os links Privacidade · Termos.
@@ -88,8 +89,11 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 
 | Elemento | Detalhe |
 |---|---|
-| Campo "Nova tarefa, ex: Revisar PR 45m" | Enter cria no dia aberto; sem tempo, abre o formulário. Prévia "Enter cria … com 45min" |
-| Fechamento (tarefas de dias anteriores) | só hoje: "N tarefas ficaram de dias anteriores · Xh" · **Trazer para hoje** (com Desfazer). Aberto por padrão com até 3 tarefas: "Ontem: planejado 9h, feito 7h40" (fotografia do dia) e, em cada tarefa, **Hoje** · 📅 (Amanhã, Próxima segunda, Outro dia, com quanto sobra em cada) · 🗑 Excluir (com Desfazer). Trazida para hoje entra no fim da fila |
+| Campo "Nova tarefa, ex: Revisar PR 45m" | Enter cria no dia aberto. Um dia no fim manda para ele ("amanhã", "sexta", "dia 10", "15/11"). Sem tempo, aparecem **15min · 30min · 1h · 2h · Lembrete · Depois** (um toque); Enter abre o formulário completo |
+| **Planeje o dia (2 min)** | hoje, com horário ainda por vir, até escolher **Planejar** › **Pronto** ou **Agora não**. Depois disso, o botão **Planejar** fica no título da lista. Janela: veredito ao vivo ("Dá tempo: sobram 40min" / "Passou 1h: tire algo"), "Hoje · na ordem da fila" com **Tirar** (vai para Depois) ou **Pular hoje**, lembretes de hoje, "Em Depois" com **Hoje** (sem tempo, pede 15min/30min/1h/2h/Lembrete), **Pronto** |
+| **Feche o dia (1 min)** | hoje, depois do fim do horário, até fechar. Janela: "Hoje: planejado 9h, feito 7h40" (modo leve: "4 de 6 tarefas feitas"), o que sobrou (de uma vez) com **Amanhã** · **Depois** · **Excluir**, "Amanhã já começa com 3 tarefas e 4h20" (vermelho se passa do horário), **Fechar o dia** grava a fotografia do dia |
+| Lembretes do dia | tarefas de uma vez sem tempo: círculo, 🔔, nome, **Depois**. Fora da fila e das contas |
+| Fechamento (tarefas de dias anteriores) | só hoje: "N tarefas ficaram de dias anteriores · Xh" · **Trazer para hoje** (com Desfazer). Aberto por padrão com até 3 tarefas: "Ontem: planejado 9h, feito 7h40" (fotografia do dia) e, em cada tarefa, **Hoje** · 📅 (Amanhã, Próxima segunda, Outro dia, com quanto sobra em cada) · 🗑 Excluir (com Desfazer). Também **Depois** (📥) em cada uma. Trazida para hoje entra no fim da fila |
 | Linha da tarefa | círculo (concluir, com Desfazer) ou alvo (tarefa "cumpro o tempo") · nome (até 2 linhas) · progresso · horário · "☑ 1/3" (objetivos do dia) · "● 12:03" se o timer está nela · "extra" · conflito · **▶ / ■** (contorno cinza; azul só com o timer rodando) |
 | Toque na linha | abre a **Janela da tarefa** |
 | Fila | a ordem é sua: menu **⋮** na linha (**Fazer agora**, **Subir**, **Descer**) ou arrastar no computador. Sem fila salva, vale a ordem automática (com horário pela hora, depois pela criação); tarefa nova entra no fim. Tarefa com horário ainda por vir e as "extra" não mudam de lugar (sem ⋮) |
@@ -118,6 +122,14 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 ![Registros de hoje](img/22-registros-de-hoje.png)
 
 Todos os registros do dia, de todas as tarefas. Cada linha: tarefa, nota, horário · origem, tempo. **Tocar na linha edita**: tarefa, tempo/intervalo, dia, nota e 🗑 apagar (com Desfazer). Registro sem tarefa aparece com **Escolher tarefa**. O timer rodando aparece como "● rodando".
+
+## Depois (`Later.tsx`)
+
+| Elemento | Detalhe |
+|---|---|
+| Capturar | campo "Tirar da cabeça, ex: Pagar luz dia 10". Só o título vai para **Depois**; com dia no fim vira **lembrete** (com tempo, tarefa do dia). A linha embaixo diz o que vai acontecer. Enter guarda, com Desfazer |
+| Depois (N) | os mais novos primeiro: círculo (concluir), nome e tempo ou "sem tempo" (tocar abre a janela da tarefa), **Hoje** (sem tempo, pede o tempo num toque), 📅 (Amanhã, Próxima segunda, Outro dia, com quanto sobra), 🗑 |
+| Próximos lembretes | de hoje em diante, por data: círculo, nome, dia, **Depois** |
 
 ## Janela "O que você fez?" (`CapacityPanel.tsx`)
 

@@ -1,7 +1,7 @@
 import { findConflicts, slotEventText, slotEvents, taskTimeBlocks } from "./schedule";
 import { entryTimes, parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
-import { dayMetrics } from "./metrics";
+import { dayMetrics, isReminder, tracksTime } from "./metrics";
 import { streak, taskWeek, weekHistory } from "./week";
 import { planOf } from "./plan";
 import { carryOver, goalsFor, goalsKey, nextOccurrence } from "./goals";
@@ -11,6 +11,7 @@ import { countToday, isRunning, listSummary, notImported, remainingMs, suggestPo
 import { autoOrder, displayOrder, firstNotFitting, fmtClock, moveInQueue, orderItems, projectDay } from "./queue";
 import { MIN_SAMPLES, calibrate, isAccurate, likelyMin, samples } from "./calibration";
 import { daysToClose, planFit } from "./closing";
+import { captureKind, parseCapture } from "./capture";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
@@ -702,5 +703,81 @@ describe("fechamento do dia", () => {
     expect(planFit({ plannedMin: 600, doneMin: 540 })).toBe(true);
     expect(planFit({ plannedMin: 600, doneMin: 500 })).toBe(false);
     expect(planFit({ plannedMin: 0, doneMin: 100 })).toBe(false);
+  });
+});
+
+// ---------- Captura ----------
+
+describe("captura em uma linha", () => {
+  const T = "2026-10-29"; // quinta
+  const c = (s: string) => parseCapture(s, T);
+
+  it("só título vai para Depois", () => {
+    expect(c("Ideia: vender cursos")).toEqual({ title: "Ideia: vender cursos", minutes: null, date: null });
+    expect(captureKind(c("Ideia: vender cursos"))).toBe("later");
+  });
+
+  it("tempo sem dia vai para Depois com tempo", () => {
+    expect(c("Estudar Docker 1h")).toEqual({ title: "Estudar Docker", minutes: 60, date: null });
+  });
+
+  it("dia sem tempo é lembrete", () => {
+    expect(c("Pagar luz dia 10")).toEqual({ title: "Pagar luz", minutes: null, date: "2026-11-10" });
+    expect(c("Pagar luz dia 30").date).toBe("2026-10-30");
+    expect(captureKind(c("Pagar luz dia 10"))).toBe("reminder");
+  });
+
+  it("hoje, amanhã, depois de amanhã e dia da semana (o próximo, nunca hoje)", () => {
+    expect(c("Ligar pro mecânico amanhã").date).toBe("2026-10-30");
+    expect(c("Ligar pro mecânico amanhã").title).toBe("Ligar pro mecânico");
+    expect(c("Ver pneu hoje").date).toBe(T);
+    expect(c("Ver pneu depois de amanhã")).toEqual({ title: "Ver pneu", minutes: null, date: "2026-10-31" });
+    expect(c("Mercado na sexta").date).toBe("2026-10-30");
+    expect(c("Mercado na sexta").title).toBe("Mercado");
+    expect(c("Revisão quinta-feira").date).toBe("2026-11-05");
+    expect(c("Revisão seg").date).toBe("2026-11-02");
+  });
+
+  it("dia/mês, com o ano que vem quando já passou", () => {
+    expect(c("Prova 15/11").date).toBe("2026-11-15");
+    expect(c("Renovar seguro 10/02").date).toBe("2027-02-10");
+    expect(c("Renovar seguro 31/02").date).toBeNull();
+  });
+
+  it("dia e tempo em qualquer ordem viram tarefa", () => {
+    expect(c("Simulado amanhã 2h")).toEqual({ title: "Simulado", minutes: 120, date: "2026-10-30" });
+    expect(c("Simulado 2h amanhã")).toEqual({ title: "Simulado", minutes: 120, date: "2026-10-30" });
+    expect(captureKind(c("Simulado amanhã 2h"))).toBe("task");
+  });
+
+  it("nunca come o título inteiro", () => {
+    expect(c("amanhã")).toEqual({ title: "amanhã", minutes: null, date: null });
+    expect(c("1h")).toEqual({ title: "1h", minutes: null, date: null });
+    expect(c("Ir na sexta")).toEqual({ title: "Ir", minutes: null, date: "2026-10-30" });
+  });
+});
+
+// ---------- Depois e lembretes ----------
+
+describe("Depois e lembretes", () => {
+  it("o que está em Depois não entra em nenhum dia nem fica atrasado", () => {
+    const later: Task = { ...base, id: "l", title: "l", repeat: "once", date: "2026-10-10", later: true };
+    expect(dayMetrics("2026-10-10", settings, [later], [], [], early).items).toEqual([]);
+    expect(dayMetrics(D, settings, [later], [], [], early).items).toEqual([]);
+  });
+
+  it("lembrete aparece no dia e não ocupa horas", () => {
+    const r: Task = { ...base, id: "r", title: "Pagar luz", repeat: "once", date: D, estimateMin: 0 };
+    const m = dayMetrics(D, settings, [r], [], [], early);
+    expect(m.items.map((i) => i.task.id)).toEqual(["r"]);
+    expect(m.plannedMin).toBe(0);
+    expect(m.remainingMin).toBe(0);
+    expect(isReminder(r)).toBe(true);
+    expect(isReminder({ ...r, estimateMin: 30 })).toBe(false);
+  });
+
+  it("registro de tempo: ligado por padrão (contas antigas)", () => {
+    expect(tracksTime({})).toBe(true);
+    expect(tracksTime({ trackTime: false })).toBe(false);
   });
 });

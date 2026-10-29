@@ -81,7 +81,7 @@ export function taskTimeBlocks(tasks: Task[], dates: string[]): Block[] {
   const out: Block[] = [];
   for (const t of tasks) {
     const slots = slotsOf(t);
-    if (!slots.length || t.archived) continue;
+    if (!slots.length || t.archived || t.later) continue;
     const days =
       t.repeat === "once"
         ? (t.date ?? "") && dates.includes(t.date!)
@@ -151,7 +151,7 @@ export function slotEvents(tasks: Task[], date: string): SlotEvent[] {
   const dow = weekdayOf(date);
   const out: SlotEvent[] = [];
   for (const t of tasks) {
-    if (t.archived) continue;
+    if (t.archived || t.later) continue;
     const happens =
       t.repeat === "once"
         ? (t.date ?? "") === date && !t.completedAt

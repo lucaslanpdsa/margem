@@ -90,13 +90,13 @@ function Properties({ task, onClose }: { task: Task; onClose: () => void }) {
   const [repeat, setRepeat] = useState<"once" | "weekdays">(task.repeat === "weekdays" ? "weekdays" : "once");
   const [date, setDate] = useState(task.date ?? todayKey());
   const [weekdays, setWeekdays] = useState<number[]>(task.weekdays ?? [1, 2, 3, 4, 5]);
-  const [estimate, setEstimate] = useState(fmtMin(task.estimateMin));
+  const [estimate, setEstimate] = useState(task.estimateMin ? fmtMin(task.estimateMin) : "");
   const [slots, setSlotsState] = useState<TimeSlot[]>(() => slotsOf(task));
   const [doneBy, setDoneBy] = useState<"check" | "time">(task.doneBy ?? "check");
   const [error, setError] = useState("");
 
   type Fields = { repeat: typeof repeat; date: string; weekdays: number[]; estimateMin: number; slots: TimeSlot[]; doneBy: typeof doneBy };
-  const current: Fields = { repeat, date, weekdays, estimateMin: parseDuration(estimate) ?? task.estimateMin, slots, doneBy };
+  const current: Fields = { repeat, date, weekdays, estimateMin: estimate.trim() ? (parseDuration(estimate) ?? task.estimateMin) : 0, slots, doneBy };
   const draft = (f: Fields): Task => ({
     ...task,
     time: undefined,
@@ -119,7 +119,8 @@ function Properties({ task, onClose }: { task: Task; onClose: () => void }) {
     const f = { ...current, ...patch };
     if (f.repeat === "weekdays" && f.weekdays.length === 0) return setError("Escolha pelo menos um dia.");
     if (f.slots.some((sl) => toMin(sl.end) <= toMin(sl.start))) return setError("Cada horário precisa terminar depois de começar.");
-    if (!f.estimateMin) return setError("Informe o tempo, por exemplo 45m ou 1h30.");
+    // Tempo zero só nas de uma vez: vira lembrete (aparece no dia, sem ocupar horas) ou fica em "Depois" sem tempo.
+    if (!f.estimateMin && (f.repeat === "weekdays" || f.doneBy === "time")) return setError("Informe o tempo, por exemplo 45m ou 1h30.");
     setError("");
     replaceTask(uid, draft(f));
   }
@@ -210,14 +211,16 @@ function Properties({ task, onClose }: { task: Task; onClose: () => void }) {
             value={estimate}
             onChange={(e) => setEstimate(e.target.value)}
             onBlur={() => {
-              const m = parseDuration(estimate);
-              if (!m) return setError("Informe o tempo, por exemplo 45m ou 1h30.");
-              setEstimate(fmtMin(m));
-              if (m !== task.estimateMin) save({ estimateMin: m });
+              // Vazio nas de uma vez = sem tempo (lembrete ou "Depois").
+              const empty = !estimate.trim() && repeat === "once" && doneBy !== "time";
+              const m = empty ? 0 : parseDuration(estimate);
+              if (!m && !empty) return setError("Informe o tempo, por exemplo 45m ou 1h30.");
+              setEstimate(m ? fmtMin(m) : "");
+              if ((m ?? 0) !== task.estimateMin) save({ estimateMin: m ?? 0 });
               else setError("");
             }}
             onKeyDown={(e) => e.key === "Enter" && e.currentTarget.blur()}
-            placeholder="Ex: 45m, 1h30"
+            placeholder={repeat === "once" && doneBy !== "time" ? "Sem tempo = lembrete" : "Ex: 45m, 1h30"}
           />
           {slots.length > 0 && <p className="mt-1 text-xs text-muted">Preenchido com a soma dos horários. Dá para mudar.</p>}
         </Prop>
@@ -355,9 +358,10 @@ function DayTime({ task, date, onClose }: { task: Task; date: string; onClose: (
                     onPick={async (d) => {
                       setMoving(false);
                       const before = task.date ?? todayKey();
-                      if (d === before) return;
-                      await updateTask(uid, task.id, { date: d });
-                      toast(`${task.title} foi para ${dayName(d).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before }) });
+                      if (d === before && !task.later) return;
+                      // Sai de "Depois", se estava lá.
+                      await updateTask(uid, task.id, { date: d, later: false });
+                      toast(`${task.title} foi para ${dayName(d).toLowerCase()}`, { tone: "info", undo: () => updateTask(uid, task.id, { date: before, later: !!task.later }) });
                       onClose();
                     }}
                   />

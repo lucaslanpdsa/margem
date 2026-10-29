@@ -9,10 +9,12 @@ import { DEFAULT_SETTINGS, type DayDoc, type Session, type Settings, type Task }
 
 export { PREVIEW_UID } from "@/lib/preview";
 
-export type Scenario = "dia" | "fila" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
+export type Scenario = "dia" | "fila" | "leve" | "noite" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
 export const SCENARIOS: { id: Scenario; label: string }[] = [
   { id: "dia", label: "Dia normal (com atrasada e sem registro)" },
   { id: "fila", label: "Fila montada (ordem escolhida)" },
+  { id: "leve", label: "Modo leve (sem registrar tempo), dia já planejado" },
+  { id: "noite", label: "Horário de hoje acabou (Fechar o dia)" },
   { id: "sobra", label: "Dia com sobra (encaixe para recuperar a semana)" },
   { id: "apertado", label: "Não dá tempo" },
   { id: "timer", label: "Timer rodando" },
@@ -36,6 +38,12 @@ function tasks(t0: string): Task[] {
     { id: "simulado", title: "Simulado CCA-F", repeat: "once", date: shiftDay(t0, 1), estimateMin: 120, createdAt: created },
     { id: "mecanico", title: "Ligar para o mecânico", repeat: "once", date: t0, estimateMin: 15, completedAt: `${t0}T09:00:00`, createdAt: created },
     { id: "meditar", title: "Meditar", repeat: "weekdays", weekdays: [0, 6], estimateMin: 20, archived: true, createdAt: created },
+    // Depois (sem dia) e lembretes (com dia, sem tempo).
+    { id: "oleo", title: "Trocar o óleo do carro", repeat: "once", estimateMin: 0, later: true, createdAt: "2026-10-20T10:00:00.000Z" },
+    { id: "freela", title: "Responder proposta de freela Drupal", repeat: "once", estimateMin: 30, later: true, createdAt: "2026-10-22T10:00:00.000Z" },
+    { id: "ideia", title: "Ideia: automação de ofertas", repeat: "once", estimateMin: 0, later: true, createdAt: "2026-10-25T10:00:00.000Z" },
+    { id: "luz", title: "Pagar a conta de luz", repeat: "once", date: t0, estimateMin: 0, createdAt: created },
+    { id: "niver", title: "Aniversário da tia Rosa", repeat: "once", date: shiftDay(t0, 3), estimateMin: 0, createdAt: created },
   ];
 }
 
@@ -124,6 +132,16 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     // Fila escolhida: o deploy antes do estudo, e uma tarefa nova (fora da fila) que entra no fim.
     ts = [...ts, { id: "nota", title: "Mandar nota fiscal", repeat: "once", date: t0, estimateMin: 20, createdAt: "2026-10-01T09:00:00.000Z" }];
     days[t0] = { order: ["deploy", "ingles", "estudo"] };
+  }
+  if (scenario === "leve") {
+    settings.trackTime = false;
+    ss = ss.filter((x) => x.date !== t0);
+    days[t0] = { plannedAt: `${t0}T08:00:00.000Z` };
+  }
+  if (scenario === "noite") {
+    // O horário de hoje terminou ao meio-dia: aparece o "Fechar o dia".
+    settings.windowOverrides = { [t0]: { start: "08:00", end: "12:00" } };
+    days[t0] = { plannedAt: `${t0}T08:00:00.000Z` };
   }
   if (scenario === "sobra") {
     // Dia leve (sem trabalho hoje), para sobrar tempo e aparecer o encaixe.

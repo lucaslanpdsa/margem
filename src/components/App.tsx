@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, ChevronLeft, ChevronRight, ListChecks, PanelLeftClose, PanelLeftOpen, Plus, Sun, Timer as TimerIcon } from "lucide-react";
+import { ChevronDown, ChevronLeft, ChevronRight, Inbox, ListChecks, PanelLeftClose, PanelLeftOpen, Plus, Sun, Timer as TimerIcon } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fromKey, shiftDay, todayKey } from "@/lib/dates";
@@ -18,9 +18,10 @@ import { BillingSync } from "./Pro";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
 import { DayView } from "./views";
+import { LaterPage } from "./Later";
 
-type Tab = "dia" | "foco" | "tarefas";
-const TAB_IDS: Tab[] = ["dia", "foco", "tarefas"];
+type Tab = "dia" | "depois" | "foco" | "tarefas";
+const TAB_IDS: Tab[] = ["dia", "depois", "foco", "tarefas"];
 
 /** Aba atual guardada no endereço (#tarefas), para sobreviver ao recarregar e o "voltar" do celular funcionar. */
 function useTab(): [Tab, (t: Tab) => void] {
@@ -46,6 +47,7 @@ function useTab(): [Tab, (t: Tab) => void] {
 }
 const TABS: { id: Tab; label: string; icon: typeof Sun }[] = [
   { id: "dia", label: "Dia", icon: Sun },
+  { id: "depois", label: "Depois", icon: Inbox },
   { id: "tarefas", label: "Tarefas", icon: ListChecks },
   { id: "foco", label: "Foco", icon: TimerIcon },
 ];
@@ -143,13 +145,16 @@ export function Shell() {
   const fmt = (k: string, o: Intl.DateTimeFormatOptions) => fromKey(k).toLocaleDateString("pt-BR", o);
   const titles: Record<Tab, string> = {
     dia: isToday ? "Hoje" : fmt(date, { weekday: "long" }),
+    depois: "Depois",
     foco: "Foco",
     tarefas: "Tarefas",
   };
   const subtitle =
     tab === "dia"
       ? fmt(date, { weekday: isToday ? "long" : undefined, day: "numeric", month: "long" })
-      : tab === "foco"
+      : tab === "depois"
+        ? "O que ainda não tem dia, e os lembretes"
+        : tab === "foco"
         ? "Pomodoro ou cronômetro, com ou sem tarefa"
         : "Seu horário e o que você faz em cada dia";
   const showNav = tab === "dia";
@@ -271,6 +276,7 @@ export function Shell() {
 
           <main>
             {tab === "dia" && <DayView onGoTasks={() => setTab("tarefas")} />}
+            {tab === "depois" && <LaterPage />}
             {tab === "foco" && <FocusView />}
             {tab === "tarefas" && (
               <TasksPage
