@@ -8,7 +8,10 @@ import { carryOver, goalsFor, goalsKey, nextOccurrence } from "./goals";
 import { migrateTask } from "./migrate";
 import { isLive, liveSession, migrateTimer, setTimerStart } from "./timer";
 import { countToday, isRunning, listSummary, notImported, remainingMs, suggestPomodoros } from "./pomodoro";
-import { DEFAULT_SETTINGS, type Block, type Session, type Task } from "./types";
+import { autoOrder, displayOrder, firstNotFitting, fmtClock, moveInQueue, orderItems, projectDay } from "./queue";
+import { MIN_SAMPLES, calibrate, isAccurate, likelyMin, samples } from "./calibration";
+import { daysToClose, planFit } from "./closing";
+import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
 
 const D = "2026-10-16"; // sexta
 const base = { createdAt: "2026-10-01T10:00:00.000Z", estimateMin: 60 };
@@ -490,5 +493,214 @@ describe("objetivos do dia", () => {
     );
     expect(r.from.map((g) => g.text)).toEqual(["A"]);
     expect(r.to.map((g) => g.text)).toEqual(["c ", "B"]);
+  });
+});
+
+// ---------- Fila do dia ----------
+
+describe("fila do dia", () => {
+  // Sexta 14:00–18:00 (4h), sem pausas. "Agora" = 15:00.
+  const at15 = new Date(`${D}T15:00:00`);
+  const t = (id: string, estimateMin: number, extra: Partial<Task> = {}): Task => ({ ...base, id, title: id, repeat: "once", date: D, estimateMin, ...extra });
+  const run = (ts: Task[], order: string[] | undefined, opts: { now?: Date; s?: Settings; ss?: Session[]; running?: string } = {}) => {
+    const st = opts.s ?? settings;
+    const now = opts.now ?? at15;
+    const bl = taskTimeBlocks(ts, [D]);
+    const m = dayMetrics(D, st, ts, bl, opts.ss ?? [], now);
+    const ordered = orderItems(m.items, order, bl, D);
+    const room = Math.max(0, m.capacityMin - Math.max(m.doneMin, m.elapsedMin));
+    const p = projectDay(ordered, st, D, now, room, opts.running);
+    const at = (id: string) => {
+      const x = p.byTask.get(id)!;
+      return `${fmtClock(x.start)}-${fmtClock(x.end)}`;
+    };
+    return { m, ordered, p, at, room };
+  };
+
+  it("sem fila salva, vale a ordem automática; com fila, as novas vão para o fim", () => {
+    const ts = [t("a", 30), t("b", 30, { createdAt: "2026-10-02T10:00:00.000Z" }), t("c", 30, { createdAt: "2026-10-03T10:00:00.000Z" })];
+    expect(run(ts, undefined).ordered.map((i) => i.task.id)).toEqual(["a", "b", "c"]);
+    expect(run(ts, ["c", "a"]).ordered.map((i) => i.task.id)).toEqual(["c", "a", "b"]);
+  });
+
+  it("prevê o horário de cada uma na ordem da fila, a partir de agora", () => {
+    const r = run([t("x", 60), t("y", 90)], ["y", "x"]);
+    expect(r.at("y")).toBe("15:00-16:30");
+    expect(r.at("x")).toBe("16:30-17:30");
+    expect(r.p.excessMin).toBe(0);
+  });
+
+  it("pula as pausas fixas", () => {
+    const s = { ...settings, breaks: [{ label: "Café", start: "16:00", end: "16:30" }] };
+    const r = run([t("x", 60), t("y", 90)], ["y", "x"], { s });
+    expect(r.at("y")).toBe("15:00-17:00");
+    expect(r.at("x")).toBe("17:00-18:00");
+  });
+
+  it("o que não cabe bate com o 'Não cabe' do topo do dia", () => {
+    const r = run([t("x", 60), t("y", 90), t("z", 60)], ["y", "x", "z"]);
+    const excess = r.m.remainingMin - Math.min(r.m.remainingMin, r.room);
+    expect(excess).toBe(30);
+    expect(r.p.excessMin).toBe(excess);
+    expect(r.p.byTask.get("z")!.fits).toBe(false);
+    expect(r.p.byTask.get("z")!.excessMin).toBe(30);
+    expect(r.p.byTask.get("x")!.fits).toBe(true);
+  });
+
+  it("usa o que falta pelos registros, não a estimativa inteira", () => {
+    const ss: Session[] = [{ id: "s", taskId: "y", date: D, minutes: 60, kind: "manual", startedAt: "", endedAt: "" }];
+    const r = run([t("x", 60), t("y", 90)], ["y", "x"], { ss });
+    expect(r.at("y")).toBe("15:00-15:30");
+    expect(r.at("x")).toBe("15:30-16:30");
+  });
+
+  it("tarefa com horário ainda por vir fica no horário dela; as outras se encaixam em volta", () => {
+    const f = t("f", 60, { slots: [{ start: "16:00", end: "17:00" }] });
+    const r = run([f, t("x", 90)], ["f", "x"]);
+    expect(r.p.byTask.get("f")!.fixed).toBe(true);
+    expect(r.at("f")).toBe("16:00-17:00");
+    expect(r.at("x")).toBe("15:00-17:30");
+    // Na tela, cada uma aparece onde acontece: x começa antes de f.
+    expect(displayOrder(r.ordered, r.p).map((i) => i.task.id)).toEqual(["x", "f"]);
+  });
+
+  it("horário que já passou não prende a tarefa: o que falta vai para a fila", () => {
+    const f = t("f", 60, { slots: [{ start: "14:00", end: "15:00" }] });
+    const r = run([t("x", 30), f], ["x", "f"]);
+    expect(r.p.byTask.get("f")!.fixed).toBe(false);
+    expect(r.at("x")).toBe("15:00-15:30");
+    expect(r.at("f")).toBe("15:30-16:30");
+  });
+
+  it("o que passar do horário da fixa entra na fila, e o total continua batendo", () => {
+    const f = t("f", 120, { slots: [{ start: "17:00", end: "18:00" }] });
+    const r = run([t("x", 120), f], ["x", "f"]);
+    expect(r.at("x")).toBe("15:00-17:00");
+    // f: 17–18 no horário; os outros 60min não cabem antes (x ocupou), então passam do fim.
+    expect(r.p.byTask.get("f")!.excessMin).toBe(60);
+    expect(r.p.excessMin).toBe(r.m.remainingMin - Math.min(r.m.remainingMin, r.room));
+  });
+
+  it("na tela: as que cabem (mesmo em parte) pelo horário, depois as extra, por último as que não cabem nada", () => {
+    const f = t("f", 120, { slots: [{ start: "17:00", end: "18:00" }] });
+    const e = t("e", 30, { slots: [{ start: "19:00", end: "19:30" }] });
+    const r = run([t("x", 120), f, t("z", 30), e], ["z", "x", "f"]);
+    // z 15:00–15:30, x 15:30–17:00 + nada (f ocupa 17–18), f em parte; o resto de x e o de f não cabem.
+    const shown = displayOrder(r.ordered, r.p);
+    expect(shown.map((i) => i.task.id)).toEqual(["z", "x", "f", "e"]);
+    expect(firstNotFitting(shown, r.p)).toBe(-1);
+    const r2 = run([t("x", 240), t("y", 30), e], ["x", "y"]);
+    const shown2 = displayOrder(r2.ordered, r2.p);
+    expect(shown2.map((i) => i.task.id)).toEqual(["x", "e", "y"]);
+    expect(firstNotFitting(shown2, r2.p)).toBe(2);
+  });
+
+  it("o cronômetro rodando vem primeiro", () => {
+    const r = run([t("x", 60), t("y", 60)], ["x", "y"], { running: "y" });
+    expect(r.at("y")).toBe("15:00-16:00");
+    expect(r.at("x")).toBe("16:00-17:00");
+  });
+
+  it("dia futuro começa no início do horário; dia passado não tem previsão", () => {
+    const r = run([t("x", 60)], undefined, { now: new Date(`${D}T06:00:00`) });
+    expect(r.at("x")).toBe("14:00-15:00");
+    const past = run([t("x", 60)], undefined, { now: new Date("2026-10-17T10:00:00") });
+    expect(past.p.byTask.size).toBe(0);
+    expect(displayOrder(past.ordered, past.p).map((i) => i.task.id)).toEqual(["x"]);
+  });
+
+  it("concluídas, puladas e extra ficam fora da previsão", () => {
+    const r = run([t("x", 60, { completedAt: `${D}T10:00:00` }), t("e", 60, { slots: [{ start: "20:00", end: "21:00" }] }), t("y", 30)], undefined);
+    expect([...r.p.byTask.keys()]).toEqual(["y"]);
+  });
+
+  it("mover na fila: para o topo, subir/descer pulando as fixas, antes de outra", () => {
+    const ids = ["a", "f", "b", "c"];
+    const movable = new Set(["a", "b", "c"]);
+    expect(moveInQueue(ids, "c", "top", movable)).toEqual(["c", "a", "f", "b"]);
+    expect(moveInQueue(ids, "b", "up", movable)).toEqual(["b", "f", "a", "c"]);
+    expect(moveInQueue(ids, "a", "up", movable)).toEqual(ids);
+    expect(moveInQueue(ids, "c", "down", movable)).toEqual(ids);
+    expect(moveInQueue(ids, "a", { before: "c" })).toEqual(["f", "b", "a", "c"]);
+    expect(moveInQueue(ids, "a", { before: null })).toEqual(["f", "b", "c", "a"]);
+  });
+
+  it("ordem automática: com horário pela hora, depois pela criação", () => {
+    const ts = [t("n", 30), t("h", 30, { slots: [{ start: "16:00", end: "16:30" }] })];
+    const m = dayMetrics(D, settings, ts, taskTimeBlocks(ts, [D]), [], at15);
+    expect(autoOrder(m.items, taskTimeBlocks(ts, [D]), D).map((i) => i.task.id)).toEqual(["h", "n"]);
+  });
+
+  it("horário previsto arredondado de 5 em 5 minutos", () => {
+    expect(fmtClock(15 * 60 + 2)).toBe("15:00");
+    expect(fmtClock(15 * 60 + 3)).toBe("15:05");
+    expect(fmtClock(23 * 60 + 58)).toBe("00:00");
+  });
+});
+
+// ---------- Estimado vs. realizado ----------
+
+describe("calibração", () => {
+  const sess = (taskId: string, date: string, minutes: number): Session => ({ id: `${taskId}-${date}`, taskId, date, minutes, kind: "manual", startedAt: "", endedAt: "" });
+  const once = (id: string, est: number, done: string): Task => ({ ...base, id, title: id, repeat: "once", date: done, estimateMin: est, completedAt: `${done}T15:00:00`, estAtDone: { _: est } });
+
+  it("compara a estimativa gravada ao concluir com o registrado (soma, não média das razões)", () => {
+    const ts = [once("a", 60, D), once("b", 30, D)];
+    const list = samples(ts, [sess("a", D, 90), sess("b", D, 30)], "2026-10-01");
+    expect(list.map((s) => [s.taskId, s.estMin, s.realMin])).toEqual([["a", 60, 90], ["b", 30, 30]]);
+    expect(calibrate(list).factor).toBeCloseTo(120 / 90);
+  });
+
+  it("de uma vez: soma os registros de todos os dias", () => {
+    expect(samples([once("a", 60, D)], [sess("a", "2026-10-15", 40), sess("a", D, 40)], "2026-10-01")[0].realMin).toBe(80);
+  });
+
+  it("que repete: só o dia, e só se concluído nele", () => {
+    const r: Task = { ...base, id: "r", title: "r", repeat: "weekdays", weekdays: [4, 5], completions: { [D]: true, "2026-10-15": false }, estAtDone: { [D]: 45, "2026-10-15": 45 } };
+    const list = samples([r], [sess("r", D, 50), sess("r", "2026-10-15", 30)], "2026-10-01");
+    expect(list).toEqual([{ taskId: "r", date: D, estMin: 45, realMin: 50 }]);
+  });
+
+  it("fica de fora: 'cumpro o tempo', sem registro, antes do período, sem estimativa gravada", () => {
+    const ts = [
+      { ...once("t", 60, D), doneBy: "time" as const },
+      once("vazia", 60, D),
+      once("velha", 60, "2026-09-01"),
+      { ...once("sem", 60, D), estAtDone: undefined },
+    ];
+    const ss = [sess("t", D, 60), sess("velha", "2026-09-01", 60), sess("sem", D, 60)];
+    expect(samples(ts, ss, "2026-10-01")).toEqual([]);
+  });
+
+  it(`só aparece com ${MIN_SAMPLES} tarefas ou mais`, () => {
+    const mk = (n: number) => Array.from({ length: n }, (_, i) => ({ taskId: `${i}`, date: D, estMin: 30, realMin: 32 }));
+    expect(calibrate(mk(MIN_SAMPLES - 1)).ready).toBe(false);
+    const c = calibrate(mk(MIN_SAMPLES));
+    expect(c.ready).toBe(true);
+    expect(isAccurate(c)).toBe(true);
+    expect(calibrate([]).factor).toBe(1);
+  });
+
+  it("quanto uma estimativa costuma virar, de 5 em 5 minutos", () => {
+    expect(likelyMin(45, { n: 20, factor: 1.3, ready: true })).toBe(60);
+  });
+});
+
+// ---------- Fechamento do dia ----------
+
+describe("fechamento do dia", () => {
+  const s = { ...DEFAULT_SETTINGS, windows: [null, { start: "08:00", end: "18:00" }, { start: "08:00", end: "18:00" }, null, null, null, null] };
+
+  it("fotografa os dias passados com horário que ainda não foram fechados", () => {
+    // Quarta 2026-10-21: olha seg (19), ter (20). Domingo e quarta não têm horário aqui.
+    expect(daysToClose("2026-10-21", {}, s)).toEqual(["2026-10-19", "2026-10-20"]);
+    expect(daysToClose("2026-10-21", { "2026-10-20": { closedAt: "x" } }, s)).toEqual(["2026-10-19"]);
+    expect(daysToClose("2026-10-21", { "2026-10-20": { order: ["a"] } }, s)).toEqual(["2026-10-19", "2026-10-20"]);
+  });
+
+  it("o plano coube com 90% ou mais do planejado feito", () => {
+    expect(planFit({ plannedMin: 600, doneMin: 540 })).toBe(true);
+    expect(planFit({ plannedMin: 600, doneMin: 500 })).toBe(false);
+    expect(planFit({ plannedMin: 0, doneMin: 100 })).toBe(false);
   });
 });

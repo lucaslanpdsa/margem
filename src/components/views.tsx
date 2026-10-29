@@ -6,6 +6,7 @@ import { fmtMin, todayKey } from "@/lib/dates";
 import { dayMetrics } from "@/lib/metrics";
 import { DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
+import { EstimateCard } from "./Estimates";
 import { DayEntries } from "./TimeEntries";
 import { WeekPanel } from "./WeekPanel";
 import { useNow } from "./Timer";
@@ -24,14 +25,16 @@ export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
       {/* No computador a semana fica embaixo do resumo; no celular, depois das tarefas. */}
       <div className="space-y-4 lg:sticky lg:top-6">
         <DayBudget m={m} />
-        <div className="hidden lg:block">
+        <div className="hidden space-y-4 lg:block">
           <WeekPanel />
+          <EstimateCard />
         </div>
       </div>
       <div className="min-w-0 space-y-4">
         <DayLists m={m} onGoTasks={onGoTasks} />
-        <div className="lg:hidden">
+        <div className="space-y-4 lg:hidden">
           <WeekPanel />
+          <EstimateCard />
         </div>
         <DayRecords date={date} />
       </div>

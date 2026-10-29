@@ -5,13 +5,14 @@
  */
 import { shiftDay, todayKey } from "@/lib/dates";
 import { liveSession } from "@/lib/timer";
-import { DEFAULT_SETTINGS, type Session, type Settings, type Task } from "@/lib/types";
+import { DEFAULT_SETTINGS, type DayDoc, type Session, type Settings, type Task } from "@/lib/types";
 
 export { PREVIEW_UID } from "@/lib/preview";
 
-export type Scenario = "dia" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
+export type Scenario = "dia" | "fila" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
 export const SCENARIOS: { id: Scenario; label: string }[] = [
   { id: "dia", label: "Dia normal (com atrasada e sem registro)" },
+  { id: "fila", label: "Fila montada (ordem escolhida)" },
   { id: "sobra", label: "Dia com sobra (encaixe para recuperar a semana)" },
   { id: "apertado", label: "Não dá tempo" },
   { id: "timer", label: "Timer rodando" },
@@ -78,7 +79,27 @@ export interface PreviewData {
   tasks: Task[];
   sessions: Session[];
   settings: Settings;
+  days: Record<string, DayDoc>;
   signedIn: boolean;
+}
+
+/**
+ * Dias do histórico em que o estudo e o inglês foram feitos inteiros contam como concluídos pelo círculo,
+ * com a estimativa de quando foram concluídos um pouco menor que o feito (para o fator "1,2×" aparecer).
+ */
+function withEstimates(ts: Task[], ss: Session[], t0: string): Task[] {
+  const est: Record<string, [number, number]> = { estudo: [90, 75], ingles: [45, 40] };
+  return ts.map((t) => {
+    const e = est[t.id];
+    if (!e) return t;
+    const full = ss.filter((x) => x.taskId === t.id && x.date < t0 && x.minutes === e[0]).map((x) => x.date);
+    if (!full.length) return t;
+    return {
+      ...t,
+      completions: { ...t.completions, ...Object.fromEntries(full.map((d) => [d, true])) },
+      estAtDone: Object.fromEntries(full.map((d) => [d, e[1]])),
+    };
+  });
 }
 
 /** Monta os dados de um cenário. `now` em ms, para o timer rodando. */
@@ -90,12 +111,19 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     scheduleSet: true,
     onboarded: true,
   };
-  let ts = tasks(t0);
   let ss = sessions(t0);
+  let ts = withEstimates(tasks(t0), ss, t0);
+  // Ontem já fechado: o resumo do fechamento ("Ontem: planejado 9h, feito 7h40").
+  const days: Record<string, DayDoc> = { [shiftDay(t0, -1)]: { plannedMin: 540, doneMin: 460, closedAt: `${t0}T08:00:00.000Z` } };
 
   if (scenario === "vazio") {
     ts = [];
     ss = [];
+  }
+  if (scenario === "fila") {
+    // Fila escolhida: o deploy antes do estudo, e uma tarefa nova (fora da fila) que entra no fim.
+    ts = [...ts, { id: "nota", title: "Mandar nota fiscal", repeat: "once", date: t0, estimateMin: 20, createdAt: "2026-10-01T09:00:00.000Z" }];
+    days[t0] = { order: ["deploy", "ingles", "estudo"] };
   }
   if (scenario === "sobra") {
     // Dia leve (sem trabalho hoje), para sobrar tempo e aparecer o encaixe.
@@ -123,5 +151,5 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     const live = liveSession(settings.activeTimer, now);
     if (live) ss = [...ss, live];
   }
-  return { tasks: ts, sessions: ss, settings, signedIn: scenario !== "entrar" };
+  return { tasks: ts, sessions: ss, settings, days, signedIn: scenario !== "entrar" };
 }

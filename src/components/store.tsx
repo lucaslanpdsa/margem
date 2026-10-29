@@ -5,13 +5,13 @@ import { createContext, useContext, useEffect, useMemo, useState, type ReactNode
 import { dayKey, fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { SIGNED_IN_KEY } from "@/lib/legal";
-import { deleteUserData, replaceTask, saveSettings, watchBilling, watchSessions, watchSettings, watchTasks } from "@/lib/db";
+import { deleteUserData, replaceTask, saveSettings, watchBilling, watchDays, watchSessions, watchSettings, watchTasks } from "@/lib/db";
 import type { Billing } from "@/lib/plan";
 import { migrateTask } from "@/lib/migrate";
 import { taskTimeBlocks } from "@/lib/schedule";
 import { liveSession, migrateTimer } from "@/lib/timer";
 import { auth } from "@/lib/firebase";
-import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "@/lib/types";
+import { DEFAULT_SETTINGS, type Block, type DayDoc, type Session, type Settings, type Task } from "@/lib/types";
 
 export interface Store {
   user: User | null;
@@ -21,8 +21,12 @@ export interface Store {
   blocks: Block[];
   sessions: Session[];
   settings: Settings;
+  /** Fila e fechamento por dia (users/{uid}/days), do mesmo início dos registros em diante. */
+  days: Record<string, DayDoc>;
   /** As configurações já chegaram do banco. */
   settingsReady: boolean;
+  /** Tarefas, registros e dias já chegaram (para contas que não podem sair com dados pela metade, como o fechamento). */
+  dataReady: boolean;
   /** Dia em foco na tela. */
   date: string;
   setDate: (d: string) => void;
@@ -51,6 +55,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [billing, setBilling] = useState<Billing | null>(null);
   const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   const [settingsReady, setSettingsReady] = useState(false);
+  const [days, setDays] = useState<Record<string, DayDoc>>({});
+  // O que já chegou do banco, por assinatura (com o uid e o início, para não valer o de antes).
+  const [arrived, setArrived] = useState<Record<string, string>>({});
   const [date, setDate] = useState(todayKey);
 
   useEffect(
@@ -87,6 +94,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         const migrated = raw.map(migrateTask);
         migrated.filter((m) => m.changed).forEach((m) => replaceTask(uid, m.task));
         setTasks(migrated.map((m) => m.task));
+        setArrived((a) => ({ ...a, tasks: uid }));
       }),
       watchSettings(uid, (s) => {
         // Timer de quando o pomodoro registrava: vira cronômetro (ou some, se era pausa).
@@ -105,7 +113,17 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!uid) return;
-    const subs = [watchSessions(uid, fromDate, setSessions)];
+    const key = `${uid}|${fromDate}`;
+    const subs = [
+      watchSessions(uid, fromDate, (s) => {
+        setSessions(s);
+        setArrived((a) => ({ ...a, sessions: key }));
+      }),
+      watchDays(uid, fromDate, (d) => {
+        setDays(d);
+        setArrived((a) => ({ ...a, days: key }));
+      }),
+    ];
     return () => subs.forEach((u) => u());
   }, [uid, fromDate]);
 
@@ -142,7 +160,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     blocks: allBlocks,
     sessions: allSessions,
     settings,
+    days,
     settingsReady,
+    dataReady: settingsReady && arrived.tasks === uid && arrived.sessions === `${uid}|${fromDate}` && arrived.days === `${uid}|${fromDate}`,
     date,
     setDate,
     login: async () => {

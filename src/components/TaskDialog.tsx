@@ -10,6 +10,7 @@ import type { Task, TimeSlot } from "@/lib/types";
 import { stopwatchText, useNow } from "./Timer";
 import { useTimerActions, useToast } from "./toast";
 import { DayMenu } from "./DayMenu";
+import { EstimateVsReal } from "./Estimates";
 import { AddTime, TaskEntries } from "./TimeEntries";
 import { TimerStart } from "./TimerStart";
 import { Goals } from "./Goals";
@@ -109,6 +110,8 @@ function Properties({ task, onClose }: { task: Task; onClose: () => void }) {
     completions: f.repeat === "weekdays" ? task.completions : undefined,
     skipped: f.repeat === "weekdays" ? task.skipped : undefined,
     archived: f.repeat === "weekdays" ? task.archived : undefined,
+    // As chaves mudam entre "uma vez" e "repete" ("_" x dia): trocou, a estimativa gravada não vale mais.
+    estAtDone: f.repeat === task.repeat ? task.estAtDone : undefined,
   });
 
   /** Valida e grava. Com erro, avisa e não grava (o campo fica como a pessoa deixou para corrigir). */
@@ -321,6 +324,7 @@ function DayTime({ task, date, onClose }: { task: Task; date: string; onClose: (
             </button>
           </p>
         )}
+        {completed && <EstimateVsReal task={task} date={date} />}
         {/* Ações do dia dentro do resumo: ficam juntas e perto do número. */}
         {(!completed || !timeTask) && (
           <div className="-mx-1 mt-3 flex flex-wrap items-center gap-1 border-t border-line pt-2">
@@ -344,6 +348,7 @@ function DayTime({ task, date, onClose }: { task: Task; date: string; onClose: (
                 </Button>
                 {moving && (
                   <DayMenu
+                    task={task}
                     align="left"
                     value={task.date ?? todayKey()}
                     onClose={() => setMoving(false)}

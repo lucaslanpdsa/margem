@@ -89,14 +89,18 @@ No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas 
 | Elemento | Detalhe |
 |---|---|
 | Campo "Nova tarefa, ex: Revisar PR 45m" | Enter cria no dia aberto; sem tempo, abre o formulário. Prévia "Enter cria … com 45min" |
-| Aviso de atrasadas | só hoje: "N tarefas ficaram de dias anteriores · Xh" · **Trazer para hoje** (com Desfazer); abrindo, **Hoje** em cada uma |
+| Fechamento (tarefas de dias anteriores) | só hoje: "N tarefas ficaram de dias anteriores · Xh" · **Trazer para hoje** (com Desfazer). Aberto por padrão com até 3 tarefas: "Ontem: planejado 9h, feito 7h40" (fotografia do dia) e, em cada tarefa, **Hoje** · 📅 (Amanhã, Próxima segunda, Outro dia, com quanto sobra em cada) · 🗑 Excluir (com Desfazer). Trazida para hoje entra no fim da fila |
 | Linha da tarefa | círculo (concluir, com Desfazer) ou alvo (tarefa "cumpro o tempo") · nome (até 2 linhas) · progresso · horário · "☑ 1/3" (objetivos do dia) · "● 12:03" se o timer está nela · "extra" · conflito · **▶ / ■** (contorno cinza; azul só com o timer rodando) |
 | Toque na linha | abre a **Janela da tarefa** |
-| Ordem | primeiro as com horário (pela hora), depois as outras (pela criação) |
+| Fila | a ordem é sua: menu **⋮** na linha (**Fazer agora**, **Subir**, **Descer**) ou arrastar no computador. Sem fila salva, vale a ordem automática (com horário pela hora, depois pela criação); tarefa nova entra no fim. Tarefa com horário ainda por vir e as "extra" não mudam de lugar (sem ⋮) |
+| Previsão | hoje e dias futuros: cada tarefa mostra o horário previsto ("11:35–13:05"), a partir de agora, pulando pausas e os horários das fixas, recalculado a cada minuto (arredondado de 5 em 5). A primeira ganha **Agora** (ou **Próxima**, se agora é pausa). Cabe só em parte: "13:50 · 55min não cabe" em vermelho. A lista aparece na ordem dos horários previstos; o cronômetro rodando vem primeiro |
+| Não cabe hoje | linha vermelha antes das tarefas que não cabem nada, com o total delas; abaixo dela as linhas ficam apagadas |
 | Concluídas / Puladas | recolhido no fim |
 | Dia vazio | "Nenhuma tarefa neste dia." com **Criar tarefa** e **Montar rotina em Tarefas** |
 
 ![Dia sem tarefas](img/20-dia-vazio.png) ![Não dá tempo](img/19-dia-apertado.png)
+
+**Suas estimativas** (Pro; embaixo de "Esta semana"): só com 10 ou mais tarefas concluídas pelo círculo com tempo registrado nos últimos 28 dias. "Você costuma levar 1,2× o que estima. Uma tarefa de 1h vira 1h11." (ou "Você acerta o tempo", até 10% de diferença). No campo "Nova tarefa", a dica "Costuma levar ~1h". Na janela da tarefa concluída: "Estimado 45min · levou 1h05".
 
 **Encaixe** (Pro, no topo do dia, só hoje e quando dá tempo): "Sobram 40min hoje: dá para recuperar 40min de Estudar." · **Começar** (cronômetro). Usa a tarefa mais atrasada na semana que não tem horário fixo.
 

@@ -22,6 +22,10 @@
 | **Pular hoje** | Tira uma tarefa que repete só daquele dia. O que já tinha sido feito continua contando. |
 | **Mudar dia** | Muda a data de uma tarefa de uma vez (Hoje, Amanhã, Próxima segunda, Outro dia). |
 | **Desativar tarefa** | Tira uma tarefa que repete de todos os dias, sem apagar o histórico (vai para "Desativadas"). |
+| **Fila** | A ordem em que você quer fazer as tarefas do dia. Só você muda; tarefa com horário ainda por vir fica no horário dela. |
+| **Previsto** | Horário em que cada tarefa deve acontecer seguindo a fila, a partir de agora, com o que falta de cada uma. |
+| **Fechamento do dia** | Na abertura do dia seguinte, o que sobrou de tarefas de uma vez pede uma decisão (hoje, outro dia, excluir), e o dia guarda planejado e feito. |
+| **Suas estimativas** | Quanto você costuma levar do que estima (realizado ÷ estimado), nas tarefas concluídas pelo círculo com tempo registrado. |
 | **Atrasada** | Tarefa de uma vez com data no passado e não concluída. |
 | **Meta da semana** | Soma do tempo planejado de uma tarefa que repete nos dias dela, de segunda a domingo (1h30 seg a sex = 7h30). Não é um campo: muda quando muda o tempo, os dias, "Pular hoje" ou "Encurtar". |
 | **Atraso da semana** | O que ficou faltando nos dias que já passaram, descontado o que foi feito a mais hoje. Dia concluído pelo círculo conta como cumprido. |

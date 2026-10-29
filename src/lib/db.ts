@@ -9,6 +9,7 @@ import {
   query,
   setDoc,
   deleteField,
+  documentId,
   updateDoc,
   where,
   writeBatch,
@@ -17,7 +18,8 @@ import {
 import { db } from "./firebase";
 import { PREVIEW_UID } from "./preview";
 import type { Billing } from "./plan";
-import { DEFAULT_SETTINGS, type Goal, type Session, type Settings, type Task } from "./types";
+import { estKey, estimateOn } from "./calibration";
+import { DEFAULT_SETTINGS, type DayDoc, type Goal, type Session, type Settings, type Task } from "./types";
 
 const col = (uid: string, name: string) => collection(db(), "users", uid, name);
 
@@ -109,11 +111,12 @@ export const replaceTask = (uid: string, task: Task) => {
 
 export const deleteTask = (uid: string, id: string) => write(uid, () => deleteDoc(doc(db(), "users", uid, "tasks", id)));
 
+/** Concluir ou reabrir. Ao concluir, guarda a estimativa daquele momento (estimado vs. realizado, calibration.ts). */
 export function toggleDone(uid: string, task: Task, date: string, done: boolean) {
-  if (task.repeat === "weekdays") {
-    return write(uid, () => updateDoc(doc(db(), "users", uid, "tasks", task.id), { [`completions.${date}`]: done }));
-  }
-  return write(uid, () => setDoc(doc(db(), "users", uid, "tasks", task.id), { completedAt: done ? new Date().toISOString() : null }, { merge: true }));
+  const est = { [`estAtDone.${estKey(task, date)}`]: done ? estimateOn(task, date) : deleteField() };
+  const ref = doc(db(), "users", uid, "tasks", task.id);
+  if (task.repeat === "weekdays") return write(uid, () => updateDoc(ref, { [`completions.${date}`]: done, ...est }));
+  return write(uid, () => updateDoc(ref, { completedAt: done ? new Date().toISOString() : null, ...est }));
 }
 
 /** Pular (ou desfazer o pulo de) uma tarefa que repete, só neste dia. */
@@ -144,6 +147,24 @@ export const restoreSession = (uid: string, s: Session) => {
   return write(uid, () => setDoc(doc(db(), "users", uid, "sessions", id), clean(data)));
 };
 
+// ---------- Dias (fila e fechamento) ----------
+
+/** Dias a partir de `fromDate` (inclusive), por chave "yyyy-MM-dd". */
+export function watchDays(uid: string, fromDate: string, cb: (d: Record<string, DayDoc>) => void): Unsubscribe {
+  return onSnapshot(query(col(uid, "days"), where(documentId(), ">=", fromDate)), (snap) =>
+    cb(Object.fromEntries(snap.docs.map((d) => [d.id, d.data() as DayDoc]))),
+  );
+}
+
+const dayRef = (uid: string, date: string) => doc(db(), "users", uid, "days", date);
+
+/** Fila do dia (ids na ordem). */
+export const setDayOrder = (uid: string, date: string, order: string[]) => write(uid, () => setDoc(dayRef(uid, date), { order }, { merge: true }));
+
+/** Fotografia do dia que passou (fechamento). */
+export const closeDay = (uid: string, date: string, snap: Pick<DayDoc, "plannedMin" | "doneMin">) =>
+  write(uid, () => setDoc(dayRef(uid, date), { ...snap, closedAt: new Date().toISOString() }, { merge: true }));
+
 // ---------- Configurações ----------
 
 /** Cada campo enviado é substituído por inteiro (mapas inclusive), os outros são mantidos. */
@@ -152,7 +173,7 @@ export const saveSettings = (uid: string, patch: Partial<Settings>) =>
 
 // ---------- Seus dados (LGPD) ----------
 
-const USER_COLLECTIONS = ["tasks", "sessions", "meta"] as const;
+const USER_COLLECTIONS = ["tasks", "sessions", "meta", "days"] as const;
 
 /** Tudo da conta num objeto só, para baixar como arquivo (direito de acesso e portabilidade). */
 export async function exportUserData(uid: string) {

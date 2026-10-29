@@ -71,7 +71,9 @@ src/components/
   TimerStart.tsx            "Começou às … · Mudar"
   SlotAlerts.tsx            avisos de início/pausa/fim do horário das tarefas (app aberto)
   toast.tsx                 avisos de rodapé (Desfazer, erro de gravação), "Sem internet", useTimerActions (start/stop com aviso)
-  DayMenu.tsx               menu Hoje/Amanhã/Próxima segunda/Outro dia
+  DayMenu.tsx               menu Hoje/Amanhã/Próxima segunda/Outro dia (com quanto sobra em cada, quando recebe a tarefa)
+  Estimates.tsx             "Suas estimativas" (Pro), useCalibration, "Estimado · levou" na janela da tarefa
+  DayCloser.tsx             grava a fotografia dos dias que passaram (fechamento), sem tela
   Onboarding.tsx            configuração inicial e "Como funciona"
   ui.tsx                    Button, IconButton, Modal, Panel, Segmented, Switch, TimeSelect, inputCls, cx
 src/lib/
@@ -85,6 +87,9 @@ src/lib/
   preview.ts                PREVIEW_UID da prévia
   dates.ts                  chaves de dia, durações ("3h 20m"), intervalos ("14:00-15:30"), nomes de dia
   migrate.ts                conversão de dados antigos (metas semanais)
+  queue.ts                  fila do dia: ordem, mover, previsão de horário, ordem de exibição (pura e testada)
+  calibration.ts            estimado vs. realizado: amostras e fator (pura e testada)
+  closing.ts                fechamento: dias a fotografar, "o plano coube" (pura e testada)
   goals.ts                  objetivos do dia: chave, próximo dia da tarefa, levar para amanhã (pura e testada)
   week.ts                   semana da tarefa: meta (soma do planejado), atraso, histórico, dias seguidos (pura e testada)
   plan.ts                   Grátis/Pro a partir de billing e da data da conta (pura e testada)
@@ -94,7 +99,8 @@ src/lib/
 
 ## Modelo de dados (Firestore, `users/{uid}/…`)
 
-- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `goals` (objetivos do dia `{id, text, done}[]` por dia, ou na chave `"_"` para as de uma vez; ver `goals.ts`), `archived` (desativada), `createdAt`.
+- `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `goals` (objetivos do dia `{id, text, done}[]` por dia, ou na chave `"_"` para as de uma vez; ver `goals.ts`), `archived` (desativada), `estAtDone` (estimativa ao concluir pelo círculo, por dia ou `"_"`; ver `calibration.ts`), `createdAt`.
+- `days/{yyyy-MM-dd}`: `order` (fila do dia, ids), `plannedMin`/`doneMin`/`closedAt` (fotografia gravada na primeira abertura depois do dia).
 - `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, outro = manual (`pomo-`/`pausa-` são de quando o pomodoro registrava).
 - `billing/{uid}` (fora de `users/`): `status` (`active` | `pending` | `paused` | `cancelled` | `none`), `period`, `paidUntil`, `preapprovalId`, `updatedAt`. **Só o servidor grava** (regras em `firestore.rules`).
 - `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer` (cronômetro: `taskId`, `startedAt`), `pomodoro` (`phase`, `startedAt`, `durationMin`, `waiting`, `pausedLeftMs`, `count`/`countDate`, `taskId` = item da lista em foco), `pomodoroTasks` (lista do pomodoro: `id`, `title`, `est`, `done`, `checked`, `fromTaskId`; só pomodoros, nunca horas), `pomodoroSkip` (`date`, `ids`: tarefas deixadas de fora da importação hoje), `scheduleSet`, `onboarded`. Antigos e ignorados: `lastTimerMode`, `pendingAssign`.
@@ -109,6 +115,7 @@ Ver [`docs/01-conceitos.md`](docs/01-conceitos.md). Resumo:
 - Sobra = tempo do dia − max(feito, já passou) − falta. Tarefas "extra" (horário todo fora do seu horário) ficam fora da conta.
 - Tarefa `doneBy: "time"` conclui quando o registrado chega na meta do dia (`estimateFor[dia] ?? estimateMin`).
 - Registro com menos de 1 minuto não é salvo (o usuário é avisado).
+- A previsão da fila soma o mesmo "Não cabe" do topo do dia (teste em `metrics.test.ts`). O app nunca reordena a fila sozinho.
 
 Toda mudança de conta ganha teste em `metrics.test.ts`.
 

@@ -13,6 +13,7 @@ import { Timer } from "./Timer";
 import { OfflineNotice, ToastProvider } from "./toast";
 import { AccountMenu } from "./AccountMenu";
 import { SlotAlerts } from "./SlotAlerts";
+import { DayCloser } from "./DayCloser";
 import { BillingSync } from "./Pro";
 import { Button, IconButton, cx } from "./ui";
 import { TasksPage } from "./TasksPage";
@@ -305,6 +306,7 @@ export function Shell() {
 
       <Timer onFoco={tab === "foco"} onOpenFocus={() => setTab("foco")} />
       <SlotAlerts />
+      <DayCloser />
       <BillingSync />
       <OfflineNotice />
       {settingsReady && !settings.scheduleSet && <Onboarding />}

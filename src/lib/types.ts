@@ -32,7 +32,20 @@ export interface Task {
   archived?: boolean;
   /** Objetivos do dia { "2026-10-21": [...] } (as que repetem) ou { "_": [...] } (as de uma vez). Ver goals.ts. */
   goals?: Record<string, Goal[]>;
+  /** Tempo estimado no momento em que foi concluída pelo círculo { "2026-10-21": 45 } ou { "_": 45 } (de uma vez).
+   *  Fotografia para comparar estimado e realizado (calibration.ts): a estimativa pode mudar depois. */
+  estAtDone?: Record<string, number>;
   createdAt: string;
+}
+
+/** users/{uid}/days/{yyyy-MM-dd}: o que é do dia e não de uma tarefa. */
+export interface DayDoc {
+  /** Fila do dia: ids das tarefas na ordem escolhida (queue.ts). */
+  order?: string[];
+  /** Fotografia das contas do dia, gravada quando o dia fecha (closing.ts). */
+  plannedMin?: number;
+  doneMin?: number;
+  closedAt?: string;
 }
 
 /** Um objetivo do dia dentro da tarefa. Sem tempo próprio: é só uma lista para marcar. */

@@ -1,6 +1,8 @@
 "use client";
 
-import { Check, Clock, ListChecks, Play, SkipForward, Square, Target } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, ChevronsUp, Clock, GripVertical, ListChecks, MoreVertical, Play, SkipForward, Square, Target } from "lucide-react";
+import { useState, type DragEvent } from "react";
+import type { Move } from "@/lib/queue";
 import { fmtMin } from "@/lib/dates";
 import { slotsOf } from "@/lib/schedule";
 import { goalsFor, goalsSummary } from "@/lib/goals";
@@ -26,9 +28,24 @@ interface Props {
   checkable?: boolean;
   /** Aviso curto na linha (ex: conflito de horário). */
   warning?: string;
+  /** Fila: "Agora" (a que está acontecendo) ou "Próxima" (depois de uma pausa). */
+  badge?: string;
+  /** Fila: horário previsto, ex: "14:10–15:40" ou "17:20 · não termina hoje". */
+  projected?: string;
+  /** A previsão avisa que parte não cabe (texto em vermelho). */
+  projectedOver?: boolean;
+  /** Fila: passa do fim do horário (abaixo de "Não cabe hoje"). */
+  dimmed?: boolean;
+  /** Fila: mudar de lugar (sem isto, a linha não se move: concluídas, fixas no horário). */
+  onMove?: (to: Move) => void;
+  canUp?: boolean;
+  canDown?: boolean;
+  /** Arrastar no computador (a lista cuida de onde soltou). */
+  drag?: { onDragStart: () => void; onDragOver: (e: DragEvent) => void; onDrop: () => void; onDragEnd: () => void; over: boolean };
 }
 
-export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, outside, checkable = true, warning }: Props) {
+export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, outside, checkable = true, warning, badge, projected, projectedOver, dimmed, onMove, canUp, canDown, drag }: Props) {
+  const [menu, setMenu] = useState(false);
   const { uid, settings } = useStore();
   const { openTask } = useDialogs();
   const timer = useTimerActions();
@@ -40,11 +57,30 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
 
   return (
     <li
+      draggable={!!drag}
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = "move";
+        drag?.onDragStart();
+      }}
+      onDragOver={drag?.onDragOver}
+      onDrop={(e) => {
+        e.preventDefault();
+        drag?.onDrop();
+      }}
+      onDragEnd={drag?.onDragEnd}
       className={cx(
-        "flex items-center gap-3 rounded-xl border bg-surface pl-3 transition-colors",
+        "group relative flex items-center gap-3 rounded-xl border bg-surface pl-3 transition-colors",
         running ? "border-todo/50 bg-todo/[0.04]" : "border-line hover:border-muted/40",
+        dimmed && !running && "opacity-60",
+        drag?.over && "shadow-[0_-2px_0_0_var(--color-brand)]",
       )}
     >
+      {/* Alça de arrastar: só no computador (no celular, o menu ⋮ move). */}
+      {drag && (
+        <span className="absolute top-1/2 -left-4 hidden -translate-y-1/2 cursor-grab text-muted opacity-0 group-hover:opacity-100 lg:block" aria-hidden>
+          <GripVertical size={14} />
+        </span>
+      )}
       {skipped ? (
         <span className="grid h-6 w-6 shrink-0 place-items-center text-muted" title="Pulada neste dia">
           <SkipForward size={15} />
@@ -73,6 +109,12 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
       {/* Toque abre a tarefa no dia: registrar tempo, concluir, pular, editar. */}
       <button className="flex min-w-0 flex-1 items-center gap-2 py-3 pr-2 text-left" onClick={() => openTask(task)}>
         <span className="min-w-0 flex-1">
+          {(badge || projected) && (
+            <span className="mb-0.5 flex items-center gap-2 text-xs">
+              {badge && <span className="rounded bg-brand px-1.5 py-px font-semibold text-brand-ink">{badge}</span>}
+              {projected && <span className={cx("tabular font-medium", projectedOver ? "text-over" : "text-muted")}>{projected}</span>}
+            </span>
+          )}
           <span className={cx("line-clamp-2 text-sm font-medium", (completed || skipped) && "text-muted line-through")}>{task.title}</span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted">
             <span className="inline-flex items-center gap-1.5">
@@ -100,6 +142,45 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
           </span>
         </span>
       </button>
+
+      {/* Mudar de lugar na fila. */}
+      {onMove && (
+        <div className="relative -mr-1">
+          <button
+            onClick={() => setMenu((v) => !v)}
+            className="grid h-10 w-7 place-items-center rounded-lg text-muted hover:bg-sunken hover:text-ink"
+            aria-label="Mudar de lugar na fila"
+            aria-expanded={menu}
+            title="Mudar de lugar"
+          >
+            <MoreVertical size={16} />
+          </button>
+          {menu && (
+            <>
+              <div className="fixed inset-0 z-40" onClick={() => setMenu(false)} />
+              <div className="absolute top-full right-0 z-50 mt-1 w-44 rounded-xl border border-line bg-surface p-1.5 shadow-xl">
+                {[
+                  { to: "top" as const, label: "Fazer agora", icon: <ChevronsUp size={14} />, ok: canUp },
+                  { to: "up" as const, label: "Subir", icon: <ArrowUp size={14} />, ok: canUp },
+                  { to: "down" as const, label: "Descer", icon: <ArrowDown size={14} />, ok: canDown },
+                ].map((o) => (
+                  <button
+                    key={o.to}
+                    disabled={!o.ok}
+                    onClick={() => {
+                      setMenu(false);
+                      onMove(o.to);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm hover:bg-sunken disabled:opacity-40 disabled:hover:bg-transparent"
+                  >
+                    {o.icon} {o.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
       {/* ▶ começa o timer nesta tarefa (no último modo usado); ■ para e registra. */}
       {!completed && !skipped && (

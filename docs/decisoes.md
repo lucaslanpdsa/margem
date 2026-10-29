@@ -4,6 +4,16 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 29/10 — Fila do dia, previsão, estimativas e fechamento
+- **Fila do dia** (pedido do dono: "ter uma fila ajuda muito a organizar os dias"): a lista "Tarefas de hoje" ganhou ordem escolhida e **horário previsto** em cada tarefa, com **Agora** na primeira e a linha **Não cabe hoje**. Não é a "sugestão do que fazer agora" removida em 16/10: a ordem é sempre da pessoa, o app nunca reordena.
+- Mover: menu **⋮** (Fazer agora, Subir, Descer) no celular e arrastar no computador (arrastar continua descartado na semana).
+- **Tarefa com horário ainda por vir fica no horário dela**; quando o horário passa, o que falta vai para a fila. A previsão usa o que falta pelos registros (nunca supõe horário cumprido) e o total que não cabe bate com o "Não cabe" do topo.
+- Ordem guardada por dia em `days/{data}.order`. Trazida de dia anterior entra no **fim** da fila.
+- **Estimado vs. realizado** (Pro): ao concluir pelo círculo, a estimativa daquele momento é guardada (`estAtDone`). O fator só aparece com 10+ tarefas com registro e **só mostra, não muda estimativas**. "Cumpro o tempo" e tarefas sem registro ficam de fora.
+- **Fechamento do dia**: o aviso de atrasadas virou a decisão de cada uma (hoje, outro dia, excluir) com o resumo de ontem. Feito na abertura do dia seguinte (aviso com o app fechado continua adiado). Sem "backlog": a caixa de entrada continua removida. A fotografia do dia (`days/{data}`: planejado, feito) guarda o histórico para "dias em que o plano coube".
+- **Mudar dia mostra quanto sobra** em cada opção ("sobra 1h20", "não cabe · +30min"). Fila para dias futuros não foi feita: a rotina é quase toda de tarefas que repetem.
+- Fila grátis (faz abrir o app todo dia); estimativas no Pro.
+
 ### 20/10 — Semana como agenda em Tarefas
 - "Esta semana" deixou de ser só números ("-2h37") e mostra **as atividades de cada dia** (colunas no computador; dia escolhido no celular). Assim Tarefas mostra a rotina como a gente pensa nela: "o que tenho na quarta?". Só leitura; mudar continua na grade e nos formulários (arrastar segue descartado).
 - "Seu horário" virou uma linha compacta em cima da semana.

@@ -3,7 +3,7 @@
 /**
  * Prévia do app com dados de exemplo, sem login e sem Firebase. Só em desenvolvimento.
  *
- *   /dev?cenario=dia            (dia | apertado | timer | vazio | onboarding | entrar)
+*   /dev?cenario=dia            (dia | fila | apertado | timer | vazio | onboarding | entrar)
  *   /dev?cenario=dia#tarefas    (aba: #tarefas, #foco)
  *   /dev?abrir=tarefa           (abre uma janela: tarefa | nova | editar)
  *
@@ -47,7 +47,9 @@ export default function DevPreview() {
         blocks: taskTimeBlocks(data.tasks, dates),
         sessions: data.sessions,
         settings: data.settings,
+        days: data.days,
         settingsReady: true,
+        dataReady: true,
         date: t0,
         setDate: () => {},
         login: async () => {},

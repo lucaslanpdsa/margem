@@ -740,7 +740,7 @@ function DateChip({ task }: { task: Task }) {
       >
         {late ? short : label}
       </button>
-      {open && <DayMenu value={key} onPick={set} onClose={() => setOpen(false)} />}
+      {open && <DayMenu value={key} task={task} onPick={set} onClose={() => setOpen(false)} />}
     </div>
   );
 }

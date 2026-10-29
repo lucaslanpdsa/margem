@@ -24,6 +24,7 @@ import {
   updatePomoTask,
 } from "@/lib/pomodoro";
 import { useStore } from "./store";
+import { orderItems } from "@/lib/queue";
 import { useToast } from "./toast";
 import { pomodoroDisplay, pomodoroLabel, useNow } from "./Timer";
 import { Button, IconButton, Modal, Switch, cx, inputCls } from "./ui";
@@ -124,7 +125,7 @@ export function FocusView() {
  * Só conta pomodoros: não registra nem muda horas.
  */
 function FocusTasks() {
-  const { uid, settings, tasks, blocks, sessions } = useStore();
+  const { uid, settings, tasks, blocks, sessions, days } = useStore();
   const toast = useToast();
   const now = useNow(60000);
   const p = settings.pomodoro;
@@ -136,8 +137,13 @@ function FocusTasks() {
   // Tarefas abertas de hoje no app, e quais ainda não estão na lista (as apagadas da lista voltam a aparecer aqui).
   // Com o horário do dia, para saber o que é "extra" (fora do seu horário).
   const day = todayKey();
-  const today = dayItems(day, tasks, blocks, sessions, dayClock(settings, day, new Date(now)).window)
-    .filter((i) => !i.completed && !i.skipped)
+  // Na ordem da fila do dia (a mesma do Dia).
+  const today = orderItems(
+    dayItems(day, tasks, blocks, sessions, dayClock(settings, day, new Date(now)).window).filter((i) => !i.completed && !i.skipped),
+    days[day]?.order,
+    blocks,
+    day,
+  )
     .map((i) => ({ id: i.task.id, title: i.task.title, minutes: i.remainingMin || i.estimateMin, outside: i.outside }));
   const candidates = notImported(settings, today);
   const pending = candidates.length;
