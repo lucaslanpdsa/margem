@@ -15,6 +15,18 @@ export function windowFor(settings: Settings, date: string): DayWindow | null {
   return settings.windows[weekdayOf(date)] ?? null;
 }
 
+/** Junta pausas que se sobrepõem (ex: almoço + bloco reservado), para não descontar o mesmo minuto duas vezes. */
+export function mergeBreaks(list: BreakTime[]): BreakTime[] {
+  const out: BreakTime[] = [];
+  for (const b of [...list].sort((x, y) => toMin(x.start) - toMin(y.start))) {
+    const last = out.at(-1);
+    if (last && toMin(b.start) <= toMin(last.end)) {
+      if (toMin(b.end) > toMin(last.end)) last.end = b.end;
+    } else out.push({ ...b });
+  }
+  return out;
+}
+
 /** Minutos do horário entre `from` e `to`, descontando as pausas. */
 function availableBetween(from: number, to: number, breaks: BreakTime[]) {
   if (to <= from) return 0;

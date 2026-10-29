@@ -1,4 +1,4 @@
-import { findConflicts, slotEventText, slotEvents, taskTimeBlocks } from "./schedule";
+import { findConflicts, mergeBreaks, slotEventText, slotEvents, taskTimeBlocks } from "./schedule";
 import { entryTimes, parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics, isReminder, tracksTime } from "./metrics";
@@ -779,5 +779,72 @@ describe("Depois e lembretes", () => {
   it("registro de tempo: ligado por padrão (contas antigas)", () => {
     expect(tracksTime({})).toBe(true);
     expect(tracksTime({ trackTime: false })).toBe(false);
+  });
+});
+
+// ---------- Modo leve: bloco reservado ----------
+
+describe("modo leve: 'cumpro o tempo' com horário vira bloco reservado", () => {
+  // Sexta 14:00–18:00 (4h). Trabalho 15:00–17:00 por tempo. Agora = 14:30.
+  const leve = { ...settings, trackTime: false };
+  const now = new Date(`${D}T14:30:00`);
+  const work: Task = { ...base, id: "w", title: "Trabalho", repeat: "once", date: D, estimateMin: 120, doneBy: "time", slots: [{ start: "15:00", end: "17:00" }] };
+  const x: Task = { ...base, id: "x", title: "x", repeat: "once", date: D, estimateMin: 60 };
+
+  it("o horário do bloco sai do tempo do dia e ele não deve nada", () => {
+    const m = dayMetrics(D, leve, [work, x], taskTimeBlocks([work, x], [D]), [], now);
+    expect(m.capacityMin).toBe(240 - 120);
+    expect(m.elapsedMin).toBe(30);
+    expect(m.plannedMin).toBe(60);
+    expect(m.remainingMin).toBe(60);
+    expect(m.freeMin).toBe(120 - 30 - 60);
+    expect(m.items.find((i) => i.task.id === "w")!.block).toBe(true);
+    expect(m.doneMin).toBe(0); // nada conta como feito
+  });
+
+  it("com registro ligado, continua como antes (deve a meta)", () => {
+    const m = dayMetrics(D, settings, [work, x], taskTimeBlocks([work, x], [D]), [], now);
+    expect(m.capacityMin).toBe(240);
+    expect(m.remainingMin).toBe(180);
+    expect(m.items.find((i) => i.task.id === "w")!.block).toBeUndefined();
+  });
+
+  it("sem horário, não vira bloco (precisa do cronômetro)", () => {
+    const noSlots = { ...work, slots: undefined };
+    const m = dayMetrics(D, leve, [noSlots], [], [], now);
+    expect(m.items[0].block).toBeUndefined();
+    expect(m.remainingMin).toBe(120);
+  });
+
+  it("pulado hoje, o horário volta a ficar livre", () => {
+    const skipped = { ...work, repeat: "weekdays" as const, weekdays: [5], skipped: { [D]: true } };
+    expect(dayMetrics(D, leve, [skipped], [], [], now).capacityMin).toBe(240);
+  });
+
+  it("bloco junto com pausa no mesmo horário não desconta duas vezes", () => {
+    const s = { ...leve, breaks: [{ label: "Café", start: "16:00", end: "16:30" }] };
+    expect(dayMetrics(D, s, [work], [], [], now).capacityMin).toBe(240 - 120);
+  });
+
+  it("a fila passa por cima do bloco, e o que não cabe bate com o topo", () => {
+    const y: Task = { ...x, id: "y", estimateMin: 90 };
+    const ts = [work, x, y];
+    const bl = taskTimeBlocks(ts, [D]);
+    const m = dayMetrics(D, leve, ts, bl, [], now);
+    const ordered = orderItems(m.items.filter((i) => !i.completed), ["x", "y"], bl, D);
+    const room = Math.max(0, m.capacityMin - Math.max(m.doneMin, m.elapsedMin));
+    const p = projectDay(ordered, leve, D, now, room);
+    const at = (id: string) => `${fmtClock(p.byTask.get(id)!.start)}-${fmtClock(p.byTask.get(id)!.end)}`;
+    expect(at("x")).toBe("14:30-17:30"); // 14:30–15:00 e 17:00–17:30
+    expect(at("w")).toBe("15:00-17:00");
+    expect(p.byTask.get("w")!.fixed).toBe(true);
+    expect(p.excessMin).toBe(m.remainingMin - Math.min(m.remainingMin, room));
+    expect(p.excessMin).toBe(60);
+  });
+});
+
+describe("juntar pausas", () => {
+  it("junta as que se sobrepõem", () => {
+    expect(mergeBreaks([{ label: "a", start: "12:00", end: "13:00" }, { label: "b", start: "12:30", end: "14:00" }, { label: "c", start: "15:00", end: "15:10" }]).map((b) => `${b.start}-${b.end}`)).toEqual(["12:00-14:00", "15:00-15:10"]);
   });
 });

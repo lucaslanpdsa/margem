@@ -29,6 +29,8 @@ interface Props {
   checkable?: boolean;
   /** Aviso curto na linha (ex: conflito de horário). */
   warning?: string;
+  /** Modo leve: bloco reservado (o horário já saiu do dia; não pede tempo nem cronômetro). */
+  block?: boolean;
   /** Fila: "Agora" (a que está acontecendo) ou "Próxima" (depois de uma pausa). */
   badge?: string;
   /** Fila: horário previsto, ex: "14:10–15:40" ou "17:20 · não termina hoje". */
@@ -45,7 +47,7 @@ interface Props {
   drag?: { onDragStart: () => void; onDragOver: (e: DragEvent) => void; onDrop: () => void; onDragEnd: () => void; over: boolean };
 }
 
-export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, outside, checkable = true, warning, badge, projected, projectedOver, dimmed, onMove, canUp, canDown, drag }: Props) {
+export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, outside, checkable = true, warning, badge, projected, projectedOver, dimmed, block, onMove, canUp, canDown, drag }: Props) {
   const [menu, setMenu] = useState(false);
   const { uid, settings } = useStore();
   const { openTask } = useDialogs();
@@ -53,7 +55,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
   const toast = useToast();
   const running = settings.activeTimer?.taskId === task.id;
   // Modo leve: só as tarefas "cumpro o tempo" precisam do cronômetro (e a que já está rodando).
-  const showPlay = tracksTime(settings) || task.doneBy === "time" || running;
+  const showPlay = !block && (tracksTime(settings) || task.doneBy === "time" || running);
   const pct = estimateMin > 0 ? Math.min(100, (doneMin / estimateMin) * 100) : 0;
   const slots = slotsOf(task);
   const goals = goalsSummary(goalsFor(task, date));
@@ -84,7 +86,11 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
           <GripVertical size={14} />
         </span>
       )}
-      {skipped ? (
+      {block ? (
+        <span className="grid h-6 w-6 shrink-0 place-items-center text-muted" title="Horário reservado">
+          <Clock size={16} />
+        </span>
+      ) : skipped ? (
         <span className="grid h-6 w-6 shrink-0 place-items-center text-muted" title="Pulada neste dia">
           <SkipForward size={15} />
         </span>
@@ -120,14 +126,17 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
           )}
           <span className={cx("line-clamp-2 text-sm font-medium", (completed || skipped) && "text-muted line-through")}>{task.title}</span>
           <span className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="h-1.5 w-16 overflow-hidden rounded-full bg-sunken">
-                <span className="block h-full rounded-full bg-done" style={{ width: `${pct}%` }} />
+            {block && <span className="font-medium">horário reservado</span>}
+            {!block && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="h-1.5 w-16 overflow-hidden rounded-full bg-sunken">
+                  <span className="block h-full rounded-full bg-done" style={{ width: `${pct}%` }} />
+                </span>
+                <span className="tabular">
+                  {fmtMin(doneMin)} de {fmtMin(estimateMin)}
+                </span>
               </span>
-              <span className="tabular">
-                {fmtMin(doneMin)} de {fmtMin(estimateMin)}
-              </span>
-            </span>
+            )}
             {slots.length > 0 && (
               <span className="tabular inline-flex items-center gap-1 font-medium text-ink">
                 <Clock size={11} /> {slots.map((sl) => `${sl.start}–${sl.end}`).join(", ")}
@@ -146,6 +155,7 @@ export function TaskRow({ task, date, estimateMin, doneMin, completed, skipped, 
         </span>
       </button>
 
+      {block && <span className="w-2" />}
       {/* Mudar de lugar na fila. */}
       {onMove && (
         <div className={cx("relative", showPlay ? "-mr-1" : "mr-1.5")}>

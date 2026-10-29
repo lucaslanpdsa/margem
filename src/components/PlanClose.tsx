@@ -27,7 +27,7 @@ function verdict(m: DayMetrics) {
 /** Tarefas abertas de hoje que ocupam horas (sem lembretes nem extra), na ordem da fila. */
 function openItems(m: DayMetrics, order: string[] | undefined, blocks: Parameters<typeof orderItems>[2]): DayItem[] {
   return orderItems(
-    m.items.filter((i) => !i.completed && !i.skipped && !i.outside && !isReminder(i.task)),
+    m.items.filter((i) => !i.completed && !i.skipped && !i.outside && !i.block && !isReminder(i.task)),
     order,
     blocks,
     m.date,
@@ -44,7 +44,7 @@ export function PlanDayCard({ m }: { m: DayMetrics }) {
   const { uid, days, tasks } = useStore();
   const [open, setOpen] = useState(false);
   const today = todayKey();
-  if (m.date !== today || !m.window || m.leftMin === 0 || days[today]?.plannedAt) return open ? <PlanDayDialog onClose={() => setOpen(false)} /> : null;
+  if (m.date !== today || !m.window || m.ended || days[today]?.plannedAt) return open ? <PlanDayDialog onClose={() => setOpen(false)} /> : null;
   const waiting = laterTasks(tasks).length;
   return (
     <div className="mt-4 rounded-xl border border-brand/30 bg-brand/[0.05] px-4 py-3">
@@ -163,7 +163,7 @@ export function CloseDayCard({ m }: { m: DayMetrics }) {
   const { days } = useStore();
   const [open, setOpen] = useState(false);
   const today = todayKey();
-  if (m.date !== today || !m.window || m.leftMin > 0 || days[today]?.closedAt) return null;
+  if (m.date !== today || !m.window || !m.ended || days[today]?.closedAt) return null;
   const left = m.items.filter((i) => !i.completed && !i.skipped && i.task.repeat === "once").length;
   return (
     <div className="mt-4 rounded-xl border border-line bg-sunken px-4 py-3">
@@ -195,12 +195,12 @@ export function CloseDayDialog({ onClose }: { onClose: () => void }) {
   // A fotografia é de quando a janela abriu: mover as sobras muda o planejado de hoje.
   const [snap] = useState(() => daySnapshot(m));
   const [counts] = useState(() => {
-    const c = m.items.filter((i) => !i.skipped && !i.outside && !isReminder(i.task));
+    const c = m.items.filter((i) => !i.skipped && !i.outside && !i.block && !isReminder(i.task));
     return { done: c.filter((i) => i.completed).length, total: c.length };
   });
   const leftovers = m.items.filter((i) => !i.completed && !i.skipped && i.task.repeat === "once").map((i) => i.task);
   const next = dayMetrics(tomorrow, settings, tasks, blocks, sessions, now);
-  const nextTasks = next.items.filter((i) => !i.skipped && !i.outside && i.estimateMin > 0);
+  const nextTasks = next.items.filter((i) => !i.skipped && !i.outside && !i.block && i.estimateMin > 0);
 
   const send = (t: Task, where: "amanha" | "depois" | "excluir") => {
     if (where === "amanha") {

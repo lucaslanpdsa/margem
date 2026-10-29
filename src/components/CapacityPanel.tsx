@@ -99,7 +99,7 @@ export function DayBudget({ m }: { m: DayMetrics }) {
   const isToday = m.date === todayKey();
   const custom = m.date in settings.windowOverrides;
   const late = s.excess > 0;
-  const ended = !!m.window && m.leftMin === 0;
+  const ended = m.ended;
   // Modo leve: sem registro de tempo, a parte que já passou é só "Já passou" (não é cobrança).
   const track = tracksTime(settings);
   const idleLabel = track ? "Sem registro" : "Já passou";
@@ -122,12 +122,15 @@ export function DayBudget({ m }: { m: DayMetrics }) {
     headline = isToday ? "Hoje sem horário" : "Dia sem horário";
     detail = "Sem horário para tarefas neste dia.";
   } else if (ended) {
-    const counted = m.items.filter((i) => !i.skipped && !i.outside && i.estimateMin > 0);
+    const counted = m.items.filter((i) => !i.skipped && !i.outside && !i.block && i.estimateMin > 0);
     headline = track ? `${fmtMin(m.doneMin)} feitos` : `${counted.filter((i) => i.completed).length} de ${counted.length} tarefas feitas`;
     detail = "Dia encerrado.";
   } else {
     headline = late ? `Não dá tempo: ${fmtMin(s.excess)} a mais` : `Dá tempo: sobram ${fmtMin(m.freeMin)}`;
-    const room = isToday ? `${late ? "só " : ""}${fmtMin(m.leftMin)} até as ${m.window.end}` : `${fmtMin(m.capacityMin)} de horário neste dia`;
+    // Modo leve: o horário dos blocos (ex: Trabalho) já saiu da conta; o texto diz isso.
+    const blocked = [...new Set(m.items.filter((i) => i.block).map((i) => i.task.title))];
+    const free = blocked.length ? ` livres, fora de ${blocked.join(" e ")},` : "";
+    const room = isToday ? `${late ? "só " : ""}${fmtMin(m.leftMin)}${free} até as ${m.window.end}` : `${fmtMin(m.capacityMin)}${free} de horário neste dia`;
     detail = `Você tem ${fmtMin(m.remainingMin)} de tarefas e ${room}.`;
   }
   const where = isToday ? "hoje" : "neste dia";

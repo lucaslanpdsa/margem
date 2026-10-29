@@ -112,10 +112,20 @@ export function projectDay(ordered: DayItem[], settings: Settings, date: string,
     used.set(id, [...(used.get(id) ?? []), m]);
   };
 
-  // 1) Fixas: o que falta delas, dentro dos próprios horários que ainda vão acontecer.
+  // 0) Blocos reservados (modo leve): o horário deles fica ocupado e eles não pedem tempo.
   const fixed = new Set<string>();
   const leftover = new Map<string, number>();
-  for (const i of open) {
+  const blockSpan = new Map<string, { start: number; end: number }>();
+  for (const i of open.filter((x) => x.block)) {
+    const slots = slotsOf(i.task).map((s) => ({ a: Math.max(toMin(s.start), winStart), b: Math.min(toMin(s.end), winEnd) })).filter((s) => s.b > s.a);
+    for (const s of slots) for (let m = Math.max(s.a, cursor); m < s.b; m++) busy[m] = 1;
+    fixed.add(i.task.id);
+    leftover.set(i.task.id, 0);
+    if (slots.length) blockSpan.set(i.task.id, { start: Math.min(...slots.map((s) => s.a)), end: Math.max(...slots.map((s) => s.b)) });
+  }
+
+  // 1) Fixas: o que falta delas, dentro dos próprios horários que ainda vão acontecer.
+  for (const i of open.filter((x) => !x.block)) {
     const slots = slotsOf(i.task).map((s) => ({ a: Math.max(toMin(s.start), cursor), b: Math.min(toMin(s.end), winEnd) })).filter((s) => s.b > s.a);
     if (!slots.length) continue;
     fixed.add(i.task.id);
@@ -152,9 +162,11 @@ export function projectDay(ordered: DayItem[], settings: Settings, date: string,
     const mins = used.get(i.task.id) ?? [];
     const left = leftover.get(i.task.id) ?? 0;
     excessMin += left;
+    const span = blockSpan.get(i.task.id);
     byTask.set(i.task.id, {
-      start: mins.length ? Math.min(...mins) : i.remainingMin === 0 ? cursor : -1,
-      end: mins.length ? Math.max(...mins) + 1 : i.remainingMin === 0 ? cursor : -1,
+      // Bloco: o horário dele (mesmo o que já passou), para aparecer onde acontece.
+      start: span ? span.start : mins.length ? Math.min(...mins) : i.remainingMin === 0 ? cursor : -1,
+      end: span ? span.end : mins.length ? Math.max(...mins) + 1 : i.remainingMin === 0 ? cursor : -1,
       fits: left === 0,
       excessMin: left,
       fixed: fixed.has(i.task.id),

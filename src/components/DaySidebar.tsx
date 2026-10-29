@@ -10,7 +10,7 @@ import { ReminderRow, TimeChips, saveCapture } from "./Later";
 import { CloseDayCard, PlanDayCard, PlanDayDialog } from "./PlanClose";
 import { displayOrder, firstNotFitting, fmtClock, moveInQueue, orderItems, projectDay, type Move } from "@/lib/queue";
 import type { Task } from "@/lib/types";
-import { findConflicts } from "@/lib/schedule";
+import { findConflicts, slotsOf, toMin } from "@/lib/schedule";
 import { isAccurate, likelyMin } from "@/lib/calibration";
 import { DayMenu } from "./DayMenu";
 import { useDialogs } from "./dialogs";
@@ -125,7 +125,10 @@ export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => voi
   const firstOut = firstNotFitting(open, proj);
   // Soma do que não cabe nada (abaixo da linha); o que cabe em parte avisa na própria linha.
   const outMin = firstOut < 0 ? 0 : open.slice(firstOut).reduce((a, i) => a + (proj.byTask.get(i.task.id)?.excessMin ?? 0), 0);
-  const firstPlanned = open.find((i) => (proj.byTask.get(i.task.id)?.start ?? -1) >= 0);
+  // "Agora": a primeira com horário previsto. Bloco só conta enquanto está acontecendo (um que já passou não é "agora").
+  const nowMin = new Date(now).getHours() * 60 + new Date(now).getMinutes();
+  const blockNow = (i: (typeof open)[number]) => slotsOf(i.task).some((s) => toMin(s.start) <= nowMin && nowMin < toMin(s.end));
+  const firstPlanned = open.find((i) => (proj.byTask.get(i.task.id)?.start ?? -1) >= 0 && (!i.block || blockNow(i)));
 
   function saveOrder(next: string[]) {
     setMine({ date, ids: next, base: storedKey });
@@ -163,7 +166,8 @@ export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => voi
   };
   const badgeFor = (id: string) => {
     if (!isToday || firstPlanned?.task.id !== id) return undefined;
-    return proj.byTask.get(id)!.start <= proj.cursor ? "Agora" : "Próxima";
+    const it = open.find((i) => i.task.id === id)!;
+    return it.block || proj.byTask.get(id)!.start <= proj.cursor ? "Agora" : "Próxima";
   };
 
   return (
@@ -205,6 +209,7 @@ export function DayLists({ m, onGoTasks }: { m: DayMetrics; onGoTasks: () => voi
                 checkable={!isTimeTask(i.task)}
                 warning={conflictText(id)}
                 outside={i.outside}
+                block={i.block}
                 badge={badgeFor(id)}
                 projected={projected(id)?.text}
                 projectedOver={projected(id)?.over}

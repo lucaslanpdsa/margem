@@ -1,5 +1,5 @@
 import { todayKey, weekdayOf } from "./dates";
-import { dayClock, toMin } from "./schedule";
+import { dayClock, mergeBreaks, slotsOf, toMin, windowFor } from "./schedule";
 import type { Block, DayWindow, Session, Settings, Task } from "./types";
 
 export interface DayItem {
@@ -17,6 +17,8 @@ export interface DayItem {
   remainingMin: number;
   /** Marcada na agenda só fora do horário do dia (ex: aula às 20h). Não ocupa o horário. */
   outside: boolean;
+  /** Modo leve: "cumpro o tempo" com horário vira bloco reservado (isBlockTask). Não deve nada; o horário dela sai do tempo do dia. */
+  block?: boolean;
 }
 
 export interface DayMetrics {
@@ -26,6 +28,7 @@ export interface DayMetrics {
   elapsedMin: number; // quanto do horário já passou no relógio
   leftMin: number; // quanto do horário ainda resta
   past: boolean; // o dia já acabou
+  ended: boolean; // o relógio passou do fim do horário (com blocos, o tempo livre pode acabar antes disso)
   plannedMin: number; // soma das estimativas do dia
   doneMin: number; // tudo que foi trabalhado no dia
   idleMin: number; // tempo que já passou sem nada registrado
@@ -43,6 +46,13 @@ export const tracksTime = (settings: { trackTime?: boolean }) => settings.trackT
 
 /** Tarefa que termina cumprindo o tempo (e não marcando como feita). */
 export const isTimeTask = (task: Task) => task.doneBy === "time";
+
+/**
+ * Modo leve: uma tarefa "cumpro o tempo" com horário (ex: Trabalho 08–11 e 14–18) vira bloco reservado.
+ * Sem registro não dá para saber quanto dela foi feito; em vez de devê-la o dia todo, o horário dela
+ * sai do tempo disponível (como uma pausa). Nada conta como feito: o "Feito" continua só com registros.
+ */
+export const isBlockTask = (task: Task, settings: { trackTime?: boolean }) => !tracksTime(settings) && isTimeTask(task) && slotsOf(task).length > 0;
 
 export const isSkippedOn = (task: Task, date: string) => task.repeat === "weekdays" && !!task.skipped?.[date];
 
@@ -112,14 +122,19 @@ export function dayMetrics(
   sessions: Session[],
   now: Date = new Date(),
 ): DayMetrics {
-  const clock = dayClock(settings, date, now);
-  const items = dayItems(date, tasks, blocks, sessions, clock.window);
-  const inside = items.filter((i) => !i.outside);
-  const outsideIds = new Set(items.filter((i) => i.outside).map((i) => i.task.id));
+  const window = windowFor(settings, date);
+  const raw = dayItems(date, tasks, blocks, sessions, window);
+  // Blocos reservados (modo leve): os horários deles saem do tempo do dia, como pausas.
+  const blockIds = new Set(raw.filter((i) => !i.outside && !i.skipped && isBlockTask(i.task, settings)).map((i) => i.task.id));
+  const reserved = raw.filter((i) => blockIds.has(i.task.id)).flatMap((i) => slotsOf(i.task).map((s) => ({ label: i.task.title, start: s.start, end: s.end })));
+  const clock = dayClock(reserved.length ? { ...settings, breaks: mergeBreaks([...settings.breaks, ...reserved]) } : settings, date, now);
+  const items = raw.map((i) => (blockIds.has(i.task.id) ? { ...i, block: true, remainingMin: 0 } : i));
+  const inside = items.filter((i) => !i.outside && !i.block);
+  // Fora da conta de uso do horário: tarefas marcadas fora do horário e blocos (o tempo deles já saiu do dia).
+  const notCounted = new Set(items.filter((i) => i.outside || i.block).map((i) => i.task.id));
   // Pulada conta só o que chegou a ser feito.
   const plannedMin = inside.reduce((a, i) => a + (i.skipped ? i.doneMin : i.estimateMin), 0);
-  // Tempo feito em tarefas marcadas fora do horário não conta como uso do horário.
-  const doneMin = sessions.filter((s) => s.date === date && !outsideIds.has(s.taskId)).reduce((a, s) => a + s.minutes, 0);
+  const doneMin = sessions.filter((s) => s.date === date && !notCounted.has(s.taskId)).reduce((a, s) => a + s.minutes, 0);
   const remainingMin = inside.reduce((a, i) => a + i.remainingMin, 0);
   const outsideMin = items.filter((i) => i.outside && !i.skipped).reduce((a, i) => a + i.estimateMin, 0);
   // O que já foi "gasto" do dia: o que passou no relógio ou o que foi registrado, o que for maior.
@@ -131,6 +146,7 @@ export function dayMetrics(
     elapsedMin: clock.elapsedMin,
     leftMin: clock.capacityMin - clock.elapsedMin,
     past: clock.past,
+    ended: !!clock.window && (date < todayKey(now) || (date === todayKey(now) && now.getHours() * 60 + now.getMinutes() >= toMin(clock.window.end))),
     plannedMin,
     doneMin,
     idleMin: Math.max(0, clock.elapsedMin - doneMin),

@@ -118,7 +118,7 @@ Ver [`docs/01-conceitos.md`](docs/01-conceitos.md). Resumo:
 - Sobra = tempo do dia − max(feito, já passou) − falta. Tarefas "extra" (horário todo fora do seu horário) ficam fora da conta.
 - Tarefa `doneBy: "time"` conclui quando o registrado chega na meta do dia (`estimateFor[dia] ?? estimateMin`).
 - Registro com menos de 1 minuto não é salvo (o usuário é avisado).
-- Modo leve (`trackTime: false`): nada que dependa de registro aparece (▶ só nas "Cumpro o tempo"); a conta do dia é a mesma.
+- Modo leve (`trackTime: false`): nada que dependa de registro aparece (▶ só nas "Cumpro o tempo" sem horário). "Cumpro o tempo" com horário vira **bloco reservado** (`isBlockTask`, `DayItem.block`): o horário sai do tempo do dia como pausa (`mergeBreaks`), não deve nada e nada conta como feito.
 - O que está em "Depois" (`later`) não entra em dia nenhum, não fica atrasado e não conta.
 - A previsão da fila soma o mesmo "Não cabe" do topo do dia (teste em `metrics.test.ts`). O app nunca reordena a fila sozinho.
 

@@ -56,7 +56,7 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 
 - Nome e e-mail.
 - **Notificações**: ativadas / "Ativar" / bloqueadas no navegador (com instrução) / não suportadas. É o lugar fixo para ligar os avisos.
-- **Registrar tempo** (chave): ligado = cronômetro em cada tarefa, "Sem registro", "O que você fez?", "Esta semana", encaixe e "Suas estimativas". Desligado (**modo leve**) = só as tarefas "Cumpro o tempo" têm ▶; o topo do Dia mostra "Já passou" no lugar de "Sem registro", e o dia encerrado mostra "4 de 6 tarefas feitas". Contas antigas começam ligadas; contas novas, desligadas.
+- **Registrar tempo** (chave): ligado = cronômetro em cada tarefa, "Sem registro", "O que você fez?", "Esta semana", encaixe e "Suas estimativas". Desligado (**modo leve**) = só as tarefas "Cumpro o tempo" têm ▶; o topo do Dia mostra "Já passou" no lugar de "Sem registro", e o dia encerrado mostra "4 de 6 tarefas feitas". Contas antigas começam ligadas; contas novas, desligadas. No modo leve, tarefa "Cumpro o tempo" com horário vira **bloco reservado**: na lista, relógio no lugar do círculo, "horário reservado", sem ▶ nem progresso, **Agora** enquanto acontece; no topo, "Xh livres, fora de Trabalho, até as 18:00".
 - **Plano** (só com a cobrança ligada): "Pro grátis · faltam N dias · Assinar", "Plano grátis · Conhecer o Pro" ou "Assinatura Pro · Ver ou cancelar".
 - **Seus dados**: **Baixar arquivo** (tudo da conta em JSON) e **Excluir conta…** (confirmação, pede o Google de novo, apaga tudo e volta para a página de vendas).
 - **Como funciona**, **Sair** e os links Privacidade · Termos.
