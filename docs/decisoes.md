@@ -4,6 +4,13 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 30/10 (tarde) — Nova tela de Tarefas (desenho aprovado no canvas "Margem — nova tela de Tarefas")
+- O dono queria criar, gerir e analisar melhor (citou Jira, ClickUp, Trello). **Quadro por status (A fazer/Fazendo/Feito) descartado**: não responde "cabe?", e tarefa que repete não tem um status só.
+- **Computador**: "Semana" (quadro por dia, estilo Trello/Sunsama, com quanto cabe em cada dia) e "Lista" (tabela estilo ClickUp com filtros, semana e estimado × real). **Celular**: faixa da semana com rótulo e lista em cartões; sem quadro (arrastar no celular é ruim).
+- **Prioridade = a ordem da fila do dia** (arrastar no quadro). Sem campo de prioridade (removido em 16/10 por confundir).
+- **Um campo de criar** que entende repetição ("ter e qui", "seg a sex", "todo dia", "toda sexta", "às terças"). Um dia sozinho ("sexta") continua sendo data. Sem tempo, a que repete nasce com 30min (o texto avisa).
+- Saíram: botões Seg…Dom em cada tarefa (mudava a rotina sem querer), divisão "Repetem/Não repetem", grupo "Depois" (confundia com a aba), calendário com horários da semana (agora é a agenda).
+
 ### 30/10 — Google Agenda: horários na agenda, o Dia para as tarefas
 - O dono quer separar três coisas: **agenda** para se organizar com horários, **ponto** para ver que horas entrou e saiu do trabalho, **Dia/tempo** só para tarefas. As tasks do trabalho continuam no Jira.
 - **Google Agenda só leitura.** Compromissos com horário saem do tempo livre do dia, como pausas (`agendaBreaks` em `dayMetrics`), e a fila passa por cima deles. O app nunca cria nem muda eventos (sincronizar nos dois sentidos é onde esse tipo de integração quebra).

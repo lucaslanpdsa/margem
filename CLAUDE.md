@@ -65,7 +65,7 @@ src/components/
   TimeEntries.tsx           adicionar tempo (dia e nota); lista de registros única: da tarefa (por dia) e do dia (DayEntries)
   Goals.tsx                 "Objetivos de hoje" na janela da tarefa
   TaskForm.tsx              formulário de criar tarefa (editar é no TaskDialog); conflitos de horário
-  TasksPage.tsx             aba Tarefas: seu horário, Esta semana, grade "Repetem", "Não repetem" por data + concluídas, desativadas
+  TasksPage.tsx             aba Tarefas: criar (campo único); computador = "Semana" (quadro por dia, arrastar muda dia/ordem) e "Lista" (tabela com filtros); celular = faixa da semana + cartões; seu horário
   ScheduleEditor.tsx        editor do horário semanal e pausas
   FocusView.tsx             aba Foco: pomodoro avulso estilo Pomofocus (não registra) com lista própria de tarefas (importa as de hoje)
   Timer.tsx                 motor dos timers (troca de fase do pomodoro) + barra flutuante (cronômetro em todas as telas; pomodoro fora do Foco)
@@ -94,7 +94,8 @@ src/lib/
   migrate.ts                conversão de dados antigos (metas semanais)
   agenda.ts                 Google Agenda: eventos do dia no fuso local, compromissos como pausas (pura e testada)
   ponto.ts                  ponto: estado, trabalhado, previsão da jornada (saída prevista), semana, transformar tarefa em ponto (pura e testada)
-  capture.ts                captura em uma linha: título, dia e tempo no fim do texto (pura e testada)
+  capture.ts                captura em uma linha: título, dia (ou dias em que repete) e tempo no fim do texto (pura e testada)
+  tasklist.ts               lista de Tarefas: quando é cada uma, filtros, ordem, semana e estimado × real por tarefa (pura e testada)
   queue.ts                  fila do dia: ordem, mover, previsão de horário, ordem de exibição (pura e testada)
   calibration.ts            estimado vs. realizado: amostras e fator (pura e testada)
   closing.ts                fechamento: dias a fotografar, "o plano coube" (pura e testada)

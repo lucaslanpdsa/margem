@@ -2,8 +2,8 @@
 
 import { Bell, CalendarDays, Check, Inbox, Plus, Trash2 } from "lucide-react";
 import { useState, type ReactNode } from "react";
-import { captureKind, parseCapture, type Capture } from "@/lib/capture";
-import { dayName, fmtMin, todayKey } from "@/lib/dates";
+import { ROUTINE_DEFAULT_MIN, captureKind, parseCapture, type Capture } from "@/lib/capture";
+import { dayName, fmtMin, repeatText, todayKey } from "@/lib/dates";
 import { addTask, deleteTask, moveToDay, moveToLater, replaceTask, restoreTaskPlace, toggleDone } from "@/lib/db";
 import { isReminder } from "@/lib/metrics";
 import type { Task } from "@/lib/types";
@@ -19,6 +19,7 @@ export const QUICK_TIMES = [15, 30, 60, 120];
 /** Grava o que foi capturado: tarefa no dia (dia + tempo), lembrete (só dia) ou "Depois" (sem dia). */
 export async function saveCapture(uid: string, c: Capture) {
   const kind = captureKind(c);
+  if (kind === "routine") return addTask(uid, { title: c.title, repeat: "weekdays", weekdays: c.weekdays!, estimateMin: c.minutes ?? ROUTINE_DEFAULT_MIN });
   if (kind === "later") return addTask(uid, { title: c.title, repeat: "once", estimateMin: c.minutes ?? 0, later: true });
   return addTask(uid, { title: c.title, repeat: "once", date: c.date!, estimateMin: kind === "task" ? c.minutes! : 0 });
 }
@@ -26,6 +27,7 @@ export async function saveCapture(uid: string, c: Capture) {
 /** O que vai acontecer, em palavras, antes de apertar Enter. */
 export function captureHint(c: Capture) {
   const kind = captureKind(c);
+  if (kind === "routine") return `Repete ${repeatText(c.weekdays!)}, com ${fmtMin(c.minutes ?? ROUTINE_DEFAULT_MIN)}${c.minutes ? "" : " (mude no fim: 45m, 1h)"}.`;
   if (kind === "later") return `Vai para Depois${c.minutes ? ` com ${fmtMin(c.minutes)}` : ""}. Coloque um dia no fim (amanhã, sexta, dia 10) para virar lembrete.`;
   if (kind === "reminder") return `Lembrete ${dayName(c.date!).toLowerCase()}. Com tempo no fim (45m, 1h) vira tarefa do dia.`;
   return `Tarefa ${dayName(c.date!).toLowerCase()} com ${fmtMin(c.minutes!)}.`;
@@ -42,7 +44,7 @@ export function CaptureBox({ autoFocus }: { autoFocus?: boolean }) {
     if (!c.title) return;
     const id = await saveCapture(uid, c);
     const kind = captureKind(c);
-    toast(kind === "later" ? `${c.title} foi para Depois` : kind === "reminder" ? `Lembrete: ${c.title}` : `${c.title} criada`, {
+    toast(kind === "routine" ? `${c.title} criada: ${repeatText(c.weekdays!)}` : kind === "later" ? `${c.title} foi para Depois` : kind === "reminder" ? `Lembrete: ${c.title}` : `${c.title} criada`, {
       tone: "info",
       undo: () => deleteTask(uid, id),
     });

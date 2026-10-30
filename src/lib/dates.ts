@@ -102,3 +102,17 @@ export function dayName(key: string, today = todayKey()) {
   const d = fromKey(key);
   return `${WEEKDAY_SHORT[d.getDay()]}, ${d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" })}`;
 }
+
+/** Dias em que repete, em palavras: "todo dia", "seg a sex", "fim de semana", "toda sex", "ter e qui". */
+export function repeatText(weekdays: number[]): string {
+  const set = [...new Set(weekdays)].sort();
+  const key = set.join("");
+  if (key === "0123456") return "todo dia";
+  if (key === "12345") return "seg a sex";
+  if (key === "123456") return "seg a sáb";
+  if (key === "06") return "fim de semana";
+  // Semana começando na segunda.
+  const names = [...set].sort((a, b) => ((a + 6) % 7) - ((b + 6) % 7)).map((d) => WEEKDAY_SHORT[d].toLowerCase());
+  if (names.length === 1) return `toda ${names[0]}`;
+  return `${names.slice(0, -1).join(", ")} e ${names.at(-1)}`;
+}

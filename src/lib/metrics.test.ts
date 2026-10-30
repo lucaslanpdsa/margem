@@ -1,5 +1,5 @@
 import { findConflicts, mergeBreaks, slotEventText, slotEvents, taskTimeBlocks } from "./schedule";
-import { entryTimes, parseDuration, parseQuickAdd, parseTimeEntry } from "./dates";
+import { entryTimes, parseDuration, parseQuickAdd, parseTimeEntry, repeatText } from "./dates";
 import { describe, expect, it } from "vitest";
 import { dayMetrics, isReminder, tracksTime } from "./metrics";
 import { streak, taskWeek, weekHistory } from "./week";
@@ -12,6 +12,7 @@ import { autoOrder, displayOrder, firstNotFitting, fmtClock, moveInQueue, orderI
 import { MIN_SAMPLES, calibrate, isAccurate, likelyMin, samples } from "./calibration";
 import { daysToClose, planFit } from "./closing";
 import { captureKind, parseCapture } from "./capture";
+import { matchesFilter, sortTasks, taskSummary, whenOf } from "./tasklist";
 import { agendaBreaks, eventsOn, type AgendaEvent } from "./agenda";
 import { pontoState, punchesFromSessions, weekWork, workDay, workFromTask } from "./ponto";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
@@ -715,16 +716,16 @@ describe("captura em uma linha", () => {
   const c = (s: string) => parseCapture(s, T);
 
   it("só título vai para Depois", () => {
-    expect(c("Ideia: vender cursos")).toEqual({ title: "Ideia: vender cursos", minutes: null, date: null });
+    expect(c("Ideia: vender cursos")).toEqual({ title: "Ideia: vender cursos", minutes: null, date: null, weekdays: null });
     expect(captureKind(c("Ideia: vender cursos"))).toBe("later");
   });
 
   it("tempo sem dia vai para Depois com tempo", () => {
-    expect(c("Estudar Docker 1h")).toEqual({ title: "Estudar Docker", minutes: 60, date: null });
+    expect(c("Estudar Docker 1h")).toEqual({ title: "Estudar Docker", minutes: 60, date: null, weekdays: null });
   });
 
   it("dia sem tempo é lembrete", () => {
-    expect(c("Pagar luz dia 10")).toEqual({ title: "Pagar luz", minutes: null, date: "2026-11-10" });
+    expect(c("Pagar luz dia 10")).toEqual({ title: "Pagar luz", minutes: null, date: "2026-11-10", weekdays: null });
     expect(c("Pagar luz dia 30").date).toBe("2026-10-30");
     expect(captureKind(c("Pagar luz dia 10"))).toBe("reminder");
   });
@@ -733,7 +734,7 @@ describe("captura em uma linha", () => {
     expect(c("Ligar pro mecânico amanhã").date).toBe("2026-10-30");
     expect(c("Ligar pro mecânico amanhã").title).toBe("Ligar pro mecânico");
     expect(c("Ver pneu hoje").date).toBe(T);
-    expect(c("Ver pneu depois de amanhã")).toEqual({ title: "Ver pneu", minutes: null, date: "2026-10-31" });
+    expect(c("Ver pneu depois de amanhã")).toEqual({ title: "Ver pneu", minutes: null, date: "2026-10-31", weekdays: null });
     expect(c("Mercado na sexta").date).toBe("2026-10-30");
     expect(c("Mercado na sexta").title).toBe("Mercado");
     expect(c("Revisão quinta-feira").date).toBe("2026-11-05");
@@ -747,15 +748,15 @@ describe("captura em uma linha", () => {
   });
 
   it("dia e tempo em qualquer ordem viram tarefa", () => {
-    expect(c("Simulado amanhã 2h")).toEqual({ title: "Simulado", minutes: 120, date: "2026-10-30" });
-    expect(c("Simulado 2h amanhã")).toEqual({ title: "Simulado", minutes: 120, date: "2026-10-30" });
+    expect(c("Simulado amanhã 2h")).toEqual({ title: "Simulado", minutes: 120, date: "2026-10-30", weekdays: null });
+    expect(c("Simulado 2h amanhã")).toEqual({ title: "Simulado", minutes: 120, date: "2026-10-30", weekdays: null });
     expect(captureKind(c("Simulado amanhã 2h"))).toBe("task");
   });
 
   it("nunca come o título inteiro", () => {
-    expect(c("amanhã")).toEqual({ title: "amanhã", minutes: null, date: null });
-    expect(c("1h")).toEqual({ title: "1h", minutes: null, date: null });
-    expect(c("Ir na sexta")).toEqual({ title: "Ir", minutes: null, date: "2026-10-30" });
+    expect(c("amanhã")).toEqual({ title: "amanhã", minutes: null, date: null, weekdays: null });
+    expect(c("1h")).toEqual({ title: "1h", minutes: null, date: null, weekdays: null });
+    expect(c("Ir na sexta")).toEqual({ title: "Ir", minutes: null, date: "2026-10-30", weekdays: null });
   });
 });
 
@@ -1016,5 +1017,91 @@ describe("Google Agenda: compromissos saem do tempo do dia", () => {
 
   it("sem agenda, nada muda", () => {
     expect(dayMetrics(D, settings, none, blocks, [], early).capacityMin).toBe(240);
+  });
+});
+
+describe("captura: tarefa que repete", () => {
+  const T = "2026-10-30"; // sexta
+  const p = (t: string) => parseCapture(t, T);
+
+  it("entende os jeitos comuns de dizer os dias", () => {
+    expect(p("Academia seg a sex 1h")).toMatchObject({ title: "Academia", weekdays: [1, 2, 3, 4, 5], minutes: 60, date: null });
+    expect(p("Inglês ter e qui 45m")).toMatchObject({ title: "Inglês", weekdays: [2, 4], minutes: 45 });
+    expect(p("Corrida seg, qua e sex")).toMatchObject({ title: "Corrida", weekdays: [1, 3, 5] });
+    expect(p("Meditar todo dia 10m")).toMatchObject({ title: "Meditar", weekdays: [0, 1, 2, 3, 4, 5, 6], minutes: 10 });
+    expect(p("Faxina fim de semana 2h")).toMatchObject({ title: "Faxina", weekdays: [0, 6] });
+    expect(p("Feira toda sexta")).toMatchObject({ title: "Feira", weekdays: [5] });
+    expect(p("Aula às terças 1h30")).toMatchObject({ title: "Aula", weekdays: [2], minutes: 90 });
+    expect(p("Estudar dias úteis 1h")).toMatchObject({ title: "Estudar", weekdays: [1, 2, 3, 4, 5] });
+    expect(p("Plantão sex a seg")).toMatchObject({ weekdays: [0, 1, 5, 6] });
+  });
+
+  it("um dia sozinho continua sendo data", () => {
+    expect(p("Ligar pro banco sexta")).toMatchObject({ title: "Ligar pro banco", weekdays: null, date: "2026-11-06" });
+    expect(p("Revisar PR amanhã 45m")).toMatchObject({ weekdays: null, date: "2026-10-31", minutes: 45 });
+  });
+
+  it("vira tarefa que repete", () => {
+    expect(captureKind(p("Inglês ter e qui 45m"))).toBe("routine");
+    expect(captureKind(p("Ligar pro banco"))).toBe("later");
+  });
+
+  it("dias em palavras", () => {
+    expect(repeatText([1, 2, 3, 4, 5])).toBe("seg a sex");
+    expect(repeatText([0, 1, 2, 3, 4, 5, 6])).toBe("todo dia");
+    expect(repeatText([2, 4])).toBe("ter e qui");
+    expect(repeatText([0, 1, 3])).toBe("seg, qua e dom");
+    expect(repeatText([5])).toBe("toda sex");
+  });
+});
+
+describe("lista de tarefas", () => {
+  const T = "2026-10-30"; // sexta
+  const mk = (o: Partial<Task>): Task => ({ id: o.title ?? "x", title: "x", repeat: "once", estimateMin: 30, createdAt: "2026-10-01T10:00:00.000Z", ...o });
+  const late = mk({ title: "Atrasada", date: "2026-10-26" });
+  const today = mk({ title: "Hoje", date: T });
+  const next = mk({ title: "Sábado", date: "2026-10-31" });
+  const later = mk({ title: "Sem dia", later: true });
+  const luz = mk({ title: "Luz", date: T, estimateMin: 0 });
+  const done = mk({ title: "Feita", date: T, completedAt: `${T}T10:00:00.000Z` });
+  const off = mk({ title: "Parada", archived: true });
+  const study = mk({ title: "Estudar", repeat: "weekdays", weekdays: [1, 2, 3, 4, 5], estimateMin: 60 });
+
+  it("diz quando é cada uma", () => {
+    expect(whenOf(late, T)).toMatchObject({ bucket: "late" });
+    expect(whenOf(today, T).label).toBe("Hoje");
+    expect(whenOf(next, T).label).toBe("Amanhã");
+    expect(whenOf(later, T).label).toBe("Depois");
+    expect(whenOf(study, T).label).toBe("Seg a sex");
+    expect(whenOf(done, T).label).toBe("Feita hoje");
+  });
+
+  it("filtros separam sem repetir", () => {
+    const all = [late, today, next, later, luz, done, off, study];
+    const pick = (f: Parameters<typeof matchesFilter>[1]) => all.filter((t) => matchesFilter(t, f, T)).map((t) => t.title);
+    expect(pick("all")).toEqual(["Atrasada", "Hoje", "Sábado", "Sem dia", "Luz", "Estudar"]);
+    expect(pick("routine")).toEqual(["Estudar"]);
+    expect(pick("reminders")).toEqual(["Luz"]);
+    expect(pick("once")).toEqual(["Atrasada", "Hoje", "Sábado", "Sem dia"]);
+    expect(pick("done")).toEqual(["Feita"]);
+    expect(pick("archived")).toEqual(["Parada"]);
+  });
+
+  it("por quando: atrasada, hoje, próximos, repetem, depois", () => {
+    const s = sortTasks([later, study, next, today, late], "when", T, () => ({ doneMin: 0 }));
+    expect(s.map((t) => t.title)).toEqual(["Atrasada", "Hoje", "Sábado", "Estudar", "Sem dia"]);
+  });
+
+  it("semana da que repete: feito, dias cumpridos e atraso", () => {
+    const ss: Session[] = [
+      { id: "1", taskId: "Estudar", date: "2026-10-26", minutes: 60, kind: "manual", startedAt: "", endedAt: "" },
+      { id: "2", taskId: "Estudar", date: "2026-10-27", minutes: 30, kind: "manual", startedAt: "", endedAt: "" },
+    ];
+    const w = taskSummary(study, ss, T, "2026-10-01").week!;
+    expect(w.plannedMin).toBe(300);
+    expect(w.doneMin).toBe(90);
+    expect(w.metDays).toBe(1);
+    expect(w.plannedDays).toBe(5);
+    expect(w.behindMin).toBe(150);
   });
 });

@@ -7,6 +7,7 @@ import { addTask, deleteTask, moveToLater, replaceTask, restoreTaskPlace, setDay
 import { isReminder, isTimeTask, overdue, tracksTime, type DayMetrics } from "@/lib/metrics";
 import { parseCapture } from "@/lib/capture";
 import { ReminderRow, TimeChips, saveCapture } from "./Later";
+import { repeatText } from "@/lib/dates";
 import { CloseDayCard, PlanDayCard, PlanDayDialog } from "./PlanClose";
 import { displayOrder, firstNotFitting, fmtClock, moveInQueue, orderItems, projectDay, type Move } from "@/lib/queue";
 import type { Task } from "@/lib/types";
@@ -44,12 +45,18 @@ export function QuickAdd({ date }: { date: string }) {
   }
   async function later() {
     if (!c.title) return;
-    const id = await saveCapture(uid, { title: c.title, minutes: null, date: null });
+    const id = await saveCapture(uid, { title: c.title, minutes: null, date: null, weekdays: null });
     toast(`${c.title} foi para Depois`, { tone: "info", undo: () => deleteTask(uid, id) });
     setText("");
   }
-  function submit() {
+  async function submit() {
     if (!c.title) return;
+    // "Inglês ter e qui 45m": tarefa que repete.
+    if (c.weekdays) {
+      const id = await saveCapture(uid, c);
+      toast(`${c.title} criada: ${repeatText(c.weekdays)}`, { tone: "info", undo: () => deleteTask(uid, id) });
+      return setText("");
+    }
     if (c.minutes !== null) create(c.minutes);
     else editTask({ title: c.title, date: day, repeat: "once" });
   }

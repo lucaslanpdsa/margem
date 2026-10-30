@@ -198,22 +198,21 @@ Abre ao tocar numa tarefa no Dia, em Tarefas ou na semana (aí mostra o dia da c
 
 ---
 
-## Tarefas (`TasksPage.tsx`)
+## Tarefas (`TasksPage.tsx`, `tasklist.ts`)
 
 ![Tarefas](img/10-tarefas.png)
 
-Horário numa linha e a semana como agenda, na largura toda; no computador, "Repetem" ao lado de "Não repetem".
+Criar, organizar e acompanhar. **Um jeito no computador, outro no celular** (arrastar no celular é ruim).
 
 ![Tarefas no computador](img/18-tarefas-computador.png)
 
 | Bloco | Conteúdo e ações |
 |---|---|
-| Seu horário | uma linha: "Seu horário · Seg a Sex, 08:00–18:00 · Sáb, 09:00–12:00 · Almoço 12:00–13:00 · **Editar**" (no celular o horário desce para a linha de baixo) |
-| Esta semana / Próxima | 7 dias com quanto sobra (verde) ou falta (vermelho); tocar no dia abre o Dia. **Computador: calendário** com as tarefas nos horários delas (o seu horário em branco, fora dele cinza, linha vermelha no agora, "extra" em laranja, concluídas em verde e riscadas); tarefas sem horário numa faixa "sem horário" em cima, com o tempo. **Celular:** faixa de dias; tocar num dia mostra a lista dele embaixo (hoje aberto), cada linha com horário (ou "sem horário"), nome e tempo, e **Abrir o dia ›**. **Tocar numa tarefa abre o formulário dela** (editar) |
-| Buscar tarefa | filtra pelo nome, sem acentos |
-| Repetem | por linha: nome (abre a janela da tarefa), tempo editável, horário, "meta de tempo", "extra", botões **Seg…Dom** abaixo do nome (ligado = azul claro, desligado = contorno; largura toda no celular). Criação rápida "Nova que repete, ex: Academia 1h" (sem tempo abre o formulário) |
-| Não repetem | grupos Atrasadas, Hoje, Amanhã, Esta semana, Depois; por linha: nome (abre a janela), tempo editável, horário, data (menu: Hoje, Amanhã, Próxima segunda, Outro dia; com Desfazer). **Concluídas · últimos 7 dias** recolhido, com **Reabrir**. Criação rápida "Nova para hoje, ex: Revisar PR 45m" (sem tempo abre o formulário) |
-| Desativadas | recolhido; nome abre a edição; **Reativar** |
+| Criar (os dois) | um campo só, igual ao do Dia e do Depois: "Revisar PR amanhã 45m" (tarefa no dia), "Pagar luz dia 10" (lembrete), "Inglês ter e qui 45m" / "Academia seg a sex 1h" / "Feira toda sexta" (repete; sem tempo, 30min), "Ligar pro banco" (Depois). Embaixo, em palavras, o que vai criar; Enter cria, com Desfazer |
+| **Semana** (computador) | quadro com uma coluna por dia (‹ **Esta semana** ›). Topo da coluna: barra e "2h35 de 4h20 livres" (vermelho: "Não cabe: 30min a mais"; passado: "3h feitos de 3h15"), "Agenda 7h40". Cartões na **ordem da fila do dia** (prioridade: em cima vem primeiro), depois lembretes e concluídas/puladas. **Arrastar**: no mesmo dia muda a ordem; para outro dia muda o dia (só as de uma vez; as que repetem avisam que mudam na janela). Círculo conclui; nome abre a janela. **+ Adicionar** no fim cria no dia da coluna (sem tempo abre o formulário) |
+| **Lista** (computador) | filtros **Todas · Repetem · Uma vez · Lembretes · Concluídas** (14 dias) **· Desativadas** com contagem, e busca. Tabela: Tarefa (círculo; nas que repetem, conclui hoje se é dia dela, senão ícone ↻), **Quando** (de uma vez: menu de dia ali mesmo; que repete: "Seg a sex", abre a janela), **Tempo** (editável; "lembrete"; "sem tempo" em Depois), **Esta semana** (que repete: barra, "4h55 de 9h · 3 de 6 dias", "1h30 atrasado"; modo leve: só dias), **Estimado × real** (com 3+ vezes concluída com registro: "1,2× leva 1h48" ou "acerta"). Título da coluna ordena |
+| Celular | faixa da semana com o número e o rótulo ("livre", "não cabe", "feitos"); tocar abre o Dia. Mesmos filtros e busca; cartões agrupados em Atrasadas, Hoje, Próximos dias, Repetem, Depois (sem dia), Concluídas, Desativadas |
+| Seu horário | uma linha no fim: "Seu horário · Seg a Sex, 08:00–18:00 · … · **Editar**" |
 
 ## Seu horário (`ScheduleEditor.tsx`)
 

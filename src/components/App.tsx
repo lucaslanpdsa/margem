@@ -156,7 +156,7 @@ export function Shell() {
         ? "O que ainda não tem dia, e os lembretes"
         : tab === "foco"
         ? "Pomodoro ou cronômetro, com ou sem tarefa"
-        : "Seu horário e o que você faz em cada dia";
+        : "Crie, organize e acompanhe suas tarefas";
   const showNav = tab === "dia";
 
   return (

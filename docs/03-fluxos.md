@@ -19,13 +19,10 @@ flowchart LR
 
 ## 3.2 Montar a rotina (tarefas que repetem)
 
-1. **Tarefas** › campo "Nova que repete, ex: Academia 1h" › Enter.
-   - Com tempo no fim ("Academia 1h"): cria direto, nos dias que têm horário.
-   - Sem tempo ("Academia"): abre o formulário para completar.
-2. Ajustar os dias tocando em **Seg…Dom** na linha (não deixa ficar sem nenhum dia).
+1. **Tarefas** › campo de criar › escreva os dias no fim: "Academia seg, qua e sex 1h", "Inglês ter e qui 45m", "Estudar dias úteis 1h30", "Meditar todo dia 10m", "Feira toda sexta". Enter cria (sem tempo, 30min; o texto embaixo avisa).
+2. Mudar os dias ou o horário: toque no nome da tarefa (janela da tarefa).
 3. Ajustar o tempo tocando nele ("1h") e digitando ("1h30"), Enter.
-4. Para horário fixo ou "cumpro o tempo": toque na tarefa e mude em **Horário** ou **Como termina** (salva sozinho).
-5. Conferir **Esta semana** no topo de Tarefas: quanto sobra (verde) ou falta (vermelho) em cada dia, já contando as tarefas de uma vez. Tocar num dia abre o Dia naquela data.
+4. Conferir a semana: no computador, **Semana** mostra quanto cabe em cada dia; no celular, a faixa no topo ("livre" / "não cabe"). Tocar num dia (celular) abre o Dia.
 
 ## 3.3 Criar uma tarefa de uma vez
 
@@ -33,7 +30,8 @@ flowchart LR
 |---|---|---|
 | **Nova** (barra/botão) | o dia aberto no Dia | abre o formulário (tempo obrigatório) |
 | Dia › "Nova tarefa, ex: Revisar PR 45m" | o dia aberto | abre o formulário |
-| Tarefas › "Nova para hoje, ex: Revisar PR 45m" | hoje | abre o formulário |
+| Tarefas › campo de criar ("Revisar PR amanhã 45m") | o dia dito no texto; sem dia, vai para Depois | cria mesmo assim (lembrete com dia, ou Depois) |
+| Tarefas › Semana › **+ Adicionar** (computador) | o dia da coluna | abre o formulário |
 
 Formulário: Nome · Uma vez / Repete · dia (Hoje · Amanhã · Outro dia) · Quanto tempo leva · Mais opções (horário, como termina). **Criar**.
 
@@ -83,7 +81,7 @@ Regras:
 
 1. Tarefas de uma vez de dias anteriores, não concluídas, aparecem no Dia (só hoje) como aviso: **2 tarefas ficaram de dias anteriores · 1h05**.
 2. **Trazer para hoje** muda a data de todas; abrindo o aviso, **Hoje** traz uma por vez.
-3. Em Tarefas, elas aparecem no grupo **Atrasadas**, com a data em vermelho.
+3. Em Tarefas › Lista, aparecem primeiro, com "Atrasada · 28/10" em vermelho (tocar muda o dia).
 
 ## 3.8 Pomodoro (só ritmo, não registra)
 
@@ -119,7 +117,8 @@ stateDiagram-v2
 
 - **Desativar** (tarefas que repetem): toque na tarefa › Editar › Desativar. Some dos dias e vai para Tarefas › Desativadas › Reativar.
 - **Excluir**: formulário › Excluir (confirmação do navegador). Os registros continuam.
-- **Buscar**: Tarefas › Buscar tarefa (ignora acentos).
+- **Buscar e filtrar**: Tarefas › Lista › filtros (Repetem, Uma vez, Lembretes, Concluídas, Desativadas) e Buscar (ignora acentos).
+- **Prioridade**: Tarefas › Semana (computador): arraste o cartão para cima ou para baixo no dia. É a mesma ordem da fila do Dia.
 
 ## 3.12 Desfazer e erros
 
