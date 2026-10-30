@@ -56,6 +56,7 @@ export default function DevPreview() {
         logout: async () => {},
         deleteAccount: async () => {},
         billing: null,
+        agendaStatus: data.settings.agenda ? "ok" : "off",
       }}
     >
       <ToastProvider>

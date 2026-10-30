@@ -4,6 +4,15 @@ Registro do que foi decidido, e por quê, para não refazer o que já foi descar
 
 ## Out 2026
 
+### 30/10 — Google Agenda: horários na agenda, o Dia para as tarefas
+- O dono quer separar três coisas: **agenda** para se organizar com horários, **ponto** para ver que horas entrou e saiu do trabalho, **Dia/tempo** só para tarefas. As tasks do trabalho continuam no Jira.
+- **Google Agenda só leitura.** Compromissos com horário saem do tempo livre do dia, como pausas (`agendaBreaks` em `dayMetrics`), e a fila passa por cima deles. O app nunca cria nem muda eventos (sincronizar nos dois sentidos é onde esse tipo de integração quebra).
+- **Não contam**: evento de dia inteiro e evento marcado como **Disponível** no Google. É assim que um bloco de foco ("Estudar 19–21h"), que já é o tempo das tarefas, fica na agenda sem descontar em dobro. Convite recusado também não conta. Entram as agendas marcadas no Google.
+- Com ponto e agenda juntos, o mesmo horário conta uma vez (as pausas se juntam).
+- Acesso permanente guardado só no servidor (`agenda/{uid}`), para não pedir o Google de novo a cada hora. Custo: precisa de chave do Firebase e da chave secreta do Google na Vercel (`docs/09-ligar-google-agenda.md`). Para vender a assinatura com isso, o Google exige verificar o app (pode levar semanas); para o dono e testadores funciona sem.
+- Descartadas: agenda própria dentro do app (o dono já se organiza no Google) e voltar a agenda/calendário visual (removida em 16/10 por complicar). No Dia, a agenda é só uma lista curta, depois das tarefas no celular.
+- **Próximo passo a decidir:** com horários na agenda, o horário fixo nas tarefas, os conflitos e o "Cumpro o tempo" com horário podem sair.
+
 ### 29/10 (fim da tarde) — Trabalho vira ponto
 - O dono percebeu que misturava a contagem de horas do trabalho com o planejamento de tarefas. **O trabalho deixa de ser tarefa e vira ponto**: entrada, pausas, saída, jornada do dia, **saída prevista** e saldo da semana. As tarefas usam só o tempo **fora** do trabalho. Pesquisa e opções no documento "Margem — Ponto separado das tarefas".
 - **Caminho B (ponto simples)**. Regras da CLT (tolerância, banco de horas com prazo, avisos de intervalo, de hora extra e de 11h entre jornadas) ficaram para depois, só se fizer falta: o ponto do Margem é pessoal, não substitui o da empresa.

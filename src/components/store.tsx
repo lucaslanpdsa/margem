@@ -1,7 +1,7 @@
 "use client";
 
 import { GoogleAuthProvider, deleteUser, onAuthStateChanged, reauthenticateWithPopup, signInWithPopup, signOut, type User } from "firebase/auth";
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { dayKey, fromKey, shiftDay, todayKey, weekDays } from "@/lib/dates";
 import { addDays, differenceInCalendarDays } from "date-fns";
 import { SIGNED_IN_KEY } from "@/lib/legal";
@@ -9,6 +9,7 @@ import { deleteUserData, replaceTask, saveSettings, watchBilling, watchDays, wat
 import type { Billing } from "@/lib/plan";
 import { migrateTask } from "@/lib/migrate";
 import { taskTimeBlocks } from "@/lib/schedule";
+import { byDay, rangeFor, type AgendaEvent } from "@/lib/agenda";
 import { liveSession, migrateTimer } from "@/lib/timer";
 import { auth } from "@/lib/firebase";
 import { DEFAULT_SETTINGS, type Block, type DayDoc, type Session, type Settings, type Task } from "@/lib/types";
@@ -36,7 +37,13 @@ export interface Store {
   deleteAccount: () => Promise<void>;
   /** Situação da assinatura gravada pelo servidor (null = nunca assinou ou ainda não carregou). */
   billing: Billing | null;
+  /** Google Agenda: "off" = não conectado; "reconnect" = o acesso caiu; "error" = não deu para ler agora. */
+  agendaStatus?: AgendaStatus;
+  /** Lê o Google Agenda de novo agora. */
+  refreshAgenda?: () => void;
 }
+
+export type AgendaStatus = "off" | "loading" | "ok" | "error" | "reconnect";
 
 export const StoreCtx = createContext<Store | null>(null);
 const Ctx = StoreCtx;
@@ -127,6 +134,55 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     return () => subs.forEach((u) => u());
   }, [uid, fromDate]);
 
+  // Google Agenda (só leitura): da semana em foco até 2 semanas depois (e sempre hoje e os próximos 7 dias).
+  // Lido do servidor ao abrir, ao mudar de semana, ao voltar para o app e a cada 10 minutos.
+  const agendaOn = !!settings.agenda;
+  const agendaRange = useMemo(() => {
+    const t = todayKey();
+    const a = weekDays(date)[0];
+    const b = shiftDay(weekDays(date)[6], 7);
+    return { first: a < t ? a : t, last: b > shiftDay(t, 7) ? b : shiftDay(t, 7) };
+  }, [date]);
+  const [agenda, setAgenda] = useState<{ key: string; events: AgendaEvent[]; status: AgendaStatus }>({ key: "", events: [], status: "off" });
+  const agendaKey = `${uid}|${agendaRange.first}|${agendaRange.last}`;
+  const loadAgenda = useCallback(async () => {
+    const u = auth().currentUser;
+    if (!u || !agendaOn) return;
+    const { from, to } = rangeFor(agendaRange.first, agendaRange.last);
+    try {
+      const res = await fetch(`/api/agenda?de=${encodeURIComponent(from)}&ate=${encodeURIComponent(to)}`, { headers: { authorization: `Bearer ${await u.getIdToken()}` } });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) setAgenda({ key: agendaKey, events: data.events ?? [], status: "ok" });
+      // Falhou: mantém o que já tinha (sem internet não apaga os compromissos da tela).
+      else setAgenda((p) => ({ ...p, status: data.reconnect ? "reconnect" : "error" }));
+    } catch {
+      setAgenda((p) => ({ ...p, status: "error" }));
+    }
+  }, [agendaOn, agendaRange, agendaKey]);
+  useEffect(() => {
+    if (!uid || !agendaOn) return;
+    const first = setTimeout(loadAgenda, 0);
+    const id = setInterval(loadAgenda, 10 * 60000);
+    const onShow = () => document.visibilityState === "visible" && loadAgenda();
+    document.addEventListener("visibilitychange", onShow);
+    return () => {
+      clearTimeout(first);
+      clearInterval(id);
+      document.removeEventListener("visibilitychange", onShow);
+    };
+  }, [uid, agendaOn, loadAgenda]);
+  const agendaStatus: AgendaStatus = !agendaOn ? "off" : agenda.status === "off" ? "loading" : agenda.status;
+  // Os compromissos entram em days[dia].agenda (não é gravado): assim toda conta do dia (dayMetrics) já os vê.
+  const daysWithAgenda = useMemo(() => {
+    if (!agendaOn || !agenda.events.length || !agenda.key.startsWith(`${uid}|`)) return days;
+    const n = differenceInCalendarDays(fromKey(agendaRange.last), fromKey(agendaRange.first)) + 1;
+    const dates = Array.from({ length: n }, (_, i) => shiftDay(agendaRange.first, i));
+    const map = byDay(agenda.events, dates);
+    const out = { ...days };
+    for (const [d, list] of Object.entries(map)) out[d] = { ...out[d], agenda: list };
+    return out;
+  }, [days, agenda, agendaOn, agendaRange, uid]);
+
   // Horários fixos das tarefas, do início carregado até 2 semanas depois do dia em foco.
   const allBlocks = useMemo(() => {
     const last = shiftDay(weekDays(date)[6], 7);
@@ -160,7 +216,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     blocks: allBlocks,
     sessions: allSessions,
     settings,
-    days,
+    days: daysWithAgenda,
     settingsReady,
     dataReady: settingsReady && arrived.tasks === uid && arrived.sessions === `${uid}|${fromDate}` && arrived.days === `${uid}|${fromDate}`,
     date,
@@ -170,11 +226,15 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     },
     logout: () => signOut(auth()),
     billing,
+    agendaStatus,
+    refreshAgenda: loadAgenda,
     deleteAccount: async () => {
       const u = auth().currentUser;
       if (!u) return;
       // Confirma a identidade primeiro (o Google exige login recente para excluir), só então apaga.
       await reauthenticateWithPopup(u, new GoogleAuthProvider());
+      // Tira o acesso ao Google Agenda antes (o que fica guardado no servidor).
+      if (settings.agenda) await fetch("/api/agenda/desconectar", { method: "POST", headers: { authorization: `Bearer ${await u.getIdToken()}` } }).catch(() => {});
       await deleteUserData(u.uid);
       await deleteUser(u);
     },

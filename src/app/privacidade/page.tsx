@@ -20,6 +20,12 @@ export default function Privacidade() {
           <b>Conta Google:</b> nome, e-mail e foto, recebidos quando você entra com o Google. Não temos acesso à sua senha.
         </li>
         <li>
+          <b>Google Agenda (se você conectar):</b> lemos, só para mostrar e descontar do seu tempo livre, o título e o horário dos eventos das agendas que você
+          vê marcadas no Google. Os eventos não são guardados; guardamos apenas a autorização de leitura, que você pode tirar a qualquer momento (menu da conta ›
+          Google Agenda › Desconectar). O Margem nunca cria, muda ou apaga eventos. O uso segue a Política de Dados do Usuário dos Serviços de API do Google,
+          incluindo os requisitos de Uso Limitado.
+        </li>
+        <li>
           <b>O que você cadastra:</b> seu horário, tarefas, registros de tempo e notas, e as preferências do app (pomodoro, notificações).
         </li>
         <li>

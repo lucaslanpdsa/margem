@@ -4,6 +4,7 @@ import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { fmtMin, todayKey } from "@/lib/dates";
 import { dayMetrics, tracksTime } from "@/lib/metrics";
+import { AgendaCard } from "./Agenda";
 import { DayBudget } from "./CapacityPanel";
 import { DayLists } from "./DaySidebar";
 import { EstimateCard } from "./Estimates";
@@ -31,6 +32,10 @@ export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
         <PontoOffer />
         <PontoCard m={m} />
         <DayBudget m={m} />
+        {/* Agenda: no computador fica no resumo; no celular, depois das tarefas (o Dia é das tarefas). */}
+        <div className="hidden lg:block">
+          <AgendaCard m={m} />
+        </div>
         {track && (
           <div className="hidden space-y-4 lg:block">
             <WeekPanel />
@@ -40,6 +45,9 @@ export function DayView({ onGoTasks }: { onGoTasks: () => void }) {
       </div>
       <div className="min-w-0 space-y-4">
         <DayLists m={m} onGoTasks={onGoTasks} />
+        <div className="lg:hidden">
+          <AgendaCard m={m} />
+        </div>
         {track && (
           <div className="space-y-4 lg:hidden">
             <WeekPanel />

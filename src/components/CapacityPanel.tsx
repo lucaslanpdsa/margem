@@ -128,10 +128,11 @@ export function DayBudget({ m }: { m: DayMetrics }) {
   } else {
     headline = late ? `Não dá tempo: ${fmtMin(s.excess)} a mais` : `Dá tempo: sobram ${fmtMin(m.freeMin)}`;
     // Modo leve: o horário dos blocos (ex: Trabalho) já saiu da conta; o texto diz isso.
-    const blocked = [...new Set(m.items.filter((i) => i.block).map((i) => i.task.title))];
-    // Com ponto, o trabalho também já saiu: o que sobra é o tempo livre.
-    if (m.work?.intervals.length) blocked.unshift("o trabalho");
-    const free = blocked.length ? ` livres, fora d${blocked[0] === "o trabalho" ? "" : "e "}${blocked.join(" e ")},` : "";
+    const blocked = [...new Set(m.items.filter((i) => i.block).map((i) => `de ${i.task.title}`))];
+    // Com ponto e Google Agenda, o trabalho e os compromissos também já saíram: o que sobra é o tempo livre.
+    if (m.agendaMin > 0) blocked.unshift("dos compromissos");
+    if (m.work?.intervals.length) blocked.unshift("do trabalho");
+    const free = blocked.length ? ` livres, fora ${blocked.join(" e ")},` : "";
     const room = isToday ? `${late ? "só " : ""}${fmtMin(m.leftMin)}${free} até as ${m.window.end}` : `${fmtMin(m.capacityMin)}${free} de horário neste dia`;
     detail = `Você tem ${fmtMin(m.remainingMin)} de tarefas e ${room}.`;
   }

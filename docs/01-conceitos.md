@@ -27,6 +27,7 @@
 | **Seu dia** | Com ponto, o "Seu horário" vira o tempo disponível do dia inteiro (ex.: 07–23); as tarefas ficam com o que sobra fora do trabalho. |
 | **Depois** | Caixa do que ainda não tem dia (só o título basta). Não entra em nenhuma conta até ir para um dia. |
 | **Lembrete** | Tarefa de uma vez com dia e sem tempo (ex: pagar a luz). Aparece no dia, fora da fila e das contas. |
+| **Compromisso** | Evento com horário do Google Agenda (só leitura). Sai do tempo do dia, como pausa. Dia inteiro e "Disponível" não contam. |
 | **Bloco reservado** | No modo leve, tarefa "Cumpro o tempo" com horário: o horário dela sai do tempo do dia (como pausa). Não conta como feito nem deve tempo. |
 | **Modo leve** | Registrar tempo desligado: concluir pelo círculo já tira o tempo da tarefa do que falta; a conta do dia usa o relógio ("Já passou"). |
 | **Planejar o dia** | De manhã: escolher o que entra hoje (puxando de Depois, com o tempo num toque) e ver se cabe. |

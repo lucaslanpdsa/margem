@@ -47,6 +47,7 @@ src/app/page.tsx            página de vendas (servidor); quem já entrou vai pa
 src/app/app/page.tsx        o app (só no navegador)
 src/app/privacidade, termos páginas legais (LGPD); _site/ tem cabeçalho, rodapé e o redirecionamento
 src/app/api/assinatura/…    criar, sincronizar e cancelar assinatura; api/mercadopago = aviso do Mercado Pago
+src/app/api/agenda/…        eventos do Google Agenda (GET), conectar e desconectar
 src/app/dev/page.tsx        prévia com dados de exemplo (só em dev): /dev?cenario=…&abrir=…#aba
 src/dev/fixtures.ts         dados de exemplo e cenários da prévia
 src/components/
@@ -72,6 +73,7 @@ src/components/
   SlotAlerts.tsx            avisos de início/pausa/fim do horário das tarefas (app aberto)
   toast.tsx                 avisos de rodapé (Desfazer, erro de gravação), "Sem internet", useTimerActions (start/stop com aviso)
   DayMenu.tsx               menu Hoje/Amanhã/Próxima segunda/Outro dia (com quanto sobra em cada, quando recebe a tarefa)
+  Agenda.tsx                Google Agenda: cartão "Agenda" no Dia, janela do menu (conectar/desconectar), janela do Google (GIS)
   Ponto.tsx                 ponto do trabalho: cartão no Dia, marcações do dia, jornada (e transformar a tarefa Trabalho), convite
   Later.tsx                 aba Depois: capturar em uma linha, caixa "Depois", lembretes; TimeChips e LaterRow (usados no Dia)
   PlanClose.tsx             "Planejar o dia" (cartão + janela) e "Fechar o dia" (cartão à noite + janela)
@@ -90,6 +92,7 @@ src/lib/
   preview.ts                PREVIEW_UID da prévia
   dates.ts                  chaves de dia, durações ("3h 20m"), intervalos ("14:00-15:30"), nomes de dia
   migrate.ts                conversão de dados antigos (metas semanais)
+  agenda.ts                 Google Agenda: eventos do dia no fuso local, compromissos como pausas (pura e testada)
   ponto.ts                  ponto: estado, trabalhado, previsão da jornada (saída prevista), semana, transformar tarefa em ponto (pura e testada)
   capture.ts                captura em uma linha: título, dia e tempo no fim do texto (pura e testada)
   queue.ts                  fila do dia: ordem, mover, previsão de horário, ordem de exibição (pura e testada)
@@ -99,14 +102,15 @@ src/lib/
   week.ts                   semana da tarefa: meta (soma do planejado), atraso, histórico, dias seguidos (pura e testada)
   plan.ts                   Grátis/Pro a partir de billing e da data da conta (pura e testada)
   legal.ts                  responsável, e-mail de contato, preços, teste de 14 dias
-  server/                   só no servidor: firebase-admin (admin.ts) e Mercado Pago (mercadopago.ts)
+  server/                   só no servidor: firebase-admin (admin.ts), Mercado Pago (mercadopago.ts) e Google Agenda (google.ts)
 ```
 
 ## Modelo de dados (Firestore, `users/{uid}/…`)
 
 - `tasks/{id}`: `title`, `repeat` (`once` | `weekdays`), `estimateMin`, `date` (once), `weekdays` (0=dom), `slots` (horários), `doneBy` (`time` = conclui pelo tempo), `completedAt` (once), `completions`/`skipped`/`estimateFor` (mapas por dia `"yyyy-MM-dd"`), `goals` (objetivos do dia `{id, text, done}[]` por dia, ou na chave `"_"` para as de uma vez; ver `goals.ts`), `archived` (desativada), `estAtDone` (estimativa ao concluir pelo círculo, por dia ou `"_"`; ver `calibration.ts`), `later` (de uma vez na caixa "Depois": sem dia, fora de tudo), `createdAt`. De uma vez com `estimateMin: 0` = **lembrete** (`isReminder`).
-- `days/{yyyy-MM-dd}`: `order` (fila do dia, ids), `plannedMin`/`doneMin`/`closedAt` (fotografia gravada ao "Fechar o dia" ou na primeira abertura depois dele), `plannedAt` (planejou o dia), `punches` (ponto: ISO alternando entrada/saída) e `workEnded` (tocou em Sair).
+- `days/{yyyy-MM-dd}`: `order` (fila do dia, ids), `plannedMin`/`doneMin`/`closedAt` (fotografia gravada ao "Fechar o dia" ou na primeira abertura depois dele), `plannedAt` (planejou o dia), `punches` (ponto: ISO alternando entrada/saída) e `workEnded` (tocou em Sair). `agenda` (eventos do Google) **não é gravado**: o store junta o que veio de `/api/agenda`.
 - `sessions/{id}`: `taskId` ("" = sem tarefa), `date`, `minutes`, `kind` (`pomodoro` | `manual`), `startedAt`/`endedAt` (iguais = "sem horário"), `note`. O prefixo do id diz a origem: `sw-` cronômetro, outro = manual (`pomo-`/`pausa-` são de quando o pomodoro registrava).
+- `agenda/{uid}` (fora de `users/`): `refreshToken` do Google Agenda. **Só o servidor lê e grava.** `settings.agenda` (`connectedAt`) diz ao app que está conectado.
 - `billing/{uid}` (fora de `users/`): `status` (`active` | `pending` | `paused` | `cancelled` | `none`), `period`, `paidUntil`, `preapprovalId`, `updatedAt`. **Só o servidor grava** (regras em `firestore.rules`).
 - `meta/settings`: `windows` (horário por dia da semana), `breaks`, `windowOverrides` (por data), `focusMin`, `breakMin`, `autoStartFocus`, `autoStartBreaks`, `activeTimer` (cronômetro: `taskId`, `startedAt`), `pomodoro` (`phase`, `startedAt`, `durationMin`, `waiting`, `pausedLeftMs`, `count`/`countDate`, `taskId` = item da lista em foco), `pomodoroTasks` (lista do pomodoro: `id`, `title`, `est`, `done`, `checked`, `fromTaskId`; só pomodoros, nunca horas), `pomodoroSkip` (`date`, `ids`: tarefas deixadas de fora da importação hoje), `scheduleSet`, `onboarded`, `trackTime` (registrar tempo; sem valor = ligado; `tracksTime()`), `work` (jornada do ponto: `days`, `dailyMin`, `start`, `taskId` da antiga tarefa Trabalho, `since`), `pontoOfferDismissed`. Antigos e ignorados: `lastTimerMode`, `pendingAssign`.
 
@@ -122,6 +126,7 @@ Ver [`docs/01-conceitos.md`](docs/01-conceitos.md). Resumo:
 - Registro com menos de 1 minuto não é salvo (o usuário é avisado).
 - Modo leve (`trackTime: false`): nada que dependa de registro aparece (▶ só nas "Cumpro o tempo" sem horário). "Cumpro o tempo" com horário vira **bloco reservado** (`isBlockTask`, `DayItem.block`): o horário sai do tempo do dia como pausa (`mergeBreaks`), não deve nada e nada conta como feito.
 - Ponto: o trabalho sai do tempo do dia (marcado + o que falta da jornada, previsto pulando as pausas fixas) via `DayMetrics.breaks`; a fila usa as mesmas pausas. Previsto nunca conta como feito; dia passado sem saída não inventa horas. `dayMetrics(..., now, days[date])`.
+- Google Agenda: compromisso com horário (não "Disponível", não dia inteiro, não recusado) sai do tempo do dia como pausa (`agendaBreaks`), junto com as do ponto (`mergeBreaks`, nada conta duas vezes). Nunca conta como feito.
 - O que está em "Depois" (`later`) não entra em dia nenhum, não fica atrasado e não conta.
 - A previsão da fila soma o mesmo "Não cabe" do topo do dia (teste em `metrics.test.ts`). O app nunca reordena a fila sozinho.
 

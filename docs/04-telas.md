@@ -57,6 +57,7 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 - Nome e e-mail.
 - **Notificações**: ativadas / "Ativar" / bloqueadas no navegador (com instrução) / não suportadas. É o lugar fixo para ligar os avisos.
 - **Ponto do trabalho**: abre a Jornada do ponto (ou o Transformar em ponto).
+- **Google Agenda** (`Agenda.tsx`): explica o que conta e o que não conta, **Conectar Google Agenda** (janela do Google, só leitura) ou **Desconectar**.
 - **Registrar tempo** (chave): ligado = cronômetro em cada tarefa, "Sem registro", "O que você fez?", "Esta semana", encaixe e "Suas estimativas". Desligado (**modo leve**) = só as tarefas "Cumpro o tempo" têm ▶; o topo do Dia mostra "Já passou" no lugar de "Sem registro", e o dia encerrado mostra "4 de 6 tarefas feitas". Contas antigas começam ligadas; contas novas, desligadas. No modo leve, tarefa "Cumpro o tempo" com horário vira **bloco reservado**: na lista, relógio no lugar do círculo, "horário reservado", sem ▶ nem progresso, **Agora** enquanto acontece; no topo, "Xh livres, fora de Trabalho, até as 18:00".
 - **Plano** (só com a cobrança ligada): "Pro grátis · faltam N dias · Assinar", "Plano grátis · Conhecer o Pro" ou "Assinatura Pro · Ver ou cancelar".
 - **Seus dados**: **Baixar arquivo** (tudo da conta em JSON) e **Excluir conta…** (confirmação, pede o Google de novo, apaga tudo e volta para a página de vendas).
@@ -73,6 +74,8 @@ Fechar (X, Esc ou fora) pula e mantém o horário padrão.
 No computador, duas colunas: o topo do dia fica parado à esquerda e as tarefas e os registros rolam à direita.
 
 ![Dia no computador](img/17-dia-computador.png)
+
+**Agenda** (`Agenda.tsx`, só com Google Agenda conectado): compromissos do dia em ordem (dia inteiro primeiro, os que já passaram riscados), total que saiu do tempo livre e ↻ para ler de novo. "livre" = marcado como Disponível no Google (não desconta). Se o acesso cair, "Conectar de novo". No computador fica embaixo do topo do dia; no celular, depois das tarefas. O texto do topo vira "Xh livres, fora do trabalho e dos compromissos, até as 23:00".
 
 **Topo do dia**
 

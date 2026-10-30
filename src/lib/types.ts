@@ -1,5 +1,6 @@
 // Modelo de dados do Margem.
 // Tudo fica em users/{uid}/... no Firestore. Datas de dia usam a chave local "yyyy-MM-dd".
+import type { AgendaEvent } from "./agenda";
 
 export type RepeatKind =
   | "once" // uma vez, num dia (sem dia = hoje, de versões antigas)
@@ -54,6 +55,8 @@ export interface DayDoc {
   punches?: string[];
   /** Ponto: tocou em "Sair" (encerrou o trabalho do dia). */
   workEnded?: boolean;
+  /** Compromissos do Google Agenda neste dia. NÃO é gravado: o store junta aqui o que veio de /api/agenda (ver agenda.ts). */
+  agenda?: AgendaEvent[];
 }
 
 /** Jornada do ponto (meta/settings.work). O trabalho sai das tarefas e vira ponto: entrada, pausas e saída. */
@@ -203,6 +206,8 @@ export interface Settings {
   onboarded?: boolean;
   /** Já definiu o horário do dia (configuração nova, por horário). */
   scheduleSet?: boolean;
+  /** Google Agenda conectado (o acesso fica no servidor, em agenda/{uid}). Sem valor = não conectado. */
+  agenda?: { connectedAt: string } | null;
 }
 
 const WORKDAY: DayWindow = { start: "08:00", end: "18:00" };

@@ -1,6 +1,7 @@
 import { todayKey, weekdayOf } from "./dates";
 import { dayClock, mergeBreaks, slotsOf, toMin, windowFor } from "./schedule";
 import { hhmm, workDay, type WorkDay } from "./ponto";
+import { agendaBreaks } from "./agenda";
 import type { Block, BreakTime, DayDoc, DayWindow, Session, Settings, Task } from "./types";
 
 export interface DayItem {
@@ -32,8 +33,10 @@ export interface DayMetrics {
   ended: boolean; // o relógio passou do fim do horário (com blocos, o tempo livre pode acabar antes disso)
   /** Ponto do dia (marcações + previsão da jornada); null sem ponto ou fora de dia de trabalho. */
   work: WorkDay | null;
-  /** Pausas valendo no dia: as fixas + blocos reservados + trabalho do ponto (a fila usa as mesmas). */
+  /** Pausas valendo no dia: as fixas + blocos reservados + trabalho do ponto + compromissos do Google Agenda (a fila usa as mesmas). */
   breaks: BreakTime[];
+  /** Compromissos do Google Agenda que ocupam tempo neste dia (já entram em breaks). */
+  agendaMin: number;
   plannedMin: number; // soma das estimativas do dia
   doneMin: number; // tudo que foi trabalhado no dia
   idleMin: number; // tempo que já passou sem nada registrado
@@ -136,7 +139,9 @@ export function dayMetrics(
   // Blocos reservados (modo leve): os horários deles saem do tempo do dia, como pausas.
   const blockIds = new Set(raw.filter((i) => !i.outside && !i.skipped && isBlockTask(i.task, settings)).map((i) => i.task.id));
   const reserved = raw.filter((i) => blockIds.has(i.task.id)).flatMap((i) => slotsOf(i.task).map((s) => ({ label: i.task.title, start: s.start, end: s.end })));
-  const extra = [...reserved, ...workBreaks];
+  // Google Agenda: compromissos com horário (e não "Disponível") também saem do tempo do dia.
+  const agenda = agendaBreaks(day?.agenda, date);
+  const extra = [...reserved, ...workBreaks, ...agenda];
   const breaks = extra.length ? mergeBreaks([...settings.breaks, ...extra]) : settings.breaks;
   const clock = dayClock(extra.length ? { ...settings, breaks } : settings, date, now);
   const items = raw.map((i) => (blockIds.has(i.task.id) ? { ...i, block: true, remainingMin: 0 } : i));
@@ -160,6 +165,7 @@ export function dayMetrics(
     past: clock.past,
     work,
     breaks,
+    agendaMin: mergeBreaks(agenda).reduce((a, b) => a + toMin(b.end) - toMin(b.start), 0),
     ended: !!clock.window && (date < todayKey(now) || (date === todayKey(now) && now.getHours() * 60 + now.getMinutes() >= toMin(clock.window.end))),
     plannedMin,
     doneMin,

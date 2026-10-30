@@ -9,10 +9,11 @@ import { DEFAULT_SETTINGS, type DayDoc, type Session, type Settings, type Task }
 
 export { PREVIEW_UID } from "@/lib/preview";
 
-export type Scenario = "dia" | "ponto" | "fila" | "leve" | "noite" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
+export type Scenario = "dia" | "ponto" | "agenda" | "fila" | "leve" | "noite" | "sobra" | "apertado" | "timer" | "vazio" | "onboarding" | "entrar";
 export const SCENARIOS: { id: Scenario; label: string }[] = [
   { id: "dia", label: "Dia normal (com atrasada e sem registro)" },
   { id: "ponto", label: "Trabalho no ponto (trabalhando desde 13:00)" },
+  { id: "agenda", label: "Google Agenda conectado (trabalho e compromissos na agenda)" },
   { id: "fila", label: "Fila montada (ordem escolhida)" },
   { id: "leve", label: "Modo leve (sem registrar tempo), dia já planejado" },
   { id: "noite", label: "Horário de hoje acabou (Fechar o dia)" },
@@ -146,6 +147,23 @@ export function previewData(scenario: Scenario, now: number): PreviewData {
     ts = ts.map((t) => (t.id === "trabalho" ? { ...t, archived: true } : t));
     const at = (hm: string) => new Date(`${t0}T${hm}:00`).toISOString();
     days[t0] = { punches: [at("08:05"), at("12:02"), at("13:00")], plannedAt: at("08:06") };
+  }
+  if (scenario === "agenda") {
+    // Horários vêm do Google Agenda: trabalho e consulta descontam; "Estudar" (Disponível) e o dia inteiro não.
+    settings.agenda = { connectedAt: `${t0}T08:00:00.000Z` };
+    settings.windows = settings.windows.map((w) => (w ? { start: "07:00", end: "23:00" } : null));
+    ts = ts.filter((t) => t.id !== "trabalho");
+    const at = (hm: string) => new Date(`${t0}T${hm}:00`).toISOString();
+    const ev = (id: string, title: string, a: string, b: string, free = false) => ({ id, title, start: at(a), end: at(b), allDay: false, free });
+    days[t0] = {
+      agenda: [
+        { id: "aniv", title: "Aniversário do Pedro", start: t0, end: shiftDay(t0, 1), allDay: true, free: false },
+        ev("t1", "Trabalho", "08:00", "11:00"),
+        ev("t2", "Trabalho", "14:00", "18:00"),
+        ev("med", "Dentista", "19:00", "19:40"),
+        ev("est", "Estudar certificação", "20:00", "21:30", true),
+      ],
+    };
   }
   if (scenario === "leve") {
     settings.trackTime = false;

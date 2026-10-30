@@ -10,5 +10,9 @@ service cloud.firestore {
       allow read: if request.auth != null && request.auth.uid == uid;
       allow write: if false;
     }
+    // Acesso ao Google Agenda (refresh token): só o servidor lê e grava.
+    match /agenda/{uid} {
+      allow read, write: if false;
+    }
   }
 }

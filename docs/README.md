@@ -14,6 +14,7 @@ Esta pasta descreve o app como ele está (outubro de 2026): o que cada tela faz,
 | [6. Público-alvo](06-publico-alvo.md) | Pesquisa dos 3 públicos possíveis, recomendação e perguntas para validar |
 | [7. Plano da assinatura](07-plano-assinatura.md) | Fases para virar produto pago: validar, valor, vender, crescer |
 | [8. Ligar a cobrança](08-ligar-cobranca.md) | Passo a passo: Mercado Pago, chave do Firebase, Vercel e regras |
+| [9. Ligar o Google Agenda](09-ligar-google-agenda.md) | Passo a passo: API do Google Agenda, credenciais e variáveis na Vercel |
 | [Decisões](decisoes.md) | O que foi decidido e o que foi descartado, com o porquê |
 
 As imagens em [`img/`](img) são geradas pela prévia com dados de exemplo (`/dev`, só em desenvolvimento) com `python3 scripts/capturar-telas.py`, no celular (390px) e no computador (1280px).

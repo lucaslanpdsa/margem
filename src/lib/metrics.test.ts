@@ -12,6 +12,7 @@ import { autoOrder, displayOrder, firstNotFitting, fmtClock, moveInQueue, orderI
 import { MIN_SAMPLES, calibrate, isAccurate, likelyMin, samples } from "./calibration";
 import { daysToClose, planFit } from "./closing";
 import { captureKind, parseCapture } from "./capture";
+import { agendaBreaks, eventsOn, type AgendaEvent } from "./agenda";
 import { pontoState, punchesFromSessions, weekWork, workDay, workFromTask } from "./ponto";
 import { DEFAULT_SETTINGS, type Block, type Session, type Settings, type Task } from "./types";
 
@@ -969,5 +970,51 @@ describe("ponto: saldo só depois de começar", () => {
     const at = new Date(`${D}T18:00:00`);
     const p = [new Date(`${D}T08:00:00`).toISOString(), new Date(`${D}T17:30:00`).toISOString()];
     expect(weekWork(work, week, { [D]: { punches: p, workEnded: true } }, at).balanceMin).toBe(90);
+  });
+});
+
+// ---------- Google Agenda ----------
+
+describe("Google Agenda: compromissos saem do tempo do dia", () => {
+  // Horários no fuso do aparelho (o teste vale em qualquer fuso).
+  const at = (day: string, hm: string) => new Date(`${day}T${hm}:00`).toISOString();
+  const ev = (id: string, s: string, e: string, extra: Partial<AgendaEvent> = {}): AgendaEvent => ({ id, title: id, start: at(D, s), end: at(D, e), allDay: false, free: false, ...extra });
+  const none: Task[] = [];
+
+  it("compromisso com horário desconta do tempo do dia", () => {
+    const m = dayMetrics(D, settings, none, blocks, [], early, { agenda: [ev("consulta", "15:00", "16:00")] });
+    expect(m.capacityMin).toBe(180);
+    expect(m.agendaMin).toBe(60);
+    expect(m.breaks.map((b) => b.label)).toContain("consulta");
+  });
+
+  it("'Disponível' e dia inteiro aparecem, mas não descontam", () => {
+    const agenda = [ev("Estudar", "14:00", "16:00", { free: true }), { id: "feriado", title: "Feriado", start: D, end: "2026-10-17", allDay: true, free: false }];
+    const m = dayMetrics(D, settings, none, blocks, [], early, { agenda });
+    expect(m.capacityMin).toBe(240);
+    expect(m.agendaMin).toBe(0);
+    expect(eventsOn(agenda, D).map((d) => d.event.id).sort()).toEqual(["Estudar", "feriado"]);
+  });
+
+  it("compromissos que se sobrepõem não descontam o mesmo minuto duas vezes", () => {
+    const m = dayMetrics(D, settings, none, blocks, [], early, { agenda: [ev("a", "15:00", "16:00"), ev("b", "15:30", "16:30")] });
+    expect(m.capacityMin).toBe(150);
+    expect(m.agendaMin).toBe(90);
+  });
+
+  it("junto com o ponto, o mesmo horário conta uma vez só", () => {
+    const work = { days: [5], dailyMin: 120, start: "14:00" };
+    const m = dayMetrics(D, { ...settings, work }, none, blocks, [], early, { agenda: [ev("Trabalho", "14:00", "16:00")] });
+    expect(m.capacityMin).toBe(120);
+  });
+
+  it("evento que atravessa a meia-noite é cortado no dia", () => {
+    const e: AgendaEvent = { id: "x", title: "Plantão", start: at("2026-10-15", "23:00"), end: at(D, "01:00"), allDay: false, free: false };
+    expect(agendaBreaks([e], D)).toEqual([{ label: "Plantão", start: "00:00", end: "01:00" }]);
+    expect(agendaBreaks([e], "2026-10-15")).toEqual([{ label: "Plantão", start: "23:00", end: "24:00" }]);
+  });
+
+  it("sem agenda, nada muda", () => {
+    expect(dayMetrics(D, settings, none, blocks, [], early).capacityMin).toBe(240);
   });
 });
